@@ -11,7 +11,7 @@ export function Skeleton({ className = "" }: { className?: string }): JSX.Elemen
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded bg-slate-200/80 ${className}`.trim()}
+      className={`animate-pulse rounded bg-line/80 ${className}`.trim()}
     />
   );
 }
@@ -35,7 +35,7 @@ export function SkeletonRegion({
 /** A business/listing card placeholder. */
 export function CardSkeleton(): JSX.Element {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-lg border border-line bg-surface p-4">
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="mt-2 h-3 w-1/3" />
       <Skeleton className="mt-3 h-3 w-full" />
@@ -51,7 +51,7 @@ export function CardSkeleton(): JSX.Element {
 /** A table row placeholder, for the leads inbox. */
 export function RowSkeleton(): JSX.Element {
   return (
-    <div className="flex items-start gap-4 border-b border-slate-100 py-3">
+    <div className="flex items-start gap-4 border-b border-line py-3">
       <Skeleton className="h-5 w-16 flex-none rounded-full" />
       <Skeleton className="h-4 flex-1" />
       <Skeleton className="hidden h-4 w-32 flex-none sm:block" />

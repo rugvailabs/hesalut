@@ -6,10 +6,8 @@
  *
  *   logo (home) · tabs · EN/FR · dark mode · account · More
  *
- * The dark-mode button shows on /explore only: dark mode is scoped to those
- * pages (lib/theme.ts), and elsewhere it would half-switch pages that still
- * hardcode colours. The language switch shows everywhere; outside /explore
- * it translates only the bar itself - those pages are English-only for now.
+ * Both switches work on every page: the language one re-renders the page in
+ * the chosen language, and dark mode is site-wide (lib/theme.ts).
  * The search
  * bar sits just under this header on the results page and sticks with it
  * (components/explore/ResultsStep.tsx); the dashboard is the search bar.
@@ -117,7 +115,7 @@ export default function ExploreHeader({ user }: { user: HeaderUser | null }): JS
               </button>
             ))}
           </div>
-          {pathname.startsWith("/explore") ? <ThemeToggle /> : null}
+          <ThemeToggle />
           {user === null || !user.isOwner ? (
             // Owner sign-up starts here; /register also converts a customer.
             <Link

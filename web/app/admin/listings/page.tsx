@@ -69,10 +69,10 @@ export default async function AdminListingsPage({
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
 
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-ink">
         {t("admin.listings.title")}
       </h1>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-ink-muted">
         {t("admin.listings.intro")}
       </p>
 
@@ -95,8 +95,8 @@ export default async function AdminListingsPage({
               aria-current={selected ? "page" : undefined}
               className={`rounded-md px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
                 selected
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                  ? "bg-ink text-ink-inverse"
+                  : "border border-line-strong bg-surface text-ink hover:bg-surface-muted"
               }`}
             >
               {t("admin.listings.tabCount", {

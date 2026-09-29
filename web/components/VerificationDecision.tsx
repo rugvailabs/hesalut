@@ -106,7 +106,7 @@ export default function VerificationDecision({
       {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
       {status !== "pending" ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-muted">
           {t("admin.decision.alreadyDecided", {
             status: t(`admin.decision.statusWords.${status}`),
           })}
@@ -114,7 +114,7 @@ export default function VerificationDecision({
       ) : null}
 
       {rejecting ? (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-md border border-line bg-surface-muted p-4">
           <label htmlFor={`reason-${verificationId}`} className={LABEL}>
             {t("admin.decision.reasonLabel")}
           </label>
@@ -127,7 +127,7 @@ export default function VerificationDecision({
             placeholder={t("admin.decision.reasonPlaceholder")}
             autoFocus
           />
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-subtle">
             {t("admin.decision.reasonHint")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">

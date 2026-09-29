@@ -10,7 +10,7 @@ export default function VerificationDetailLoading(): JSX.Element {
       <Skeleton className="mt-3 h-7 w-72" />
       <Skeleton className="mt-2 h-4 w-56" />
       <SkeletonRegion label={t("admin.verification.loading")}>
-        <div className="mt-6 space-y-3 rounded-md border border-slate-200 bg-white p-4">
+        <div className="mt-6 space-y-3 rounded-md border border-line bg-surface p-4">
           <Skeleton className="h-5 w-48" />
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-4 w-full" />

@@ -12,10 +12,10 @@ import type { VerificationStatus } from "@/lib/types";
  * pending and gets different words (admin.kyc.<status>.label/hint).
  */
 const STYLES: Record<VerificationStatus | "none", string> = {
-  none: "bg-slate-100 text-slate-700 ring-slate-300",
-  pending: "bg-amber-50 text-amber-800 ring-amber-200",
-  verified: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  rejected: "bg-red-50 text-red-700 ring-red-200",
+  none: "bg-surface-muted text-ink ring-line-strong",
+  pending: "bg-warning-bg text-warning ring-warning/30",
+  verified: "bg-success-bg text-success ring-success/30",
+  rejected: "bg-danger-bg text-danger ring-danger/30",
 };
 
 export default function VerificationBadge({
@@ -37,7 +37,7 @@ export default function VerificationBadge({
         {t(`admin.kyc.${key}.label`)}
       </span>
       {showHint ? (
-        <span className="text-xs text-slate-500">{t(`admin.kyc.${key}.hint`)}</span>
+        <span className="text-xs text-ink-subtle">{t(`admin.kyc.${key}.hint`)}</span>
       ) : null}
     </span>
   );

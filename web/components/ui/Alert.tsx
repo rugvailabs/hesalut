@@ -18,22 +18,22 @@ type Tone = "error" | "warning" | "success" | "info";
 
 const TONES: Record<Tone, { className: string; icon: string; label: string }> = {
   error: {
-    className: "border-red-200 bg-red-50 text-red-800",
+    className: "border-danger/30 bg-danger-bg text-danger",
     icon: "!",
     label: "discover.feedback.error",
   },
   warning: {
-    className: "border-amber-200 bg-amber-50 text-amber-900",
+    className: "border-warning/30 bg-warning-bg text-warning",
     icon: "!",
     label: "discover.feedback.warning",
   },
   success: {
-    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    className: "border-success/30 bg-success-bg text-success",
     icon: "✓",
     label: "discover.feedback.success",
   },
   info: {
-    className: "border-slate-200 bg-slate-50 text-slate-700",
+    className: "border-line bg-surface-muted text-ink",
     icon: "i",
     label: "discover.feedback.note",
   },

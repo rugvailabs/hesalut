@@ -10,10 +10,10 @@ import type { BusinessStatus } from "@/lib/types";
  * come from admin.status.<status>.label/hint.
  */
 const STYLES: Record<BusinessStatus, string> = {
-  pending: "bg-amber-50 text-amber-800 ring-amber-200",
-  approved: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  rejected: "bg-red-50 text-red-700 ring-red-200",
-  suspended: "bg-slate-200 text-slate-700 ring-slate-300",
+  pending: "bg-warning-bg text-warning ring-warning/30",
+  approved: "bg-success-bg text-success ring-success/30",
+  rejected: "bg-danger-bg text-danger ring-danger/30",
+  suspended: "bg-line text-ink ring-line-strong",
 };
 
 export default function StatusBadge({
@@ -34,7 +34,7 @@ export default function StatusBadge({
         {t(`admin.status.${status}.label`)}
       </span>
       {showHint ? (
-        <span className="text-xs text-slate-500">{t(`admin.status.${status}.hint`)}</span>
+        <span className="text-xs text-ink-subtle">{t(`admin.status.${status}.hint`)}</span>
       ) : null}
     </span>
   );

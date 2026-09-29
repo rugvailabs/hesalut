@@ -174,3 +174,15 @@
     outline-offset: 2px;
   }
 }
+
+/*
+ * Leaflet pop-ups are white by default. Their content uses the ink tokens, so
+ * in dark mode the pop-up itself must follow the theme or the text turns light
+ * on white. (Google Maps info windows keep fixed dark text instead - see
+ * components/maps - because Google's window can't be restyled the same way.)
+ */
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+  background: hsl(var(--surface));
+  color: hsl(var(--ink));
+}

@@ -91,7 +91,7 @@ export default function ProfileForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <label className="block">
-        <span className="mb-1 block text-sm font-medium text-slate-700">
+        <span className="mb-1 block text-sm font-medium text-ink">
           {t("dashboard.account.name")}
         </span>
         <input
@@ -107,9 +107,9 @@ export default function ProfileForm({
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium text-slate-700">
+        <span className="mb-1 block text-sm font-medium text-ink">
           {t("dashboard.account.phone")}{" "}
-          <span className="font-normal text-slate-500">{t("dashboard.common.optional")}</span>
+          <span className="font-normal text-ink-subtle">{t("dashboard.common.optional")}</span>
         </span>
         <input
           type="tel"
@@ -124,7 +124,7 @@ export default function ProfileForm({
       </label>
 
       <label className="block sm:w-56">
-        <span className="mb-1 block text-sm font-medium text-slate-700">
+        <span className="mb-1 block text-sm font-medium text-ink">
           {t("dashboard.account.preferredContact")}
         </span>
         <select

@@ -5,10 +5,10 @@ type Variant = "primary" | "secondary" | "ghost";
 type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-slate-900 text-white hover:bg-slate-700 disabled:hover:bg-slate-900",
+  primary: "bg-ink text-ink-inverse hover:bg-ink-muted disabled:hover:bg-ink",
   secondary:
-    "border border-slate-300 bg-white text-slate-900 hover:bg-slate-100 disabled:hover:bg-white",
-  ghost: "text-slate-700 hover:bg-slate-100 disabled:hover:bg-transparent",
+    "border border-line-strong bg-surface text-ink hover:bg-surface-muted disabled:hover:bg-surface",
+  ghost: "text-ink hover:bg-surface-muted disabled:hover:bg-transparent",
 };
 
 const SIZES: Record<Size, string> = {

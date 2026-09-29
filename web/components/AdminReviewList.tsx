@@ -80,8 +80,8 @@ export default function AdminReviewList({
   if (reviews.length === 0) {
     return (
       <Card>
-        <h2 className="font-semibold text-slate-900">{t("admin.reviewList.emptyTitle")}</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="font-semibold text-ink">{t("admin.reviewList.emptyTitle")}</h2>
+        <p className="mt-1 text-sm text-ink-muted">
           {t("admin.reviewList.emptyBody")}
         </p>
       </Card>
@@ -106,11 +106,11 @@ export default function AdminReviewList({
                   <div className="min-w-0">
                     <RatingStars locale={locale} rating={review.rating} showCount={false} />
                     {review.title !== null ? (
-                      <h2 className="mt-1 font-semibold text-slate-900">
+                      <h2 className="mt-1 font-semibold text-ink">
                         {review.title}
                       </h2>
                     ) : null}
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-ink-subtle">
                       {t("admin.reviewList.on")}{" "}
                       <a
                         href={`/business/${review.business_slug}`}
@@ -120,7 +120,7 @@ export default function AdminReviewList({
                       </a>
                     </p>
                   </div>
-                  <div className="text-right text-sm text-slate-500">
+                  <div className="text-right text-sm text-ink-subtle">
                     <div className="break-words">{review.author_name}</div>
                     {/* Admin surface, so identifying the author is the point. */}
                     <div className="break-all text-xs">{review.author_email}</div>
@@ -129,15 +129,15 @@ export default function AdminReviewList({
                 </div>
 
                 {review.body !== null ? (
-                  <p className="text-sm text-slate-700">{review.body}</p>
+                  <p className="text-sm text-ink">{review.body}</p>
                 ) : null}
 
                 {review.owner_reply !== null ? (
-                  <div className="rounded-md border-l-2 border-slate-300 bg-slate-50 px-3 py-2">
-                    <p className="text-xs font-medium text-slate-500">
+                  <div className="rounded-md border-l-2 border-line-strong bg-surface-muted px-3 py-2">
+                    <p className="text-xs font-medium text-ink-subtle">
                       {t("admin.reviewList.ownerReply")}
                     </p>
-                    <p className="mt-1 text-sm text-slate-700">
+                    <p className="mt-1 text-sm text-ink">
                       {review.owner_reply}
                     </p>
                   </div>

@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 type Tone = "neutral" | "success" | "info";
 
 const TONES: Record<Tone, string> = {
-  neutral: "bg-slate-100 text-slate-700 ring-slate-200",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  info: "bg-sky-50 text-sky-700 ring-sky-200",
+  neutral: "bg-surface-muted text-ink ring-line",
+  success: "bg-success-bg text-success ring-success/30",
+  info: "bg-brand-50 text-brand-700 ring-brand-200",
 };
 
 export default function Badge({

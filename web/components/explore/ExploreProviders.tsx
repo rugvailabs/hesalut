@@ -8,7 +8,7 @@
  * site-wide top bar and needs t() and the language switch on every page.
  *
  * ExploreProviders (app/explore/layout.tsx): what only the /explore flow
- * needs - the selection store and the dark-mode scope.
+ * needs - the selection store.
  *
  * The server renders in the language its cookie names (`initialLang`). On
  * mount, a saved localStorage choice that disagrees wins - the cookie may
@@ -23,7 +23,6 @@ import { I18nextProvider, useTranslation } from "react-i18next";
 import { ExploreStateProvider } from "@/components/explore/state";
 import { createExploreI18n, persistLanguage, readStoredLanguage } from "@/lib/explore-i18n";
 import { INTL_LOCALE, isLocale, type Locale } from "@/lib/i18n";
-import { preferredTheme } from "@/lib/theme";
 
 const SignedInContext = createContext(false);
 
@@ -62,14 +61,6 @@ export function SiteProviders({
 }
 
 export default function ExploreProviders({ children }: { children: React.ReactNode }): JSX.Element {
-  // Dark mode belongs to these pages (lib/theme.ts): on arrival by a
-  // client-side navigation the head script has not run, so apply it here;
-  // on the way out, take it off again.
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", preferredTheme() === "dark");
-    return () => document.documentElement.classList.remove("dark");
-  }, []);
-
   return <ExploreStateProvider>{children}</ExploreStateProvider>;
 }
 

@@ -100,8 +100,8 @@ export default function ModerationQueue({
   if (items.length === 0) {
     return (
       <Card>
-        <h2 className="font-semibold text-slate-900">{t("admin.queue.emptyTitle")}</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="font-semibold text-ink">{t("admin.queue.emptyTitle")}</h2>
+        <p className="mt-1 text-sm text-ink-muted">
           {t("admin.queue.emptyBody")}
         </p>
       </Card>
@@ -123,7 +123,7 @@ export default function ModerationQueue({
               <Card className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="font-semibold text-slate-900">
+                    <h2 className="font-semibold text-ink">
                       <Link
                         href={`/admin/listings/${item.id}`}
                         className="rounded hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
@@ -131,11 +131,11 @@ export default function ModerationQueue({
                         {item.name}
                       </Link>
                     </h2>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-ink-subtle">
                       {item.category_name} · {item.city}, {item.province}
                       {item.address !== null ? ` · ${item.address}` : ""}
                     </p>
-                    <p className="break-words text-sm text-slate-500">
+                    <p className="break-words text-sm text-ink-subtle">
                       {t("admin.queue.submitted", {
                         date: formatWhen(item.created_at, locale),
                       })}
@@ -151,10 +151,10 @@ export default function ModerationQueue({
                 </div>
 
                 {item.description !== null ? (
-                  <p className="text-sm text-slate-700">{item.description}</p>
+                  <p className="text-sm text-ink">{item.description}</p>
                 ) : null}
 
-                <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+                <div className="flex flex-wrap gap-3 text-sm text-ink-muted">
                   {item.phone !== null ? <span>{item.phone}</span> : null}
                   {item.website !== null ? (
                     <a
@@ -169,20 +169,20 @@ export default function ModerationQueue({
                 </div>
 
                 {item.moderation_note !== null ? (
-                  <div className="rounded-md border-l-2 border-slate-300 bg-slate-50 px-3 py-2">
-                    <p className="text-xs font-medium text-slate-500">
+                  <div className="rounded-md border-l-2 border-line-strong bg-surface-muted px-3 py-2">
+                    <p className="text-xs font-medium text-ink-subtle">
                       {t("admin.queue.previousNote")}
                     </p>
-                    <p className="mt-1 text-sm text-slate-700">
+                    <p className="mt-1 text-sm text-ink">
                       {item.moderation_note}
                     </p>
                   </div>
                 ) : null}
 
                 {promptFor?.id === item.id ? (
-                  <div className="rounded-md border border-slate-200 p-3">
+                  <div className="rounded-md border border-line p-3">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-700">
+                      <span className="mb-1 block text-sm font-medium text-ink">
                         {promptFor.action === "reject"
                           ? t("admin.queue.reasonReject")
                           : t("admin.queue.reasonSuspend")}

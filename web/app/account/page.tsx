@@ -32,50 +32,50 @@ export default async function AccountPage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
 
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-ink">
         {t("dashboard.account.title")}
       </h1>
-      <p className="mt-1 mb-6 text-sm text-slate-600">
+      <p className="mt-1 mb-6 text-sm text-ink-muted">
         {t("dashboard.account.subtitle")}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="sm:col-span-2">
-          <h2 className="mb-3 font-semibold text-slate-900">
+          <h2 className="mb-3 font-semibold text-ink">
             {t("dashboard.account.details")}
           </h2>
           <ProfileForm user={user} locale={locale} />
         </Card>
 
         <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
             {t("dashboard.account.account")}
           </h2>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="font-medium text-slate-700">
+              <dt className="font-medium text-ink">
                 {t("dashboard.account.email")}
               </dt>
-              <dd className="break-words text-slate-600">{user.email}</dd>
-              <dd className="mt-0.5 text-xs text-slate-500">
+              <dd className="break-words text-ink-muted">{user.email}</dd>
+              <dd className="mt-0.5 text-xs text-ink-subtle">
                 {t("dashboard.account.emailHint")}
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-slate-700">
+              <dt className="font-medium text-ink">
                 {t("dashboard.account.role")}
               </dt>
-              <dd className="text-slate-600">
+              <dd className="text-ink-muted">
                 {ROLES.includes(user.role)
                   ? t(`dashboard.account.roles.${user.role}`)
                   : user.role}
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-slate-700">
+              <dt className="font-medium text-ink">
                 {t("dashboard.account.memberSince")}
               </dt>
-              <dd className="text-slate-600">
+              <dd className="text-ink-muted">
                 {Number.isNaN(memberSince.getTime())
                   ? user.created_at
                   : memberSince.toLocaleDateString(INTL_LOCALE[locale], {

@@ -33,7 +33,7 @@ export default function RatingStars({
 
   if (rating === null) {
     return (
-      <span className={`text-sm text-slate-500 ${className}`.trim()}>
+      <span className={`text-sm text-ink-subtle ${className}`.trim()}>
         {t("listing.noReviews")}
       </span>
     );
@@ -60,15 +60,15 @@ export default function RatingStars({
       className={`inline-flex items-center gap-1.5 ${className}`.trim()}
       aria-label={label}
     >
-      <span aria-hidden="true" className="text-amber-500">
+      <span aria-hidden="true" className="text-rating">
         {FULL.repeat(rounded)}
-        <span className="text-slate-300">{EMPTY.repeat(5 - rounded)}</span>
+        <span className="text-ink-faint">{EMPTY.repeat(5 - rounded)}</span>
       </span>
-      <span aria-hidden="true" className="text-sm font-medium text-slate-900">
+      <span aria-hidden="true" className="text-sm font-medium text-ink">
         {shown}
       </span>
       {showCount && reviewCount !== undefined ? (
-        <span aria-hidden="true" className="text-sm text-slate-500">
+        <span aria-hidden="true" className="text-sm text-ink-subtle">
           ({reviewCount.toLocaleString(intl)})
         </span>
       ) : null}

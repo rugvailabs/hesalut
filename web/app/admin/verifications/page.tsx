@@ -77,10 +77,10 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
 
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-ink">
         {t("admin.verifications.title")}
       </h1>
-      <p className="mb-5 mt-1 text-sm text-slate-600">
+      <p className="mb-5 mt-1 text-sm text-ink-muted">
         {t("admin.verifications.intro")}
       </p>
 
@@ -96,16 +96,16 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
         </Alert>
       ) : queue.length === 0 ? (
         <Card>
-          <h2 className="font-semibold text-slate-900">
+          <h2 className="font-semibold text-ink">
             {t("admin.verifications.emptyTitle")}
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-ink-muted">
             {t("admin.verifications.emptyBody")}
           </p>
         </Card>
       ) : (
         <>
-          <p className="mb-3 text-sm text-slate-600">
+          <p className="mb-3 text-sm text-ink-muted">
             {t(
               queue.length === 1
                 ? "admin.verifications.countOne"
@@ -122,11 +122,11 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
                     <div className="min-w-0">
                       <Link
                         href={`/admin/verifications/${item.id}`}
-                        className="font-semibold text-slate-900 underline"
+                        className="font-semibold text-ink underline"
                       >
                         {item.business_name}
                       </Link>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-ink-subtle">
                         {t("admin.verifications.submitted", {
                           city: item.business_city,
                           date: formatWhen(item.submitted_at, locale),
@@ -210,11 +210,11 @@ function Row({
   const t = tFor(locale);
   return (
     <div className="flex gap-2">
-      <dt className="w-28 shrink-0 text-slate-500">{label}</dt>
-      <dd className="min-w-0 break-words text-slate-800">
-        {value ?? <span className="text-slate-400">{t("admin.common.notGiven")}</span>}
+      <dt className="w-28 shrink-0 text-ink-subtle">{label}</dt>
+      <dd className="min-w-0 break-words text-ink">
+        {value ?? <span className="text-ink-faint">{t("admin.common.notGiven")}</span>}
         {hasDocument ? (
-          <span className="ml-2 text-xs text-emerald-700">
+          <span className="ml-2 text-xs text-success">
             {t("admin.verifications.documentAttached")}
           </span>
         ) : null}

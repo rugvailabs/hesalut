@@ -47,10 +47,10 @@ export default async function AdminReviewsPage({
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
 
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-ink">
         {t("admin.reviews.title")}
       </h1>
-      <p className="mt-1 text-sm text-slate-600">{t("admin.reviews.intro")}</p>
+      <p className="mt-1 text-sm text-ink-muted">{t("admin.reviews.intro")}</p>
 
       <div className="mt-5">
         <AdminNav current="reviews" locale={locale} />
@@ -72,14 +72,14 @@ export default async function AdminReviewsPage({
         {q ? (
           <Link
             href="/admin/reviews"
-            className="inline-flex items-center rounded-md px-3 py-2 text-sm text-slate-700 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="inline-flex items-center rounded-md px-3 py-2 text-sm text-ink underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           >
             {t("admin.reviews.clear")}
           </Link>
         ) : null}
       </form>
 
-      <p className="mt-4 mb-3 text-sm text-slate-600">
+      <p className="mt-4 mb-3 text-sm text-ink-muted">
         {t(reviews.length === 1 ? "admin.reviews.countOne" : "admin.reviews.countMany", {
           count: reviews.length.toLocaleString(INTL_LOCALE[locale]),
         })}

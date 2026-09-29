@@ -83,12 +83,12 @@ export default async function AdminListingDetailPage({
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tight text-ink">
           {listing.name}
         </h1>
         <StatusBadge status={listing.status} showHint locale={locale} />
       </div>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-ink-muted">
         {listing.category_name} &middot; {listing.city}, {listing.province}
       </p>
       <div className="mt-2">
@@ -98,12 +98,12 @@ export default async function AdminListingDetailPage({
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <div className="space-y-4 md:col-span-2">
           <Card>
-            <h2 className="mb-2 font-semibold text-slate-900">
+            <h2 className="mb-2 font-semibold text-ink">
               {t("admin.listing.description")}
             </h2>
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-ink">
               {listing.description ?? (
-                <span className="text-slate-400">
+                <span className="text-ink-faint">
                   {t("admin.listing.noDescription")}
                 </span>
               )}
@@ -113,7 +113,7 @@ export default async function AdminListingDetailPage({
                 {listing.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700 ring-1 ring-inset ring-slate-200"
+                    className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink ring-1 ring-inset ring-line"
                   >
                     {tag}
                   </span>
@@ -123,10 +123,10 @@ export default async function AdminListingDetailPage({
           </Card>
 
           <Card>
-            <h2 className="mb-2 font-semibold text-slate-900">
+            <h2 className="mb-2 font-semibold text-ink">
               {t("admin.listing.location")}
             </h2>
-            <address className="not-italic text-sm text-slate-700">
+            <address className="not-italic text-sm text-ink">
               {listing.address !== null ? <div>{listing.address}</div> : null}
               <div>
                 {listing.city}, {listing.province}
@@ -142,7 +142,7 @@ export default async function AdminListingDetailPage({
                 />
               </div>
             ) : (
-              <p className="mt-2 text-sm text-amber-700">
+              <p className="mt-2 text-sm text-warning">
                 {t("admin.listing.noCoordinates")}
               </p>
             )}
@@ -151,7 +151,7 @@ export default async function AdminListingDetailPage({
           {/* The same buttons as the queue, so a decision made here behaves
               identically to one made from the list. */}
           <Card>
-            <h2 className="mb-3 font-semibold text-slate-900">
+            <h2 className="mb-3 font-semibold text-ink">
               {t("admin.listing.decision")}
             </h2>
             <ModerationQueue
@@ -163,47 +163,47 @@ export default async function AdminListingDetailPage({
 
         <aside className="space-y-4">
           <Card>
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
               {t("admin.listing.ownerContact")}
             </h2>
             <dl className="space-y-2 text-sm">
               <div>
-                <dt className="font-medium text-slate-700">{t("admin.listing.owner")}</dt>
-                <dd className="text-slate-600">
+                <dt className="font-medium text-ink">{t("admin.listing.owner")}</dt>
+                <dd className="text-ink-muted">
                   {listing.owner_id !== null
                     ? t("admin.listing.userId", { id: listing.owner_id })
                     : t("admin.listing.noOwner")}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-slate-700">{t("admin.listing.phone")}</dt>
-                <dd className="break-words text-slate-600">
+                <dt className="font-medium text-ink">{t("admin.listing.phone")}</dt>
+                <dd className="break-words text-ink-muted">
                   {listing.phone ?? t("admin.common.notListed")}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-slate-700">{t("admin.listing.whatsapp")}</dt>
-                <dd className="break-words text-slate-600">
+                <dt className="font-medium text-ink">{t("admin.listing.whatsapp")}</dt>
+                <dd className="break-words text-ink-muted">
                   {listing.whatsapp ?? t("admin.common.notListed")}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-slate-700">{t("admin.listing.email")}</dt>
-                <dd className="break-words text-slate-600">
+                <dt className="font-medium text-ink">{t("admin.listing.email")}</dt>
+                <dd className="break-words text-ink-muted">
                   {listing.email ?? t("admin.common.notListed")}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-slate-700">{t("admin.listing.website")}</dt>
-                <dd className="break-all text-slate-600">
+                <dt className="font-medium text-ink">{t("admin.listing.website")}</dt>
+                <dd className="break-all text-ink-muted">
                   {listing.website ?? t("admin.common.notListed")}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-slate-700">
+                <dt className="font-medium text-ink">
                   {t("admin.listing.priceRange")}
                 </dt>
-                <dd className="text-slate-600">{listing.price_range ?? "-"}</dd>
+                <dd className="text-ink-muted">{listing.price_range ?? "-"}</dd>
               </div>
             </dl>
           </Card>
@@ -211,16 +211,16 @@ export default async function AdminListingDetailPage({
           {listing.opening_hours !== null &&
           Object.keys(listing.opening_hours).length > 0 ? (
             <Card>
-              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
                 {t("admin.listing.openingHours")}
               </h2>
               <dl className="space-y-1 text-sm">
                 {Object.entries(listing.opening_hours).map(([day, ranges]) => (
                   <div key={day} className="flex justify-between gap-2">
-                    <dt className="capitalize text-slate-700">
+                    <dt className="capitalize text-ink">
                       {DAY_KEYS.has(day) ? t(`admin.listing.days.${day}`) : day}
                     </dt>
-                    <dd className="tabular-nums text-slate-600">
+                    <dd className="tabular-nums text-ink-muted">
                       {ranges.map((r) => `${r[0]}-${r[1]}`).join(", ")}
                     </dd>
                   </div>

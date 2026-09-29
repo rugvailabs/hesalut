@@ -70,10 +70,10 @@ export default async function VerificationDetailPage({
       <Link href="/admin/verifications" className="text-sm underline">
         &larr; {t("admin.verification.back")}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink">
         {item.business_name}
       </h1>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-ink-muted">
         {t("admin.verification.submitted", {
           city: item.business_city,
           date: formatWhen(item.submitted_at, locale),
@@ -119,7 +119,7 @@ export default async function VerificationDetailPage({
       ) : null}
 
       <Card className="mb-4">
-        <h2 className="mb-3 font-semibold text-slate-900">
+        <h2 className="mb-3 font-semibold text-ink">
           {t("admin.verification.submittedHeading")}
         </h2>
         <dl className="space-y-3 text-sm">
@@ -161,10 +161,10 @@ export default async function VerificationDetailPage({
       </Card>
 
       <Card className="mb-4">
-        <h2 className="mb-1 font-semibold text-slate-900">
+        <h2 className="mb-1 font-semibold text-ink">
           {t("admin.verification.documents")}
         </h2>
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-ink-subtle">
           {t("admin.verification.documentsIntro")}
         </p>
         <ul className="space-y-2 text-sm">
@@ -185,13 +185,13 @@ export default async function VerificationDetailPage({
             url={item.gst_document_url}
           />
         </ul>
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-ink-subtle">
           {t("admin.verification.documentsNote")}
         </p>
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-semibold text-slate-900">
+        <h2 className="mb-3 font-semibold text-ink">
           {t("admin.verification.decision")}
         </h2>
         <VerificationDecision
@@ -216,9 +216,9 @@ function Field({
 }): JSX.Element {
   return (
     <div className="flex flex-wrap gap-2">
-      <dt className="w-36 shrink-0 text-slate-500">{label}</dt>
-      <dd className="min-w-0 break-words text-slate-800">
-        {value ?? <span className="text-slate-400">{notGiven}</span>}
+      <dt className="w-36 shrink-0 text-ink-subtle">{label}</dt>
+      <dd className="min-w-0 break-words text-ink">
+        {value ?? <span className="text-ink-faint">{notGiven}</span>}
       </dd>
     </div>
   );
@@ -242,26 +242,26 @@ function DocumentLink({
   if (url === null) {
     return (
       <li className="flex flex-wrap items-center gap-2">
-        <span className="w-36 shrink-0 text-slate-500">{label}</span>
-        <span className="text-slate-400">{notSubmitted}</span>
+        <span className="w-36 shrink-0 text-ink-subtle">{label}</span>
+        <span className="text-ink-faint">{notSubmitted}</span>
       </li>
     );
   }
 
   return (
     <li className="flex flex-wrap items-center gap-2">
-      <span className="w-36 shrink-0 text-slate-500">{label}</span>
+      <span className="w-36 shrink-0 text-ink-subtle">{label}</span>
       <a
         href={`/api/admin/verifications/document?id=${id}&kind=${kind}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-slate-900 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+        className="font-medium text-ink underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
       >
         {openLabel}
       </a>
       {/* The stored reference, shown because a reviewer chasing a problem
           needs to know which object they are looking at. */}
-      <code className="break-all rounded bg-slate-100 px-1 text-xs text-slate-600">
+      <code className="break-all rounded bg-surface-muted px-1 text-xs text-ink-muted">
         {url}
       </code>
     </li>

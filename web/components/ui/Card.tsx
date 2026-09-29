@@ -14,8 +14,8 @@ export default function Card({
   return (
     <div
       className={[
-        "rounded-lg border border-slate-200 bg-white p-4 shadow-sm",
-        interactive ? "transition hover:border-slate-300 hover:shadow-md" : "",
+        "rounded-lg border border-line bg-surface p-4 shadow-sm",
+        interactive ? "transition hover:border-line-strong hover:shadow-md" : "",
         className,
       ]
         .filter(Boolean)

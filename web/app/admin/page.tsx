@@ -34,19 +34,19 @@ function Stat({
   intl: string;
 }): JSX.Element {
   return (
-    <Card className={urgent && value > 0 ? "border-amber-300 bg-amber-50" : undefined}>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+    <Card className={urgent && value > 0 ? "border-warning/40 bg-warning-bg" : undefined}>
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
         {label}
       </p>
       <p
         className={`mt-1 text-2xl font-bold tabular-nums ${
-          urgent && value > 0 ? "text-amber-900" : "text-slate-900"
+          urgent && value > 0 ? "text-warning" : "text-ink"
         }`}
       >
         {value.toLocaleString(intl)}
       </p>
       {hint !== undefined ? (
-        <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+        <p className="mt-0.5 text-xs text-ink-subtle">{hint}</p>
       ) : null}
     </Card>
   );
@@ -74,10 +74,10 @@ export default async function AdminHomePage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
 
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="text-2xl font-bold tracking-tight text-ink">
         {t("admin.overview.title")}
       </h1>
-      <p className="mt-1 mb-6 text-sm text-slate-600">
+      <p className="mt-1 mb-6 text-sm text-ink-muted">
         {t("admin.overview.intro")}
       </p>
 
@@ -143,10 +143,10 @@ export default async function AdminHomePage(): Promise<JSX.Element> {
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="font-semibold text-ink">
                 {t("admin.overview.listingsTitle")}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-ink-muted">
                 {t("admin.overview.listingsBody")}
               </p>
               <div className="mt-3">
@@ -161,10 +161,10 @@ export default async function AdminHomePage(): Promise<JSX.Element> {
             </Card>
 
             <Card>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="font-semibold text-ink">
                 {t("admin.overview.verificationTitle")}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-ink-muted">
                 {t("admin.overview.verificationBody")}
               </p>
               <div className="mt-3">
@@ -183,10 +183,10 @@ export default async function AdminHomePage(): Promise<JSX.Element> {
             </Card>
 
             <Card>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="font-semibold text-ink">
                 {t("admin.overview.reviewsTitle")}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-ink-muted">
                 {t("admin.overview.reviewsBody")}
               </p>
               <div className="mt-3">
@@ -199,7 +199,7 @@ export default async function AdminHomePage(): Promise<JSX.Element> {
         </>
       ) : null}
 
-      <p className="mt-8 text-sm text-slate-500">
+      <p className="mt-8 text-sm text-ink-subtle">
         <Link href="/" className="underline">
           {t("admin.overview.backToSite")}
         </Link>
