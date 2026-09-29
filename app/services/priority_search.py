@@ -23,11 +23,13 @@ Edge cases, all by construction rather than special-casing:
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import Float, String, and_, asc, case, desc, func, null, or_, select
+from sqlalchemy import Float, String, and_, asc, case, desc, func, null, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.core.visibility import join_verification, public_visibility_filters
@@ -41,6 +43,9 @@ EARTH_RADIUS_KM = 6371.0088
 # One degree of latitude is ~111 km everywhere; longitude shrinks with latitude.
 KM_PER_DEG_LAT = 110.574
 KM_PER_DEG_LNG = 111.320
+
+# The start of a Canadian postal code: A1A, A1A1, A1A1A or A1A1A1.
+POSTAL_PREFIX = re.compile(r"[A-Za-z]\d[A-Za-z](\d([A-Za-z]\d?)?)?")
 
 
 def _distance_km(lat: float, lng: float):
@@ -64,11 +69,84 @@ def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+#: Rating bands, [low, high). "5" is five stars exactly. Unrated listings are
+#: in no band - "unrated" is not a low score.
+RATING_BANDS: dict[str, tuple[float, float | None]] = {
+    "5": (5.0, None),
+    "4.5": (4.5, 5.0),
+    "4": (4.0, 4.5),
+    "3": (3.0, 4.0),
+}
+
+#: Hours requirements a search can ask for.
+HOURS_OPTIONS = ("open_now", "weekends", "evenings")
+
+# Opening hours are the business's local time. Every listing is in BC today;
+# a per-listing time zone column is what would replace this constant.
+LOCAL_TZ = ZoneInfo("America/Vancouver")
+DAY_KEYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")  # datetime.weekday() order
+
+# opening_hours is JSONB shaped {"mon": [["09:00", "17:00"], ...], ...}, but
+# some rows hold JSON null. jsonb_each / jsonb_array_elements raise on the
+# wrong type, so every access goes through these guards. "HH:MM" strings
+# compare correctly as text, and a range whose end is before its start runs
+# past midnight ("17:00"-"00:30").
+_HOURS = (
+    "(CASE WHEN jsonb_typeof(businesses.opening_hours) = 'object' "
+    "THEN businesses.opening_hours ELSE '{}'::jsonb END)"
+)
+
+
+def _day_ranges(day_param: str) -> str:
+    day = f"{_HOURS} -> :{day_param}"
+    return f"jsonb_array_elements(CASE WHEN jsonb_typeof({day}) = 'array' THEN {day} ELSE '[]'::jsonb END)"
+
+
+def _rating_band(band: str) -> Any:
+    low, high = RATING_BANDS[band]
+    clause = Business.rating >= low
+    return clause if high is None else and_(clause, Business.rating < high)
+
+
+def _hours_clause(requirement: str, moment: datetime) -> Any:
+    """SQL for one hours requirement, evaluated at `moment` in local time."""
+    if requirement == "weekends":
+        return text(
+            f"(jsonb_array_length(CASE WHEN jsonb_typeof({_HOURS} -> 'sat') = 'array' "
+            f"THEN {_HOURS} -> 'sat' ELSE '[]'::jsonb END) > 0 "
+            f"OR jsonb_array_length(CASE WHEN jsonb_typeof({_HOURS} -> 'sun') = 'array' "
+            f"THEN {_HOURS} -> 'sun' ELSE '[]'::jsonb END) > 0)"
+        )
+    if requirement == "evenings":
+        # Open at 8 pm or later on at least one day.
+        return text(
+            f"EXISTS (SELECT 1 FROM jsonb_each({_HOURS}) d, "
+            "jsonb_array_elements(CASE WHEN jsonb_typeof(d.value) = 'array' "
+            "THEN d.value ELSE '[]'::jsonb END) r "
+            "WHERE r ->> 1 >= '20:00' OR r ->> 1 < r ->> 0)"
+        )
+    if requirement == "open_now":
+        local = moment.astimezone(LOCAL_TZ)
+        return text(
+            f"(EXISTS (SELECT 1 FROM {_day_ranges('hours_today')} r "
+            "WHERE r ->> 0 <= :hours_now AND (r ->> 1 > :hours_now OR r ->> 1 < r ->> 0)) "
+            f"OR EXISTS (SELECT 1 FROM {_day_ranges('hours_yesterday')} r "
+            "WHERE r ->> 1 < r ->> 0 AND :hours_now < r ->> 1))"
+        ).bindparams(
+            hours_today=DAY_KEYS[local.weekday()],
+            hours_yesterday=DAY_KEYS[(local.weekday() - 1) % 7],
+            hours_now=local.strftime("%H:%M"),
+        )
+    raise ValueError(f"Unknown hours requirement: {requirement}")
+
+
 @dataclass(frozen=True)
 class SearchFilters:
     q: str | None = None
     category_slug: str | None = None
     city: str | None = None
+    # A postal code or its start ("V6B", "V6B 1A1"); matched ignoring spaces.
+    postal_code: str | None = None
     lat: float | None = None
     lng: float | None = None
     radius_km: float | None = None
@@ -76,6 +154,14 @@ class SearchFilters:
     sort: BusinessSort = BusinessSort.relevance
     page: int = 1
     page_size: int = 20
+    # Multi-select facets. Within one facet the choices are alternatives (any
+    # of these categories, any of these cities, any of these rating bands);
+    # every hours requirement must hold. Empty means "not filtered".
+    category_slugs: tuple[str, ...] = ()
+    cities: tuple[str, ...] = ()
+    rating_bands: tuple[str, ...] = ()
+    hours: tuple[str, ...] = ()
+    price_levels: tuple[str, ...] = ()
 
     @property
     def has_point(self) -> bool:
@@ -123,6 +209,9 @@ def sort_within_tier(r: Any, sort: BusinessSort, has_point: bool) -> list[Any]:
         order = [asc(r.name)]
     elif sort is BusinessSort.newest:
         order = [desc(r.created_at)]
+    elif sort is BusinessSort.price:
+        # "$" < "$$" < ... by length; NULL (not stated) after every price.
+        order = [asc(func.length(r.price_range)).nulls_last(), desc(r.rating).nulls_last()]
     else:
         # Relevance, within a tier: best rated first, then the closest when the
         # search has a point, then the longest-listed.
@@ -137,7 +226,9 @@ def get_nearby_services_with_priority(
     db: Session, filters: SearchFilters
 ) -> PrioritySearchResult:
     """Run a search, ordered by placement, and return one page of it."""
+    search = filters
     q, category_slug, city = filters.q, filters.category_slug, filters.city
+    postal_code = filters.postal_code
     lat, lng, radius_km = filters.lat, filters.lng, filters.radius_km
     min_rating, sort = filters.min_rating, filters.sort
     page, page_size = filters.page, filters.page_size
@@ -154,19 +245,45 @@ def get_nearby_services_with_priority(
     needle = _escape_like(q.strip()) if q else ""
     if needle:
         pattern = f"%{needle}%"
+        matches = [
+            Business.name.ilike(pattern, escape="\\"),
+            Business.description.ilike(pattern, escape="\\"),
+            Business.city.ilike(pattern, escape="\\"),
+            Business.address.ilike(pattern, escape="\\"),
+            Category.name.ilike(pattern, escape="\\"),
+        ]
+        # A postal code is typed as "V6B 1A1", "v6b1a1" or just the area
+        # ("V6B"), so compare with spaces removed on both sides, from the start.
+        compact = "".join(needle.split())
+        if POSTAL_PREFIX.fullmatch(compact):
+            matches.append(
+                func.replace(Business.postal_code, " ", "").ilike(
+                    f"{compact}%", escape="\\"
+                )
+            )
+        filters.append(or_(*matches))
+
+    slugs = {s for s in (category_slug, *search.category_slugs) if s}
+    if slugs:
+        filters.append(Category.slug.in_(sorted(slugs)))
+    places = {c.strip().lower() for c in (city, *search.cities) if c and c.strip()}
+    if places:
+        filters.append(func.lower(Business.city).in_(sorted(places)))
+    if search.rating_bands:
         filters.append(
-            or_(
-                Business.name.ilike(pattern, escape="\\"),
-                Business.description.ilike(pattern, escape="\\"),
-                Business.city.ilike(pattern, escape="\\"),
-                Category.name.ilike(pattern, escape="\\"),
+            or_(*(_rating_band(band) for band in sorted(set(search.rating_bands))))
+        )
+    if search.price_levels:
+        filters.append(Business.price_range.in_(sorted(set(search.price_levels))))
+    for requirement in sorted(set(search.hours)):
+        filters.append(_hours_clause(requirement, placement.now_utc()))
+    postal = "".join((postal_code or "").split())
+    if postal:
+        filters.append(
+            func.replace(Business.postal_code, " ", "").ilike(
+                f"{_escape_like(postal)}%", escape="\\"
             )
         )
-
-    if category_slug:
-        filters.append(Category.slug == category_slug)
-    if city:
-        filters.append(func.lower(Business.city) == city.strip().lower())
     if min_rating is not None:
         # NULL rating means "unrated", which must not satisfy a minimum.
         filters.append(Business.rating.is_not(None))
@@ -224,6 +341,8 @@ def get_nearby_services_with_priority(
                 Business.review_count,
                 Business.verified,
                 Business.created_at,
+                Business.price_range,
+                Business.opening_hours,
                 Category.slug.label("category_slug"),
                 Category.name.label("category_name"),
                 (distance if has_point else null().cast(Float)).label("distance_km"),
@@ -319,6 +438,9 @@ def get_nearby_services_with_priority(
                 rating=row["rating"],
                 review_count=row["review_count"],
                 verified=row["verified"],
+                price_range=row["price_range"],
+                opening_hours=row["opening_hours"] if isinstance(row["opening_hours"], dict) else None,
+                created_at=row["created_at"],
                 distance_km=round(row["distance_km"], 2) if has_point else None,
                 position=position,
                 in_rotation=row["spotlight"] == 0,

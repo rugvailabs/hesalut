@@ -142,6 +142,7 @@ _FIRST = {
     "distance": "closest",
     "name": "first by name",
     "newest": "newest",
+    "price": "lowest priced",
 }
 
 
@@ -173,6 +174,7 @@ def explain(
         "distance": "by distance",
         "name": "by name",
         "newest": "newest first",
+        "price": "by price",
     }[sort]
 
     # Inside Monthly, the rotation's leaders and the rest are ranked separately.

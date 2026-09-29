@@ -27,6 +27,8 @@ class BusinessSort(str, enum.Enum):
     distance = "distance"
     name = "name"
     newest = "newest"
+    # Cheapest first by price level ($ before $$$$); unpriced listings last.
+    price = "price"
 
 
 class CategoryOut(BaseModel):
@@ -64,6 +66,13 @@ class BusinessListItem(BaseModel):
     rating: float | None
     review_count: int
     verified: bool
+    # "$" to "$$$$", or None when the owner has not said.
+    price_range: str | None = None
+    # {"mon": [["09:00", "17:00"]], ...}, or None. Carried so a card can say
+    # "Open now" from the same data the profile page uses.
+    opening_hours: dict[str, Any] | None = None
+    # When the listing went up - for "Recently added".
+    created_at: datetime | None = None
     # Great-circle distance from the ?lat/?lng the caller passed. Absent from
     # every response that did not supply a point to measure from.
     distance_km: float | None = None
@@ -387,3 +396,27 @@ class AdminReviewItem(BaseModel):
     author_name: str
     author_email: str
     created_at: datetime
+
+
+class FavoriteOut(BaseModel):
+    """One saved listing, as the saved-listings panel shows it."""
+
+    business_id: int
+    slug: str
+    name: str
+    category_slug: str
+    category_name: str
+    city: str
+    province: str
+    phone: str | None
+    rating: float | None
+    review_count: int
+    saved_at: datetime
+
+
+class CityCount(BaseModel):
+    """A city with public listings, and how many."""
+
+    city: str
+    province: str
+    business_count: int

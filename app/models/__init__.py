@@ -12,6 +12,7 @@ from app.models.category import Category
 from app.models.chat import Conversation, Message
 from app.models.consent import Consent, ConsentType
 from app.models.enquiry import Enquiry, EnquiryType
+from app.models.favorite import Favorite
 from app.models.extracted_problem import ExtractedProblem, Urgency
 from app.models.match import Match, MatchType
 from app.models.message_sent import (
@@ -54,6 +55,7 @@ __all__ = [
     "Enquiry",
     "EnquiryType",
     "ExtractedProblem",
+    "Favorite",
     "Urgency",
     "Match",
     "MatchType",

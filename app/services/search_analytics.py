@@ -37,6 +37,12 @@ def _rounded(value: float | None) -> float | None:
     return round(value, 2) if value is not None else None
 
 
+def _joined(many: tuple[str, ...], one: str | None) -> str | None:
+    """Several categories or cities, comma-joined to fit the 128-character column."""
+    value = ",".join(many) or one
+    return value[:128] if value else None
+
+
 def record_impressions(
     session_factory: Callable[[], Session],
     *,
@@ -57,8 +63,8 @@ def record_impressions(
             "in_rotation": item.in_rotation,
             "user_id": user_id,
             "query": filters.q,
-            "category_slug": filters.category_slug,
-            "city": filters.city,
+            "category_slug": _joined(filters.category_slugs, filters.category_slug),
+            "city": _joined(filters.cities, filters.city),
             "sort": filters.sort.value,
             "latitude": _rounded(filters.lat),
             "longitude": _rounded(filters.lng),
