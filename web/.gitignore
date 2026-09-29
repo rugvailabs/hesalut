@@ -8,3 +8,5 @@ next-env.d.ts
 
 # Scratch HTML captured while testing pages with curl.
 /*.html
+
+.vercel
