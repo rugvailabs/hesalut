@@ -16,7 +16,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Alert, EmptyState } from "@/components/ds/feedback";
 import { RatingPill } from "@/components/ds/indicators";
 import { Button, Card } from "@/components/ds/primitives";
@@ -71,7 +70,6 @@ export default async function DashboardPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">

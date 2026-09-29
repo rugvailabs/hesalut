@@ -5,7 +5,6 @@
  * bar in its place would be a downgrade, not a placeholder.
  */
 
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
 
@@ -14,7 +13,6 @@ export default function DashboardLoading(): JSX.Element {
     <>
       {/* @ts-expect-error Async Server Component in a sync parent - allowed in
           the App Router, not yet expressible in the type system. */}
-      <SiteHeader locale="en" showSearch={false} />
 
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <Skeleton className="h-8 w-48" />

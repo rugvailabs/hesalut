@@ -13,7 +13,6 @@
 import Link from "next/link";
 
 import AdminNav from "@/components/AdminNav";
-import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
 import VerificationDecision from "@/components/VerificationDecision";
 import Alert from "@/components/ui/Alert";
@@ -64,7 +63,6 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      <Header />
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         Business verification

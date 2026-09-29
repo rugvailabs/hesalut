@@ -9,7 +9,6 @@
 import Link from "next/link";
 
 import AdminNav from "@/components/AdminNav";
-import Header from "@/components/Header";
 import Alert from "@/components/ui/Alert";
 import Card from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
@@ -67,7 +66,6 @@ export default async function AdminHomePage(): Promise<JSX.Element> {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <Header />
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Admin</h1>
       <p className="mt-1 mb-6 text-sm text-slate-600">

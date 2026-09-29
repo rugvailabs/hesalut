@@ -25,7 +25,6 @@ import { notFound } from "next/navigation";
 
 import TieredResults from "@/components/ds/TieredResults";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Breadcrumbs, EmptyState } from "@/components/ds/feedback";
 import { Button } from "@/components/ds/primitives";
 import { getCategories, searchBusinesses } from "@/lib/api";
@@ -121,7 +120,6 @@ export default async function CityCategoryPage({
 
   return (
     <>
-      <SiteHeader locale={locale} />
 
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <Breadcrumbs

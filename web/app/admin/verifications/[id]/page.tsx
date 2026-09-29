@@ -15,7 +15,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import AdminNav from "@/components/AdminNav";
-import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
 import VerificationBadge from "@/components/VerificationBadge";
 import VerificationDecision from "@/components/VerificationDecision";
@@ -61,7 +60,6 @@ export default async function VerificationDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <Header />
 
       <Link href="/admin/verifications" className="text-sm underline">
         &larr; Verification queue

@@ -21,7 +21,6 @@ import { redirect } from "next/navigation";
 import LoginForm from "@/components/LoginForm";
 import LogoutButton from "@/components/LogoutButton";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Button, Card } from "@/components/ds/primitives";
 import { getSession } from "@/lib/auth";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
@@ -54,7 +53,6 @@ export default function LoginPage({
       <>
         {/* @ts-expect-error Async Server Component in a sync parent - allowed
             in the App Router, not yet expressible in the type system. */}
-        <SiteHeader locale={locale} showSearch={false} />
 
         <main className="mx-auto max-w-md px-4 py-section sm:px-6">
           <Card className="p-6">
@@ -99,7 +97,6 @@ export default function LoginPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-md px-4 py-section sm:px-6">
         <h1 className="text-page-title text-ink">Sign in</h1>

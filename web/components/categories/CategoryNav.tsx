@@ -51,7 +51,7 @@ export default function CategoryNav({
   return (
     <nav
       aria-label="Category navigation"
-      className="sticky top-[61px] z-30 border-b border-line bg-surface max-[900px]:static"
+      className="sticky top-[65px] z-30 border-b border-line bg-surface max-[900px]:static"
     >
       <div className="mx-auto flex max-w-[1320px] gap-1 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex-none">

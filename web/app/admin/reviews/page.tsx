@@ -9,7 +9,6 @@ import Link from "next/link";
 
 import AdminReviewList from "@/components/AdminReviewList";
 import AdminNav from "@/components/AdminNav";
-import Header from "@/components/Header";
 import Alert from "@/components/ui/Alert";
 import { FIELD } from "@/components/ui/field";
 import Button from "@/components/ui/Button";
@@ -43,7 +42,6 @@ export default async function AdminReviewsPage({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <Header />
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         Review moderation

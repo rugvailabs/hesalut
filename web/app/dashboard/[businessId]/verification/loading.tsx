@@ -2,14 +2,12 @@
  * Verification skeleton: the two-gate panel, then the form.
  */
 
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
 
 export default function VerificationLoading(): JSX.Element {
   return (
     <>
-      <SiteHeader locale="en" showSearch={false} />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Skeleton className="h-4 w-28" />

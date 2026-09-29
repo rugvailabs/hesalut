@@ -12,7 +12,6 @@ import { ArrowLeft } from "lucide-react";
 
 import BusinessForm from "@/components/BusinessForm";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Button } from "@/components/ds/primitives";
 import { getCategories } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
@@ -28,7 +27,6 @@ export default async function NewListingPage(): Promise<JSX.Element> {
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">

@@ -31,7 +31,6 @@ import AllCategoriesBrowser, {
 import CategoryNav, { type NavCategory } from "@/components/categories/CategoryNav";
 import FooterQuickLinks from "@/components/categories/FooterQuickLinks";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { getCategories, searchBusinesses } from "@/lib/api";
 import {
   PROVINCES,
@@ -196,7 +195,6 @@ export default async function AllCategoriesPage({
 
   return (
     <>
-      <SiteHeader locale={locale} />
       <CategoryNav
         categories={navCategories}
         allCategoriesHref={allCategoriesHref}

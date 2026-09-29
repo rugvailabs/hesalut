@@ -23,7 +23,6 @@ import DashboardNav from "@/components/ds/DashboardNav";
 import OwnerReviewList from "@/components/OwnerReviewList";
 import RatingBreakdown from "@/components/ds/RatingBreakdown";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getMyBusiness, getReviewSummary, getReviews } from "@/lib/api";
@@ -81,7 +80,6 @@ export default async function DashboardReviewsPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">

@@ -153,7 +153,7 @@ export default function AllCategoriesBrowser({
         {/* --- A-Z rail ------------------------------------------------ */}
         <aside
           aria-label="Jump to letter"
-          className="sticky top-[118px] grid justify-items-center gap-px rounded-card border border-line bg-surface px-1 py-2
+          className="sticky top-[122px] grid justify-items-center gap-px rounded-card border border-line bg-surface px-1 py-2
                      max-[900px]:static max-[900px]:grid-flow-col max-[900px]:justify-start max-[900px]:overflow-x-auto"
         >
           {LETTERS.map((L) => {

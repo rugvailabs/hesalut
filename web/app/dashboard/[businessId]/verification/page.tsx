@@ -15,7 +15,6 @@ import { ArrowLeft } from "lucide-react";
 
 import DashboardNav from "@/components/ds/DashboardNav";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import VerificationForm from "@/components/VerificationForm";
 import { Alert } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
@@ -73,7 +72,6 @@ export default async function VerificationPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">

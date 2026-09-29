@@ -2,13 +2,11 @@
  * Leads skeleton: the four-column table, not a stack of generic cards.
  */
 
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ds/feedback";
 
 export default function LeadsLoading(): JSX.Element {
   return (
     <>
-      <SiteHeader locale="en" showSearch={false} />
 
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <Skeleton className="h-4 w-28" />

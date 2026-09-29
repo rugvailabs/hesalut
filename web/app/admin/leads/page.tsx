@@ -22,7 +22,6 @@ import { Download, Inbox } from "lucide-react";
 
 import AdminNav from "@/components/AdminNav";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Alert, EmptyState } from "@/components/ds/feedback";
 import { Badge, Button } from "@/components/ds/primitives";
 import { ApiError, getAdminEnquiries, getAdminStats } from "@/lib/api";
@@ -102,7 +101,6 @@ export default async function AdminLeadsPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <h1 className="text-page-title text-ink">Leads</h1>

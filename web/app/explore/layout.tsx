@@ -10,10 +10,8 @@
 
 import { cookies } from "next/headers";
 
-import ExploreHeader from "@/components/explore/ExploreHeader";
 import ExploreProviders from "@/components/explore/ExploreProviders";
 import SiteFooter from "@/components/ds/SiteFooter";
-import { getCurrentUser } from "@/lib/auth";
 import { LANG_COOKIE } from "@/lib/explore-i18n/constants";
 import { isLocale } from "@/lib/i18n";
 
@@ -26,11 +24,10 @@ export default async function ExploreLayout({
 }): Promise<JSX.Element> {
   const saved = cookies().get(LANG_COOKIE)?.value;
   const lang = isLocale(saved) ? saved : "en";
-  const user = await getCurrentUser().catch(() => null);
 
+  // The top bar and the language provider come from app/layout.tsx.
   return (
-    <ExploreProviders initialLang={lang} signedIn={user !== null}>
-      <ExploreHeader user={user ? { name: user.name, email: user.email } : null} />
+    <ExploreProviders>
       <main className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6">{children}</main>
       <SiteFooter locale={lang} />
     </ExploreProviders>

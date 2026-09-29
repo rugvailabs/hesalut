@@ -28,7 +28,6 @@ import PlanStep from "@/components/register/PlanStep";
 import RegistrationSteps from "@/components/register/RegistrationSteps";
 import LogoutButton from "@/components/LogoutButton";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Button, Card } from "@/components/ds/primitives";
 import { getCategories, getPlans, getRegistration } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
@@ -191,7 +190,6 @@ function Shell({ children }: { children: React.ReactNode }): JSX.Element {
     <>
       {/* @ts-expect-error Async Server Component in a sync parent - allowed
           in the App Router, not yet expressible in the type system. */}
-      <SiteHeader locale={locale} showSearch={false} />
       <main className="px-4 py-8 sm:px-6">{children}</main>
       <SiteFooter locale={locale} />
     </>

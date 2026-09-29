@@ -19,7 +19,6 @@ import { ArrowLeft } from "lucide-react";
 import BusinessForm from "@/components/BusinessForm";
 import DashboardNav from "@/components/ds/DashboardNav";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Button } from "@/components/ds/primitives";
 import { ListingStatusBadge } from "@/components/ds/status";
 import { ApiError, getCategories, getMyBusiness } from "@/lib/api";
@@ -57,7 +56,6 @@ export default async function EditListingPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">

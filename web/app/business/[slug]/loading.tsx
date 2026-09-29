@@ -7,7 +7,6 @@
  * grey bar in its place would be a downgrade.
  */
 
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Skeleton as Bar } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
 
@@ -16,7 +15,6 @@ export default function Loading(): JSX.Element {
     <>
       {/* @ts-expect-error Async Server Component in a sync parent - allowed in
           the App Router, not yet expressible in the type system. */}
-      <SiteHeader locale="en" />
 
       <main
         className="mx-auto max-w-6xl px-4 py-6 sm:px-6"

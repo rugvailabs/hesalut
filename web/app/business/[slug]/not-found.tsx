@@ -10,7 +10,6 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Button, Card } from "@/components/ds/primitives";
 
 export default function BusinessNotFound(): JSX.Element {
@@ -18,7 +17,6 @@ export default function BusinessNotFound(): JSX.Element {
     <>
       {/* @ts-expect-error Async Server Component in a sync parent - allowed in
           the App Router, not yet expressible in the type system. */}
-      <SiteHeader locale="en" />
 
       <main className="mx-auto max-w-2xl px-4 py-section sm:px-6">
         <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">

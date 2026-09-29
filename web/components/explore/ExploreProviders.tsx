@@ -1,8 +1,14 @@
 "use client";
 
 /**
- * Everything the /explore flow shares: the i18next instance and the
- * selection store. Mounted once by app/explore/layout.tsx.
+ * Providers, in two layers.
+ *
+ * SiteProviders (app/layout.tsx, every page): the i18next instance and the
+ * signed-in flag. They sit at the root because the explore header is the
+ * site-wide top bar and needs t() and the language switch on every page.
+ *
+ * ExploreProviders (app/explore/layout.tsx): what only the /explore flow
+ * needs - the selection store and the dark-mode scope.
  *
  * The server renders in the language its cookie names (`initialLang`). On
  * mount, a saved localStorage choice that disagrees wins - the cookie may
@@ -26,7 +32,7 @@ export function useSignedIn(): boolean {
   return useContext(SignedInContext);
 }
 
-export default function ExploreProviders({
+export function SiteProviders({
   initialLang,
   signedIn,
   children,
@@ -36,14 +42,6 @@ export default function ExploreProviders({
   children: React.ReactNode;
 }): JSX.Element {
   const [i18n] = useState(() => createExploreI18n(initialLang));
-
-  // Dark mode belongs to these pages (lib/theme.ts): on arrival by a
-  // client-side navigation the head script has not run, so apply it here;
-  // on the way out, take it off again.
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", preferredTheme() === "dark");
-    return () => document.documentElement.classList.remove("dark");
-  }, []);
 
   useEffect(() => {
     const stored = readStoredLanguage();
@@ -58,11 +56,21 @@ export default function ExploreProviders({
 
   return (
     <I18nextProvider i18n={i18n}>
-      <SignedInContext.Provider value={signedIn}>
-        <ExploreStateProvider>{children}</ExploreStateProvider>
-      </SignedInContext.Provider>
+      <SignedInContext.Provider value={signedIn}>{children}</SignedInContext.Provider>
     </I18nextProvider>
   );
+}
+
+export default function ExploreProviders({ children }: { children: React.ReactNode }): JSX.Element {
+  // Dark mode belongs to these pages (lib/theme.ts): on arrival by a
+  // client-side navigation the head script has not run, so apply it here;
+  // on the way out, take it off again.
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", preferredTheme() === "dark");
+    return () => document.documentElement.classList.remove("dark");
+  }, []);
+
+  return <ExploreStateProvider>{children}</ExploreStateProvider>;
 }
 
 /** The current language, and a setter that saves it and re-renders the server parts. */

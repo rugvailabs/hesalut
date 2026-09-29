@@ -1,13 +1,16 @@
 "use client";
 
 /**
- * The /explore pages' header: fixed to the top while the page scrolls.
+ * The site's top bar, on every page (rendered once by app/layout.tsx).
+ * Sticks to the top while the page scrolls.
  *
  *   logo (home) · tabs · EN/FR · dark mode · account · More
  *
- * The site-wide SiteHeader is a Server Component whose language toggle is a
- * placeholder; these pages switch language live, so they have their own
- * header, built from the same tokens so the two read as one site. The search
+ * The dark-mode button shows on /explore only: dark mode is scoped to those
+ * pages (lib/theme.ts), and elsewhere it would half-switch pages that still
+ * hardcode colours. The language switch shows everywhere; outside /explore
+ * it translates only the bar itself - those pages are English-only for now.
+ * The search
  * bar sits just under this header on the results page and sticks with it
  * (components/explore/ResultsStep.tsx); the dashboard is the search bar.
  *
@@ -27,7 +30,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { Bookmark, Check, LayoutDashboard, LogOut, MapPin, Moon, MoreVertical, Sun } from "lucide-react";
+import { Bookmark, Check, LayoutDashboard, LogOut, MapPin, Moon, MoreVertical, Shield, Store, Sun } from "lucide-react";
 
 import { useExploreT, useLanguage } from "@/components/explore/ExploreProviders";
 import { cn } from "@/lib/cn";
@@ -37,6 +40,9 @@ import { applyTheme, currentTheme, type Theme } from "@/lib/theme";
 export interface HeaderUser {
   name: string;
   email: string;
+  /** Owners (and admins) get the Dashboard link; customers get "List your business". */
+  isOwner: boolean;
+  isAdmin: boolean;
 }
 
 export default function ExploreHeader({ user }: { user: HeaderUser | null }): JSX.Element {
@@ -111,7 +117,16 @@ export default function ExploreHeader({ user }: { user: HeaderUser | null }): JS
               </button>
             ))}
           </div>
-          <ThemeToggle />
+          {pathname.startsWith("/explore") ? <ThemeToggle /> : null}
+          {user === null || !user.isOwner ? (
+            // Owner sign-up starts here; /register also converts a customer.
+            <Link
+              href="/register"
+              className="hidden rounded-input bg-brand-700 px-3 py-1.5 text-body font-medium text-ink-inverse transition-colors hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:inline-block"
+            >
+              {t("header.listBusiness")}
+            </Link>
+          ) : null}
           {user ? (
             <UserMenu user={user} />
           ) : (
@@ -259,10 +274,23 @@ function UserMenu({ user }: { user: HeaderUser }): JSX.Element {
             <Bookmark className="size-4 text-ink-muted" aria-hidden="true" />
             {t("header.savedBusinesses")}
           </Link>
-          <Link role="menuitem" href="/dashboard" onClick={() => menu.setOpen(false)} className={ITEM}>
-            <LayoutDashboard className="size-4 text-ink-muted" aria-hidden="true" />
-            {t("header.dashboard")}
-          </Link>
+          {user.isOwner ? (
+            <Link role="menuitem" href="/dashboard" onClick={() => menu.setOpen(false)} className={ITEM}>
+              <LayoutDashboard className="size-4 text-ink-muted" aria-hidden="true" />
+              {t("header.dashboard")}
+            </Link>
+          ) : (
+            <Link role="menuitem" href="/register" onClick={() => menu.setOpen(false)} className={ITEM}>
+              <Store className="size-4 text-ink-muted" aria-hidden="true" />
+              {t("header.listBusiness")}
+            </Link>
+          )}
+          {user.isAdmin ? (
+            <Link role="menuitem" href="/admin" onClick={() => menu.setOpen(false)} className={ITEM}>
+              <Shield className="size-4 text-ink-muted" aria-hidden="true" />
+              {t("header.admin")}
+            </Link>
+          ) : null}
           <button
             type="button"
             role="menuitem"

@@ -13,7 +13,6 @@
 import Link from "next/link";
 
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Breadcrumbs } from "@/components/ds/feedback";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
@@ -39,7 +38,6 @@ export default function Prose({
     <>
       {/* @ts-expect-error Async Server Component in a sync parent - allowed in
           the App Router, not yet expressible in the type system. */}
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Breadcrumbs className="mb-4" items={[{ label: "Home", href: "/" }, { label: title }]} />

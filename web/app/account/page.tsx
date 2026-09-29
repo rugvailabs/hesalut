@@ -6,7 +6,6 @@
  * themselves and which are the system's to set.
  */
 
-import Header from "@/components/Header";
 import ProfileForm from "@/components/ProfileForm";
 import Card from "@/components/ui/Card";
 import { getProfile } from "@/lib/api";
@@ -31,7 +30,6 @@ export default async function AccountPage(): Promise<JSX.Element> {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <Header />
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
         Your account

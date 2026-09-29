@@ -26,7 +26,6 @@ import NearMeLocator from "@/components/ds/NearMeLocator";
 import TieredResults from "@/components/ds/TieredResults";
 import SearchFilterRail from "@/components/ds/SearchFilterRail";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Alert, Breadcrumbs, EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getCategories, searchBusinesses } from "@/lib/api";
@@ -279,7 +278,6 @@ export default async function SearchPage({
 
   return (
     <>
-      <SiteHeader locale={locale} />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <Breadcrumbs

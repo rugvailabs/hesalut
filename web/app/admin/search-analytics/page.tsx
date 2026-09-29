@@ -15,7 +15,6 @@ import { BarChart3 } from "lucide-react";
 
 import AdminNav from "@/components/AdminNav";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { EmptyState } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
 import { getSearchAnalytics } from "@/lib/api";
@@ -60,7 +59,6 @@ export default async function SearchAnalyticsPage({
 
   return (
     <>
-      <SiteHeader locale={locale} showSearch={false} />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <h1 className="text-page-title text-ink">Search analytics</h1>
         <p className="mt-1 text-body text-ink-muted">

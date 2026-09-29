@@ -7,7 +7,6 @@
  * renders into.
  */
 
-import SiteHeader from "@/components/ds/SiteHeader";
 import { ListingListSkeleton, Skeleton } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
 
@@ -16,7 +15,6 @@ export default function SearchLoading(): JSX.Element {
     <>
       {/* @ts-expect-error Async Server Component in a sync parent - allowed in
           the App Router, not yet expressible in the type system. */}
-      <SiteHeader locale="en" />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <Skeleton className="h-3 w-48" />

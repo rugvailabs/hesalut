@@ -41,7 +41,6 @@ import RatingBreakdown from "@/components/ds/RatingBreakdown";
 import ReviewForm from "@/components/ds/ReviewForm";
 import ShowNumber from "@/components/ds/ShowNumber";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { Breadcrumbs, EmptyState } from "@/components/ds/feedback";
 import { OpenStatus, RatingPill, VerifiedBadge } from "@/components/ds/indicators";
 import { Badge, Button, Card } from "@/components/ds/primitives";
@@ -127,7 +126,6 @@ export default async function BusinessPage({
 
   return (
     <>
-      <SiteHeader locale={locale} />
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <Breadcrumbs

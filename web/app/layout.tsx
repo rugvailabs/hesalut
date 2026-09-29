@@ -5,11 +5,22 @@
  * variable - no network request to Google on first paint, and no layout shift
  * when it lands. tailwind.config.ts reads that variable, so `font-sans` is
  * Inter everywhere without a single component naming the typeface.
+ *
+ * The top bar (ExploreHeader) is rendered here, once, so every page has the
+ * same one - pages must not render a header of their own. Its language
+ * switch comes from the `jfy_lang` cookie, so the server's render is already
+ * in the visitor's language.
  */
 
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
 
+import ExploreHeader from "@/components/explore/ExploreHeader";
+import { SiteProviders } from "@/components/explore/ExploreProviders";
+import { getCurrentUser } from "@/lib/auth";
+import { LANG_COOKIE } from "@/lib/explore-i18n/constants";
+import { isLocale } from "@/lib/i18n";
 import { indexingAllowed } from "@/lib/indexing";
 import { THEME_SCRIPT } from "@/lib/theme";
 
@@ -28,11 +39,15 @@ export const metadata: Metadata = {
   ...(indexingAllowed ? {} : { robots: { index: false, follow: false } }),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
-}): JSX.Element {
+}): Promise<JSX.Element> {
+  const saved = cookies().get(LANG_COOKIE)?.value;
+  const lang = isLocale(saved) ? saved : "en";
+  const user = await getCurrentUser().catch(() => null);
+
   return (
     // suppressHydrationWarning: THEME_SCRIPT adds the `dark` class before
     // React hydrates, so <html>'s class legitimately differs from the server's.
@@ -42,7 +57,21 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-screen bg-canvas font-sans text-ink antialiased">
-        {children}
+        <SiteProviders initialLang={lang} signedIn={user !== null}>
+          <ExploreHeader
+            user={
+              user
+                ? {
+                    name: user.name,
+                    email: user.email,
+                    isAdmin: user.is_admin || user.role === "admin",
+                    isOwner: user.is_admin || user.role === "admin" || user.role === "business_owner",
+                  }
+                : null
+            }
+          />
+          {children}
+        </SiteProviders>
       </body>
     </html>
   );

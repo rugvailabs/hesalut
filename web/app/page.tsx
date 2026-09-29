@@ -25,7 +25,6 @@ import HeroSearch from "@/components/ds/HeroSearch";
 import ListingCard from "@/components/ds/ListingCard";
 import PlacementNote from "@/components/ds/PlacementNote";
 import SiteFooter from "@/components/ds/SiteFooter";
-import SiteHeader from "@/components/ds/SiteHeader";
 import { EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getCategories, searchBusinesses } from "@/lib/api";
@@ -79,7 +78,6 @@ export default async function HomePage(): Promise<JSX.Element> {
   return (
     <>
       {/* The hero carries the search, so the header does not repeat it. */}
-      <SiteHeader locale={locale} showSearch={false} />
 
       <main>
         {/* ------------------------------------------------------------ hero */}

@@ -12,7 +12,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import Header from "@/components/Header";
 import MapEmbed from "@/components/MapEmbed";
 import ModerationQueue from "@/components/ModerationQueue";
 import StatusBadge from "@/components/StatusBadge";
@@ -68,7 +67,6 @@ export default async function AdminListingDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      <Header />
 
       <Link href="/admin/listings" className="text-sm underline">
         &larr; Moderation queue
