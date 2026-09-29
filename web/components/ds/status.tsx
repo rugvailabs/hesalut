@@ -15,33 +15,35 @@
 
 import { Badge, type BadgeProps } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 import type { BusinessStatus, VerificationStatus } from "@/lib/types";
 
 type Tone = NonNullable<BadgeProps["tone"]>;
 
+/** `label` and `hint` are dictionary keys, resolved per call. */
 const LISTING: Record<
   BusinessStatus,
   { label: string; tone: Tone; hint: string }
 > = {
   pending: {
-    label: "Pending review",
+    label: "discover.status.pendingLabel",
     tone: "warning",
-    hint: "Not in search until approved",
+    hint: "discover.status.pendingHint",
   },
   approved: {
-    label: "Live",
+    label: "discover.status.approvedLabel",
     tone: "success",
-    hint: "Visible in public search",
+    hint: "discover.status.approvedHint",
   },
   rejected: {
-    label: "Rejected",
+    label: "discover.status.rejectedLabel",
     tone: "danger",
-    hint: "Not visible in search",
+    hint: "discover.status.rejectedHint",
   },
   suspended: {
-    label: "Suspended",
+    label: "discover.status.suspendedLabel",
     tone: "neutral",
-    hint: "Removed from search by a moderator",
+    hint: "discover.status.suspendedHint",
   },
 };
 
@@ -51,24 +53,24 @@ const KYC: Record<
   { label: string; tone: Tone; hint: string }
 > = {
   none: {
-    label: "Not verified",
+    label: "discover.status.kycNoneLabel",
     tone: "neutral",
-    hint: "Send your details to appear in search",
+    hint: "discover.status.kycNoneHint",
   },
   pending: {
-    label: "Verification pending",
+    label: "discover.status.kycPendingLabel",
     tone: "warning",
-    hint: "We are checking your documents",
+    hint: "discover.status.kycPendingHint",
   },
   verified: {
-    label: "Verified",
+    label: "discover.status.kycVerifiedLabel",
     tone: "verified",
-    hint: "Identity checked",
+    hint: "discover.status.kycVerifiedHint",
   },
   rejected: {
-    label: "Verification rejected",
+    label: "discover.status.kycRejectedLabel",
     tone: "danger",
-    hint: "See the reason and resubmit",
+    hint: "discover.status.kycRejectedHint",
   },
 };
 
@@ -97,28 +99,50 @@ function StatusPair({
 export function ListingStatusBadge({
   status,
   showHint = false,
+  locale = "en",
   className,
 }: {
   status: BusinessStatus;
   showHint?: boolean;
+  locale?: Locale;
   className?: string;
 }): JSX.Element {
+  const t = tFor(locale);
   const style = LISTING[status];
-  return <StatusPair {...style} showHint={showHint} className={className} />;
+  return (
+    <StatusPair
+      label={t(style.label)}
+      tone={style.tone}
+      hint={t(style.hint)}
+      showHint={showHint}
+      className={className}
+    />
+  );
 }
 
 /** KYC status: has the business behind the listing been proven real? */
 export function KycBadge({
   status,
   showHint = false,
+  locale = "en",
   className,
 }: {
   status: VerificationStatus | null;
   showHint?: boolean;
+  locale?: Locale;
   className?: string;
 }): JSX.Element {
+  const t = tFor(locale);
   const style = KYC[status ?? "none"];
-  return <StatusPair {...style} showHint={showHint} className={className} />;
+  return (
+    <StatusPair
+      label={t(style.label)}
+      tone={style.tone}
+      hint={t(style.hint)}
+      showHint={showHint}
+      className={className}
+    />
+  );
 }
 
 /**
@@ -132,18 +156,20 @@ export function KycBadge({
 export function visibilityBlocker(
   status: BusinessStatus,
   kyc: VerificationStatus | null,
+  locale: Locale = "en",
 ): string | null {
   if (status === "approved" && kyc === "verified") return null;
+  const t = tFor(locale);
 
   if (status !== "approved") {
-    return LISTING[status].hint;
+    return t(LISTING[status].hint);
   }
   // Approved but invisible is the confusing case the owner most often hits.
   if (kyc === "pending") {
-    return "Approved, and waiting on business verification. It appears in search once that is done.";
+    return t("discover.status.blockerKycPending");
   }
   if (kyc === "rejected") {
-    return "Approved, but verification was rejected - so it is not in search yet.";
+    return t("discover.status.blockerKycRejected");
   }
-  return "Approved, but not verified yet - so it is not in search yet.";
+  return t("discover.status.blockerUnverified");
 }

@@ -23,6 +23,7 @@ import { useState } from "react";
 import { Alert } from "@/components/ds/feedback";
 import { Button } from "@/components/ds/primitives";
 import { FIELD, LABEL } from "@/components/ds/form";
+import { tFor, type Locale } from "@/lib/i18n";
 import type { BusinessVerification } from "@/lib/types";
 import { MAX_DOCUMENT_MB } from "@/lib/upload-limits";
 
@@ -37,6 +38,7 @@ interface Props {
   businessName: string;
   /** null when nothing has ever been submitted. */
   existing: BusinessVerification | null;
+  locale: Locale;
 }
 
 /** What the owner sees under a document field once it has one. */
@@ -51,8 +53,10 @@ export default function VerificationForm({
   businessId,
   businessName,
   existing,
+  locale,
 }: Props): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
 
   const [email, setEmail] = useState(existing?.email ?? "");
   const [mobile, setMobile] = useState(existing?.mobile_number ?? "");
@@ -106,7 +110,7 @@ export default function VerificationForm({
           message:
             payload && typeof payload === "object" && "detail" in payload
               ? String((payload as { detail: unknown }).detail)
-              : `Upload failed (HTTP ${res.status}).`,
+              : t("dashboard.verification.form.uploadFailed", { status: res.status }),
         });
         return;
       }
@@ -120,7 +124,7 @@ export default function VerificationForm({
     } catch {
       setState({
         kind: "error",
-        message: "Could not reach the server. Please try again.",
+        message: t("dashboard.common.serverUnreachable"),
       });
     }
   }
@@ -150,7 +154,7 @@ export default function VerificationForm({
         setError(
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not submit (HTTP ${res.status}).`,
+            : t("dashboard.verification.form.submitFailed", { status: res.status }),
         );
         return;
       }
@@ -160,7 +164,7 @@ export default function VerificationForm({
       // repaints the status panel above the form.
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("dashboard.common.serverUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -178,18 +182,17 @@ export default function VerificationForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
       {done ? (
-        <Alert tone="success" title="Sent for review">
-          {businessName} is with a reviewer. You will see the result here, and
-          the listing appears in search once it is approved on both counts.
+        <Alert locale={locale} tone="success" title={t("dashboard.verification.form.sentTitle")}>
+          {t("dashboard.verification.form.sentBody", { name: businessName })}
         </Alert>
       ) : null}
 
-      {error !== null ? <Alert tone="error">{error}</Alert> : null}
+      {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="kyc-email" className={LABEL}>
-            Contact email
+            {t("dashboard.verification.form.contactEmail")}
           </label>
           <input
             id="kyc-email"
@@ -202,13 +205,13 @@ export default function VerificationForm({
             placeholder="owner@yourbusiness.ca"
           />
           <p className="mt-1 text-meta text-ink-subtle">
-            Where a reviewer reaches you. It is not shown on your public page.
+            {t("dashboard.verification.form.contactEmailHint")}
           </p>
         </div>
 
         <div>
           <label htmlFor="kyc-mobile" className={LABEL}>
-            Mobile number
+            {t("dashboard.verification.form.mobile")}
           </label>
           <input
             id="kyc-mobile"
@@ -221,25 +224,24 @@ export default function VerificationForm({
             placeholder="+1 604 555 0142"
           />
           <p className="mt-1 text-meta text-ink-subtle">
-            Include the area code.
+            {t("dashboard.verification.form.mobileHint")}
           </p>
         </div>
       </div>
 
       <fieldset className="rounded-input border border-line p-4">
         <legend className="px-1 text-body font-medium text-ink-muted">
-          Trade licence <span className="font-normal text-ink-subtle">(optional)</span>
+          {t("dashboard.verification.form.licenceLegend")}{" "}
+          <span className="font-normal text-ink-subtle">{t("dashboard.common.optional")}</span>
         </legend>
         <p className="mb-3 text-meta text-ink-subtle">
-          If your trade is licensed, give the number and a scan. A copywriter or
-          a consultant has neither, and that is fine - a reviewer judges what is
-          appropriate for the trade.
+          {t("dashboard.verification.form.licenceHint")}
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="kyc-license" className={LABEL}>
-              Licence number
+              {t("dashboard.verification.form.licenceNumber")}
             </label>
             <input
               id="kyc-license"
@@ -252,12 +254,13 @@ export default function VerificationForm({
 
           <DocumentField
             id="kyc-license-doc"
-            label="Licence document"
+            label={t("dashboard.verification.form.licenceDocument")}
             state={licenseUpload}
             existingLabel={documentLabel(licenseUrl)}
             onFile={(file) =>
               void upload(file, "license", setLicenseUpload, setLicenseUrl)
             }
+            t={t}
             onClear={() => {
               setLicenseUrl(null);
               setLicenseUpload({ kind: "idle" });
@@ -268,17 +271,17 @@ export default function VerificationForm({
 
       <fieldset className="rounded-input border border-line p-4">
         <legend className="px-1 text-body font-medium text-ink-muted">
-          GST/HST <span className="font-normal text-ink-subtle">(optional)</span>
+          {t("dashboard.verification.form.gstLegend")}{" "}
+          <span className="font-normal text-ink-subtle">{t("dashboard.common.optional")}</span>
         </legend>
         <p className="mb-3 text-meta text-ink-subtle">
-          Leave blank if you are under the small-supplier threshold and not
-          registered.
+          {t("dashboard.verification.form.gstHint")}
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="kyc-gst" className={LABEL}>
-              GST/HST number
+              {t("dashboard.verification.form.gstNumber")}
             </label>
             <input
               id="kyc-gst"
@@ -288,16 +291,17 @@ export default function VerificationForm({
               placeholder="123456789RT0001"
             />
             <p className="mt-1 text-meta text-ink-subtle">
-              Nine digits, then RT and four more.
+              {t("dashboard.verification.form.gstNumberHint")}
             </p>
           </div>
 
           <DocumentField
             id="kyc-gst-doc"
-            label="GST document"
+            label={t("dashboard.verification.form.gstDocument")}
             state={gstUpload}
             existingLabel={documentLabel(gstUrl)}
             onFile={(file) => void upload(file, "gst", setGstUpload, setGstUrl)}
+            t={t}
             onClear={() => {
               setGstUrl(null);
               setGstUpload({ kind: "idle" });
@@ -307,14 +311,13 @@ export default function VerificationForm({
       </fieldset>
 
       {confirming ? (
-        <Alert tone="warning" title="This listing is currently verified">
-          <p>
-            Resubmitting sends it back for review, which takes {businessName} out
-            of public search until a reviewer approves it again.
-          </p>
+        <Alert locale={locale} tone="warning" title={t("dashboard.verification.form.confirmTitle")}>
+          <p>{t("dashboard.verification.form.confirmBody", { name: businessName })}</p>
           <div className="mt-2 flex gap-2">
             <Button type="submit" size="sm" disabled={busy}>
-              {busy ? "Sending…" : "Yes, resubmit"}
+              {busy
+                ? t("dashboard.common.sending")
+                : t("dashboard.verification.form.confirmYes")}
             </Button>
             <Button
               type="button"
@@ -322,7 +325,7 @@ export default function VerificationForm({
               variant="ghost"
               onClick={() => setConfirming(false)}
             >
-              Cancel
+              {t("dashboard.common.cancel")}
             </Button>
           </div>
         </Alert>
@@ -337,13 +340,13 @@ export default function VerificationForm({
             }
           >
             {busy
-              ? "Sending…"
+              ? t("dashboard.common.sending")
               : existing === null
-                ? "Submit for verification"
-                : "Resubmit for verification"}
+                ? t("dashboard.verification.form.submit")
+                : t("dashboard.verification.form.resubmit")}
           </Button>
           <p className="text-meta text-ink-subtle">
-            A reviewer checks this by hand, so it is not instant.
+            {t("dashboard.verification.form.manualHint")}
           </p>
         </div>
       )}
@@ -359,6 +362,7 @@ function DocumentField({
   existingLabel,
   onFile,
   onClear,
+  t,
 }: {
   id: string;
   label: string;
@@ -366,6 +370,7 @@ function DocumentField({
   existingLabel: string | null;
   onFile: (file: File) => void;
   onClear: () => void;
+  t: ReturnType<typeof tFor>;
 }): JSX.Element {
   return (
     <div>
@@ -385,28 +390,32 @@ function DocumentField({
 
       <div className="mt-1 text-meta" aria-live="polite">
         {state.kind === "uploading" ? (
-          <span className="text-ink-subtle">Uploading…</span>
+          <span className="text-ink-subtle">
+            {t("dashboard.verification.form.uploading")}
+          </span>
         ) : state.kind === "error" ? (
           <span className="text-danger">{state.message}</span>
         ) : state.kind === "done" ? (
           <span className="text-success">
             {state.stub
-              ? `${state.filename} recorded (storage not configured, so the file was not stored)`
-              : `${state.filename} uploaded`}
+              ? t("dashboard.verification.form.recordedStub", { file: state.filename })
+              : t("dashboard.verification.form.uploaded", { file: state.filename })}
           </span>
         ) : existingLabel !== null ? (
           <span className="text-ink-subtle">
-            On file: {existingLabel}{" "}
+            {t("dashboard.verification.form.onFile", { file: existingLabel })}{" "}
             <button
               type="button"
               onClick={onClear}
               className="underline hover:text-ink-muted"
             >
-              remove
+              {t("dashboard.verification.form.remove")}
             </button>
           </span>
         ) : (
-          <span className="text-ink-subtle">PDF or image, up to {MAX_DOCUMENT_MB} MB.</span>
+          <span className="text-ink-subtle">
+            {t("dashboard.verification.form.fileHint", { mb: MAX_DOCUMENT_MB })}
+          </span>
         )}
       </div>
     </div>

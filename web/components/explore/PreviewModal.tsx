@@ -281,7 +281,7 @@ export default function PreviewModal({
                     {t("preview.map")}
                   </h3>
                   <div className="h-48 overflow-hidden rounded-card border border-line">
-                    <MapEmbed
+                    <MapEmbed locale={locale}
                       latitude={business.latitude}
                       longitude={business.longitude}
                       name={business.name}

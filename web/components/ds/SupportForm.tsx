@@ -14,6 +14,10 @@
  * matters and it is the reporter who is describing the problem. It is shown,
  * not hidden - somebody reporting a bug should be able to see everything they
  * are about to send.
+ *
+ * The language arrives as a prop from the server page: a client component
+ * cannot read the cookie through lib/i18n/server. A backend `detail` error is
+ * shown as the server wrote it, untranslated.
  */
 
 import { useSearchParams } from "next/navigation";
@@ -22,32 +26,23 @@ import { useEffect, useState } from "react";
 import { Alert } from "@/components/ds/feedback";
 import { FIELD, HINT, LABEL, SELECT, TEXTAREA } from "@/components/ds/form";
 import { Button, Card } from "@/components/ds/primitives";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 
 type Kind = "enquiry" | "feedback" | "bug";
 
-const KINDS: { value: Kind; label: string; blurb: string }[] = [
-  {
-    value: "enquiry",
-    label: "A question",
-    blurb: "Something about your account, a listing, or how the directory works.",
-  },
-  {
-    value: "feedback",
-    label: "Feedback",
-    blurb: "What is working, what is not, and what you wish this did.",
-  },
-  {
-    value: "bug",
-    label: "A bug",
-    blurb: "Something is broken. The more precisely you can say what, the better.",
-  },
-];
+// The labels and blurbs come from the dictionary (pages.support.kinds.<value>).
+const KINDS: Kind[] = ["enquiry", "feedback", "bug"];
+
+/** The message field's length limit, also shown in its hint. */
+const MAX_MESSAGE = 5000;
 
 function isKind(value: string | null): value is Kind {
   return value === "enquiry" || value === "feedback" || value === "bug";
 }
 
-export default function SupportForm(): JSX.Element {
+export default function SupportForm({ locale }: { locale: Locale }): JSX.Element {
+  const t = tFor(locale);
+  const number = (value: number): string => value.toLocaleString(INTL_LOCALE[locale]);
   const params = useSearchParams();
   const requested = params.get("kind");
 
@@ -67,8 +62,6 @@ export default function SupportForm(): JSX.Element {
   useEffect(() => {
     setUserAgent(window.navigator.userAgent);
   }, []);
-
-  const active = KINDS.find((option) => option.value === kind) ?? KINDS[0];
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -96,7 +89,7 @@ export default function SupportForm(): JSX.Element {
         setError(
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not send that (HTTP ${res.status}).`,
+            : t("pages.support.httpError", { status: res.status }),
         );
         return;
       }
@@ -107,7 +100,7 @@ export default function SupportForm(): JSX.Element {
           : null;
       setSent(Number.isFinite(id) ? (id as number) : 0);
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("pages.support.networkError"));
     } finally {
       setSubmitting(false);
     }
@@ -117,15 +110,16 @@ export default function SupportForm(): JSX.Element {
     return (
       <Card className="border-success/30 bg-success-bg p-4">
         <div role="status">
-          <h2 className="text-card-title text-success">Thanks — that reached us</h2>
+          <h2 className="text-card-title text-success">{t("pages.support.sentTitle")}</h2>
           <p className="mt-1 text-body text-ink-muted">
             {sent > 0 ? (
               <>
-                Your reference is <span className="tabular">#{sent}</span>. We
-                reply to the address you gave.
+                {t("pages.support.sentReference")}{" "}
+                <span className="tabular">#{sent}</span>.{" "}
+                {t("pages.support.sentReply")}
               </>
             ) : (
-              <>We reply to the address you gave.</>
+              <>{t("pages.support.sentReply")}</>
             )}
           </p>
         </div>
@@ -138,7 +132,7 @@ export default function SupportForm(): JSX.Element {
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label htmlFor="support-kind" className={LABEL}>
-            What is this about?
+            {t("pages.support.kindLabel")}
           </label>
           <select
             id="support-kind"
@@ -147,18 +141,19 @@ export default function SupportForm(): JSX.Element {
             className={SELECT}
           >
             {KINDS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+              <option key={option} value={option}>
+                {t(`pages.support.kinds.${option}.label`)}
               </option>
             ))}
           </select>
-          <p className={HINT}>{active.blurb}</p>
+          <p className={HINT}>{t(`pages.support.kinds.${kind}.blurb`)}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="support-name" className={LABEL}>
-              Your name <span className="font-normal">(optional)</span>
+              {t("pages.support.nameLabel")}{" "}
+              <span className="font-normal">{t("pages.support.optional")}</span>
             </label>
             <input
               id="support-name"
@@ -172,7 +167,7 @@ export default function SupportForm(): JSX.Element {
           </div>
           <div>
             <label htmlFor="support-email" className={LABEL}>
-              Email
+              {t("pages.support.emailLabel")}
             </label>
             <input
               id="support-email"
@@ -183,13 +178,14 @@ export default function SupportForm(): JSX.Element {
               autoComplete="email"
               className={FIELD}
             />
-            <p className={HINT}>Where we reply.</p>
+            <p className={HINT}>{t("pages.support.emailHint")}</p>
           </div>
         </div>
 
         <div>
           <label htmlFor="support-subject" className={LABEL}>
-            Subject <span className="font-normal">(optional)</span>
+            {t("pages.support.subjectLabel")}{" "}
+            <span className="font-normal">{t("pages.support.optional")}</span>
           </label>
           <input
             id="support-subject"
@@ -203,26 +199,31 @@ export default function SupportForm(): JSX.Element {
 
         <div>
           <label htmlFor="support-message" className={LABEL}>
-            {kind === "bug" ? "What happened?" : "Message"}
+            {kind === "bug"
+              ? t("pages.support.bugMessageLabel")
+              : t("pages.support.messageLabel")}
           </label>
           <textarea
             id="support-message"
             required
             rows={6}
-            maxLength={5000}
+            maxLength={MAX_MESSAGE}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             placeholder={
               kind === "bug"
-                ? "What you did, what you expected, and what happened instead."
+                ? t("pages.support.bugPlaceholder")
                 : undefined
             }
             className={TEXTAREA}
           />
           <p className={HINT}>
             {message.length > 0
-              ? `${message.length} of 5000 characters`
-              : "Up to 5000 characters."}
+              ? t("pages.support.charCount", {
+                  count: number(message.length),
+                  max: number(MAX_MESSAGE),
+                })
+              : t("pages.support.charLimit", { max: number(MAX_MESSAGE) })}
           </p>
         </div>
 
@@ -230,7 +231,8 @@ export default function SupportForm(): JSX.Element {
           <div className="space-y-4 rounded-input border border-line bg-surface-muted p-3">
             <div>
               <label htmlFor="support-url" className={LABEL}>
-                Which page? <span className="font-normal">(optional)</span>
+                {t("pages.support.pageLabel")}{" "}
+                <span className="font-normal">{t("pages.support.optional")}</span>
               </label>
               <input
                 id="support-url"
@@ -239,26 +241,26 @@ export default function SupportForm(): JSX.Element {
                 maxLength={2048}
                 value={pageUrl}
                 onChange={(event) => setPageUrl(event.target.value)}
-                placeholder="Paste the address of the page it happened on"
+                placeholder={t("pages.support.pagePlaceholder")}
                 className={FIELD}
               />
             </div>
             <div>
-              <span className={LABEL}>Your browser</span>
+              <span className={LABEL}>{t("pages.support.browserLabel")}</span>
               {/* Shown rather than sent silently: nobody should have to guess
                   what a bug report is attaching about them. */}
               <p className="break-words text-meta text-ink-subtle">
-                {userAgent || "Not detected."}
+                {userAgent || t("pages.support.notDetected")}
               </p>
-              <p className={HINT}>Sent with this report so we can reproduce it.</p>
+              <p className={HINT}>{t("pages.support.browserHint")}</p>
             </div>
           </div>
         ) : null}
 
-        {error !== null ? <Alert tone="error">{error}</Alert> : null}
+        {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Sending…" : "Send"}
+          {submitting ? t("pages.support.sending") : t("pages.support.send")}
         </Button>
       </form>
     </Card>

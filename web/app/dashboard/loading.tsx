@@ -7,18 +7,18 @@
 
 import { Skeleton, SkeletonRegion } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export default function DashboardLoading(): JSX.Element {
+  const t = tFor(getLocale());
   return (
     <>
-      {/* @ts-expect-error Async Server Component in a sync parent - allowed in
-          the App Router, not yet expressible in the type system. */}
-
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="mt-2 h-4 w-64" />
 
-        <SkeletonRegion label="Loading your listings" className="mt-4 space-y-3">
+        <SkeletonRegion label={t("dashboard.index.loading")} className="mt-4 space-y-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <Card key={index} className="p-4">
               <div className="flex justify-between gap-3">

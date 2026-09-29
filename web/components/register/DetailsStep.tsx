@@ -18,12 +18,13 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { Alert } from "@/components/ds/feedback";
 import { HINT } from "@/components/ds/form";
 import { Button, Card, Input, Label, Select } from "@/components/ds/primitives";
 import { PROVINCES } from "@/lib/format";
+import { tFor, type Locale } from "@/lib/i18n";
 import { hasGoogleMaps } from "@/lib/maps";
 import type { Category, RegistrationDetails } from "@/lib/types";
 
@@ -32,6 +33,7 @@ type LocationPickerProps = {
   longitude: number | null;
   onPick: (lat: number, lng: number) => void;
   addressQuery?: string;
+  locale?: Locale;
 };
 
 const LocationPicker = dynamic<LocationPickerProps>(
@@ -41,13 +43,25 @@ const LocationPicker = dynamic<LocationPickerProps>(
       : import("@/components/LocationPicker"),
   {
     ssr: false,
-    loading: () => (
-      <div className="flex h-64 w-full items-center justify-center rounded-card border border-line bg-surface-muted text-body text-ink-muted">
-        Loading map…
-      </div>
-    ),
+    loading: () => <MapLoading />,
   },
 );
+
+/**
+ * The placeholder while the map loads. dynamic()'s `loading` is declared at
+ * module level, where the locale prop does not reach, so it takes the language
+ * from a context the form provides around the picker.
+ */
+const MapLocale = createContext<Locale>("en");
+
+function MapLoading(): JSX.Element {
+  const locale = useContext(MapLocale);
+  return (
+    <div className="flex h-64 w-full items-center justify-center rounded-card border border-line bg-surface-muted text-body text-ink-muted">
+      {tFor(locale)("register.details.loadingMap")}
+    </div>
+  );
+}
 
 const DRAFT_KEY = "jfy.registration.draft";
 
@@ -102,6 +116,7 @@ export default function DetailsStep({
   categories,
   existing,
   convert = false,
+  locale,
 }: {
   categories: Category[];
   /** The account (and any saved details) when one exists; null to create one. */
@@ -111,8 +126,10 @@ export default function DetailsStep({
   } | null;
   /** The account is a customer's, becoming a business account on submit. */
   convert?: boolean;
+  locale: Locale;
 }): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
   const editing = existing !== null;
   const saved = existing?.details ?? null;
 
@@ -174,7 +191,7 @@ export default function DetailsStep({
     setNeedsSignIn(false);
 
     if (!categoryId) {
-      setError("Choose a category.");
+      setError(t("register.details.chooseCategoryError"));
       return;
     }
 
@@ -204,7 +221,7 @@ export default function DetailsStep({
         const detail =
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not save your details (HTTP ${res.status}).`;
+            : t("register.details.saveFailed", { status: res.status });
         setError(detail);
         setNeedsSignIn(res.status === 409 && detail.includes("Sign in"));
         return;
@@ -214,7 +231,7 @@ export default function DetailsStep({
       router.push("/register?step=2");
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("register.details.unreachable"));
     } finally {
       setSubmitting(false);
     }
@@ -223,28 +240,25 @@ export default function DetailsStep({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {restored ? (
-        <Alert tone="info">
-          We kept what you typed last time. Your password is never saved - enter it again.
-        </Alert>
+        <Alert locale={locale} tone="info">{t("register.details.restored")}</Alert>
       ) : null}
 
       <Card className="space-y-4 p-5">
         <div>
-          <h2 className="text-card-title text-ink">Your account</h2>
+          <h2 className="text-card-title text-ink">{t("register.details.accountTitle")}</h2>
           {convert ? (
             <p className="mt-0.5 text-meta text-ink-muted">
-              Your account ({existing?.account.email}) becomes your business account.
-              You keep signing in with the same email and password.
+              {t("register.details.convertBody", { email: existing?.account.email ?? "" })}
             </p>
           ) : editing ? (
             <p className="mt-0.5 text-meta text-ink-muted">
-              You sign in as {existing?.account.email}.
+              {t("register.details.editingBody", { email: existing?.account.email ?? "" })}
             </p>
           ) : (
             <p className="mt-0.5 text-meta text-ink-muted">
-              You will sign in with this email and password.{" "}
+              {t("register.details.newBody")}{" "}
               <Link href="/login?next=%2Fregister" className="text-brand-700 underline underline-offset-4">
-                Already started? Sign in to continue.
+                {t("register.details.alreadyStarted")}
               </Link>
             </p>
           )}
@@ -252,17 +266,17 @@ export default function DetailsStep({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label htmlFor="reg-name">Your name</Label>
+            <Label htmlFor="reg-name">{t("register.details.yourName")}</Label>
             <Input id="reg-name" required maxLength={255} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           {editing ? null : (
             <div>
-              <Label htmlFor="reg-email">Email</Label>
+              <Label htmlFor="reg-email">{t("register.details.email")}</Label>
               <Input id="reg-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           )}
           <div className={editing ? "sm:col-span-2" : undefined}>
-            <Label htmlFor="reg-phone">Mobile number</Label>
+            <Label htmlFor="reg-phone">{t("register.details.phone")}</Label>
             <Input
               id="reg-phone"
               type="tel"
@@ -276,7 +290,7 @@ export default function DetailsStep({
           </div>
           {editing ? null : (
             <div className="sm:col-span-2">
-              <Label htmlFor="reg-password">Password</Label>
+              <Label htmlFor="reg-password">{t("register.details.password")}</Label>
               <Input
                 id="reg-password"
                 type="password"
@@ -287,23 +301,23 @@ export default function DetailsStep({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <p className={HINT}>At least 8 characters.</p>
+              <p className={HINT}>{t("register.details.passwordHint")}</p>
             </div>
           )}
         </div>
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-card-title text-ink">Your business</h2>
+        <h2 className="text-card-title text-ink">{t("register.details.businessTitle")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label htmlFor="reg-business">Business name</Label>
+            <Label htmlFor="reg-business">{t("register.details.businessName")}</Label>
             <Input id="reg-business" required maxLength={255} autoComplete="organization" value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
-            <Label htmlFor="reg-category">Category</Label>
+            <Label htmlFor="reg-category">{t("register.details.category")}</Label>
             <Select id="reg-category" required value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              <option value="">Choose a category…</option>
+              <option value="">{t("register.details.categoryPlaceholder")}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -316,66 +330,65 @@ export default function DetailsStep({
 
       <Card className="space-y-4 p-5">
         <div>
-          <h2 className="text-card-title text-ink">Location</h2>
-          <p className="mt-0.5 text-meta text-ink-muted">
-            Your province also sets the sales tax (GST/HST) on paid plans.
-          </p>
+          <h2 className="text-card-title text-ink">{t("register.details.locationTitle")}</h2>
+          <p className="mt-0.5 text-meta text-ink-muted">{t("register.details.locationBody")}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label htmlFor="reg-address">Street address</Label>
+            <Label htmlFor="reg-address">{t("register.details.address")}</Label>
             <Input id="reg-address" maxLength={255} autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="reg-city">City</Label>
+            <Label htmlFor="reg-city">{t("register.details.city")}</Label>
             <Input id="reg-city" required maxLength={128} autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="reg-province">Province or territory</Label>
+            <Label htmlFor="reg-province">{t("register.details.province")}</Label>
             <Select id="reg-province" required value={province} onChange={(e) => setProvince(e.target.value)}>
               {PROVINCES.map((p) => (
                 <option key={p.code} value={p.code}>
-                  {p.en}
+                  {p[locale]}
                 </option>
               ))}
             </Select>
           </div>
           <div>
-            <Label htmlFor="reg-postal">Postal code</Label>
+            <Label htmlFor="reg-postal">{t("register.details.postalCode")}</Label>
             <Input id="reg-postal" maxLength={16} autoComplete="postal-code" placeholder="V6B 1A1" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
           </div>
         </div>
 
         {showMap ? (
-          <LocationPicker
-            latitude={latitude}
-            longitude={longitude}
-            onPick={(lat, lng) => {
-              setLatitude(lat);
-              setLongitude(lng);
-            }}
-            addressQuery={[address, city, province, postalCode].map((part) => part.trim()).filter(Boolean).join(", ")}
-          />
+          <MapLocale.Provider value={locale}>
+            <LocationPicker
+              locale={locale}
+              latitude={latitude}
+              longitude={longitude}
+              onPick={(lat, lng) => {
+                setLatitude(lat);
+                setLongitude(lng);
+              }}
+              addressQuery={[address, city, province, postalCode].map((part) => part.trim()).filter(Boolean).join(", ")}
+            />
+          </MapLocale.Provider>
         ) : (
           <div>
             <Button type="button" variant="secondary" size="sm" onClick={() => setShowMap(true)}>
-              Pin your location on the map
+              {t("register.details.pinMap")}
             </Button>
-            <p className={HINT}>
-              Optional. Pinned listings show a distance in &ldquo;near me&rdquo; searches.
-            </p>
+            <p className={HINT}>{t("register.details.pinHint")}</p>
           </div>
         )}
       </Card>
 
       {error !== null ? (
-        <Alert tone="error">
+        <Alert locale={locale} tone="error">
           {error}
           {needsSignIn ? (
             <>
               {" "}
               <Link href="/login?next=%2Fregister" className="font-medium underline underline-offset-4">
-                Sign in
+                {t("register.details.signIn")}
               </Link>
             </>
           ) : null}
@@ -384,7 +397,7 @@ export default function DetailsStep({
 
       <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={submitting}>
-          {submitting ? "Saving…" : "Save and continue"}
+          {submitting ? t("register.details.saving") : t("register.details.save")}
         </Button>
       </div>
     </form>

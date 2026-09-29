@@ -27,7 +27,8 @@ import { EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getMyBusiness, getReviewSummary, getReviews } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type {
   BusinessDetail,
   BusinessReview,
@@ -36,13 +37,14 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
 
 export default async function DashboardReviewsPage({
   params,
 }: {
   params: { businessId: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireBusinessOwner(`/dashboard/${params.businessId}/reviews`);
 
   const businessId = Number(params.businessId);
@@ -85,17 +87,19 @@ export default async function DashboardReviewsPage({
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">
           <Link href="/dashboard">
             <ArrowLeft aria-hidden="true" />
-            Your listings
+            {t("dashboard.common.yourListings")}
           </Link>
         </Button>
 
-        <h1 className="mt-2 text-page-title text-ink">Reviews for {listing.name}</h1>
+        <h1 className="mt-2 text-page-title text-ink">
+          {t("dashboard.reviews.title", { name: listing.name })}
+        </h1>
         <p className="mt-1 text-body text-ink-muted">
           {reviews.length === 0
-            ? "Nothing to answer yet."
+            ? t("dashboard.reviews.nothingYet")
             : unanswered > 0
-              ? `${unanswered} of ${reviews.length} still awaiting a reply.`
-              : "Every review has been answered."}
+              ? t("dashboard.reviews.awaiting", { unanswered, total: reviews.length })
+              : t("dashboard.reviews.allAnswered")}
         </p>
 
         <DashboardNav
@@ -103,11 +107,12 @@ export default async function DashboardReviewsPage({
           current="reviews"
           className="mt-4"
           unansweredReviews={unanswered}
+          locale={locale}
         />
 
         {summary !== null && summary.review_count > 0 ? (
           <Card className="mt-4 p-4">
-            <h2 className="sr-only">Rating breakdown</h2>
+            <h2 className="sr-only">{t("dashboard.reviews.breakdown")}</h2>
             <RatingBreakdown summary={summary} locale={locale} />
           </Card>
         ) : null}
@@ -116,17 +121,17 @@ export default async function DashboardReviewsPage({
           <EmptyState
             className="mt-4"
             icon={<MessageSquare className="size-5" aria-hidden="true" />}
-            title="No reviews yet"
+            title={t("dashboard.reviews.emptyTitle")}
             body={
               listing.status === "approved"
-                ? "When customers review this listing, they will appear here and you can reply to each one."
-                : "This listing is not publicly visible yet, so customers cannot review it."
+                ? t("dashboard.reviews.emptyBodyLive")
+                : t("dashboard.reviews.emptyBodyHidden")
             }
-            action={{ label: "Back to listings", href: "/dashboard" }}
+            action={{ label: t("dashboard.common.backToListings"), href: "/dashboard" }}
           />
         ) : (
           <div className="mt-4">
-            <OwnerReviewList businessId={businessId} reviews={reviews} />
+            <OwnerReviewList businessId={businessId} reviews={reviews} locale={locale} />
           </div>
         )}
       </main>

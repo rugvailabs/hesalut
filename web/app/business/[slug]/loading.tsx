@@ -9,20 +9,20 @@
 
 import { Skeleton as Bar } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export default function Loading(): JSX.Element {
+  const t = tFor(getLocale());
   return (
     <>
-      {/* @ts-expect-error Async Server Component in a sync parent - allowed in
-          the App Router, not yet expressible in the type system. */}
-
       <main
         className="mx-auto max-w-6xl px-4 py-6 sm:px-6"
         role="status"
         aria-busy="true"
         aria-live="polite"
       >
-        <span className="sr-only">Loading listing</span>
+        <span className="sr-only">{t("discover.business.loading")}</span>
 
         <Bar className="h-3 w-56" />
         <Bar className="mt-4 h-8 w-2/5" />

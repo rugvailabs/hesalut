@@ -14,17 +14,22 @@ import { useState } from "react";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { FIELD } from "@/components/ui/field";
+import { tFor, type Locale } from "@/lib/i18n";
 import type { PreferredContactMethod, UserResponse } from "@/lib/types";
 
 
-const CONTACT_METHODS: { value: PreferredContactMethod; label: string }[] = [
-  { value: "email", label: "Email" },
-  { value: "sms", label: "Text message" },
-  { value: "phone", label: "Phone call" },
-];
+/** Each label is dashboard.account.methods.<value>. */
+const CONTACT_METHODS: PreferredContactMethod[] = ["email", "sms", "phone"];
 
-export default function ProfileForm({ user }: { user: UserResponse }): JSX.Element {
+export default function ProfileForm({
+  user,
+  locale,
+}: {
+  user: UserResponse;
+  locale: Locale;
+}): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
 
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone ?? "");
@@ -44,7 +49,7 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!name.trim()) {
-      setError("Your name cannot be empty.");
+      setError(t("dashboard.account.nameEmpty"));
       return;
     }
 
@@ -68,7 +73,7 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
         setError(
           body && typeof body === "object" && "detail" in body
             ? String((body as { detail: unknown }).detail)
-            : `Could not save (HTTP ${res.status}).`,
+            : t("dashboard.common.saveFailed", { status: res.status }),
         );
         return;
       }
@@ -77,7 +82,7 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
       // Re-run the Server Components so the header picks up a changed name.
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("dashboard.common.serverUnreachable"));
     } finally {
       setSaving(false);
     }
@@ -86,7 +91,9 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <label className="block">
-        <span className="mb-1 block text-sm font-medium text-slate-700">Name</span>
+        <span className="mb-1 block text-sm font-medium text-slate-700">
+          {t("dashboard.account.name")}
+        </span>
         <input
           required
           maxLength={255}
@@ -101,7 +108,8 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-slate-700">
-          Phone <span className="font-normal text-slate-500">(optional)</span>
+          {t("dashboard.account.phone")}{" "}
+          <span className="font-normal text-slate-500">{t("dashboard.common.optional")}</span>
         </span>
         <input
           type="tel"
@@ -117,7 +125,7 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
 
       <label className="block sm:w-56">
         <span className="mb-1 block text-sm font-medium text-slate-700">
-          Preferred contact
+          {t("dashboard.account.preferredContact")}
         </span>
         <select
           value={contact}
@@ -128,23 +136,23 @@ export default function ProfileForm({ user }: { user: UserResponse }): JSX.Eleme
           className={FIELD}
         >
           {CONTACT_METHODS.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
+            <option key={m} value={m}>
+              {t(`dashboard.account.methods.${m}`)}
             </option>
           ))}
         </select>
       </label>
 
       {error !== null ? (
-        <Alert tone="error">{error}</Alert>
+        <Alert locale={locale} tone="error">{error}</Alert>
       ) : null}
 
       {saved ? (
-        <Alert tone="success">Saved.</Alert>
+        <Alert locale={locale} tone="success">{t("dashboard.account.saved")}</Alert>
       ) : null}
 
       <Button type="submit" disabled={saving || !dirty}>
-        {saving ? "Saving…" : "Save changes"}
+        {saving ? t("dashboard.common.saving") : t("dashboard.common.saveChanges")}
       </Button>
     </form>
   );

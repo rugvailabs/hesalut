@@ -16,14 +16,16 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 
 export type DashboardSection = "edit" | "leads" | "reviews" | "verification";
 
-const TABS: { key: DashboardSection; segment: string; label: string }[] = [
-  { key: "edit", segment: "edit", label: "Details" },
-  { key: "leads", segment: "leads", label: "Leads" },
-  { key: "reviews", segment: "reviews", label: "Reviews" },
-  { key: "verification", segment: "verification", label: "Verification" },
+/** Each tab's label is dashboard.nav.<key>. */
+const TABS: { key: DashboardSection; segment: string }[] = [
+  { key: "edit", segment: "edit" },
+  { key: "leads", segment: "leads" },
+  { key: "reviews", segment: "reviews" },
+  { key: "verification", segment: "verification" },
 ];
 
 export default function DashboardNav({
@@ -32,6 +34,7 @@ export default function DashboardNav({
   unansweredReviews,
   newLeads,
   className,
+  locale,
 }: {
   businessId: number;
   current: DashboardSection;
@@ -39,14 +42,16 @@ export default function DashboardNav({
   unansweredReviews?: number;
   newLeads?: number;
   className?: string;
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const counts: Partial<Record<DashboardSection, number | undefined>> = {
     reviews: unansweredReviews,
     leads: newLeads,
   };
 
   return (
-    <nav className={cn("flex flex-wrap gap-2", className)} aria-label="This listing">
+    <nav className={cn("flex flex-wrap gap-2", className)} aria-label={t("dashboard.nav.label")}>
       {TABS.map((tab) => {
         const selected = tab.key === current;
         const count = counts[tab.key];
@@ -65,7 +70,7 @@ export default function DashboardNav({
                 : "border border-line-strong bg-surface text-ink hover:bg-surface-muted",
             )}
           >
-            {tab.label}
+            {t(`dashboard.nav.${tab.key}`)}
             {count !== undefined && count > 0 ? (
               <span
                 className={cn(

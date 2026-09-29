@@ -30,7 +30,8 @@ import { Alert, Breadcrumbs, EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getCategories, searchBusinesses } from "@/lib/api";
 import { formatCount, formatDistance } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import { splitNearMe } from "@/lib/near-me";
 import type {
   BusinessSearchParams,
@@ -41,8 +42,6 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
 
 /**
  * Title and description come from the filters actually applied, so a shared
@@ -53,9 +52,10 @@ export async function generateMetadata({
 }: {
   searchParams: RawParams;
 }): Promise<Metadata> {
+  const t = tFor(getLocale());
   const params = toSearchParams(searchParams);
 
-  let subject = "Local businesses";
+  let subject = t("discover.search.defaultSubject");
   if (params.category_slug) {
     const categories = await getCategories().catch(() => []);
     const match = categories.find((c) => c.slug === params.category_slug);
@@ -65,15 +65,19 @@ export async function generateMetadata({
 
   const where =
     params.lat !== undefined || wantsNearMe(searchParams)
-      ? "near you"
-      : `in ${params.city ?? "Metro Vancouver"}`;
-  const title = `${subject} ${where}`;
+      ? t("discover.search.whereNear")
+      : params.city !== undefined
+        ? t("discover.search.whereIn", { city: params.city })
+        : t("discover.search.whereDefault");
+  const title = t("discover.search.heading", { subject, where });
 
   return {
     title,
-    description:
-      `Find ${subject.toLowerCase()} ${where}. ` +
-      "Compare ratings, read reviews and contact businesses directly.",
+    description: t("discover.search.metaDescription", {
+      subject: subject.toLowerCase(),
+      where,
+      heading: title,
+    }),
   };
 }
 
@@ -179,6 +183,9 @@ export default async function SearchPage({
 }: {
   searchParams: RawParams;
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
   const params = toSearchParams(searchParams);
   const hasPoint = params.lat !== undefined && params.lng !== undefined;
 
@@ -240,9 +247,9 @@ export default async function SearchPage({
   const errorMessage = failed
     ? resultsResult.reason instanceof ApiError
       ? resultsResult.reason.isNetworkError
-        ? "The API is not reachable. Is the backend running on port 8000?"
+        ? t("discover.search.apiUnreachable")
         : resultsResult.reason.message
-      : "Something went wrong running that search."
+      : t("discover.search.genericError")
     : null;
 
   const page = results?.page ?? params.page ?? 1;
@@ -250,9 +257,13 @@ export default async function SearchPage({
 
   // The h1 states what was actually searched, so a shared link reads as its
   // own page rather than as "Search" with different contents.
-  const subject = params.q ?? categoryName ?? "Local businesses";
+  const subject = params.q ?? categoryName ?? t("discover.search.defaultSubject");
   const where =
-    hasPoint || locating ? "near you" : `in ${params.city ?? "Metro Vancouver"}`;
+    hasPoint || locating
+      ? t("discover.search.whereNear")
+      : params.city !== undefined
+        ? t("discover.search.whereIn", { city: params.city })
+        : t("discover.search.whereDefault");
 
   // What the locator carries forward: every filter except the location ones,
   // with the query already cleaned of its "near me" phrase.
@@ -281,11 +292,12 @@ export default async function SearchPage({
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <Breadcrumbs
+          locale={locale}
           items={[
             // The Browse page opens without a Home link, as asked; it stays
             // in the markup, hidden.
-            { label: "Home", href: "/", hidden: true },
-            { label: "Search", href: "/search" },
+            { label: t("business.home"), href: "/", hidden: true },
+            { label: t("discover.search.crumb"), href: "/search" },
             ...(categoryName !== undefined ? [{ label: categoryName }] : []),
           ]}
         />
@@ -293,15 +305,22 @@ export default async function SearchPage({
         <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h1 className="text-page-title text-ink">
-              {subject} {where}
+              {t("discover.search.heading", { subject, where })}
             </h1>
             {results !== null ? (
               <p className="mt-1 text-body text-ink-muted">
                 <span className="tabular">{formatCount(results.total, intl)}</span>{" "}
-                {results.total === 1 ? "listing" : "listings"}
-                {hasPoint && !widened ? ` within ${params.radius_km ?? 25} km` : ""}
+                {results.total === 1
+                  ? t("discover.search.listing")
+                  : t("discover.search.listings")}
+                {hasPoint && !widened
+                  ? t("discover.search.withinKm", { km: params.radius_km ?? 25 })
+                  : ""}
                 {results.total_pages > 1
-                  ? ` · page ${results.page} of ${results.total_pages}`
+                  ? t("discover.search.pageSuffix", {
+                      page: results.page,
+                      total: results.total_pages,
+                    })
                   : ""}
               </p>
             ) : null}
@@ -317,25 +336,32 @@ export default async function SearchPage({
           {/* ------------------------------------------------------ results */}
           <div className="min-w-0">
             {widened ? (
-              <Alert tone="info" className="mb-4">
-                Nothing matches within {params.radius_km} km of you, so these are the
-                closest matches instead
+              <Alert tone="info" className="mb-4" locale={locale}>
+                {t("discover.search.widened", { km: params.radius_km ?? "" })}
                 {nearestKm !== null && page === 1
-                  ? ` - the nearest is ${formatDistance(nearestKm, intl)} away`
+                  ? t("discover.search.widenedNearest", {
+                      distance: formatDistance(nearestKm, intl) ?? "",
+                    })
                   : ""}
                 .
               </Alert>
             ) : null}
 
             {locating ? (
-              <NearMeLocator query={params.q} baseParams={locatorParams} />
+              <NearMeLocator
+                query={params.q}
+                baseParams={locatorParams}
+                locale={locale}
+              />
             ) : errorMessage !== null ? (
               <Card className="border-danger/30 bg-danger-bg p-5">
-                <h2 className="text-card-title text-danger">Search failed</h2>
+                <h2 className="text-card-title text-danger">
+                  {t("discover.search.failedTitle")}
+                </h2>
                 <p className="mt-1 text-body text-danger">{errorMessage}</p>
                 <div className="mt-3">
                   <Button asChild variant="secondary" size="sm">
-                    <Link href="/search">Reset search</Link>
+                    <Link href="/search">{t("discover.search.reset")}</Link>
                   </Button>
                 </div>
               </Card>
@@ -344,15 +370,17 @@ export default async function SearchPage({
                 <EmptyState
                   title={
                     params.city !== undefined || hasPoint
-                      ? "No services in this area"
-                      : "No listings match that"
+                      ? t("discover.search.noServicesArea")
+                      : t("empty.noResults")
                   }
-                  body="Try a broader search - remove the city, lower the minimum rating, or widen the category."
-                  action={{ label: "Clear all filters", href: "/search" }}
+                  body={t("discover.search.emptyBody")}
+                  action={{ label: t("discover.search.clearAll"), href: "/search" }}
                 />
                 {otherAreas.length > 0 ? (
                   <div className="mt-4">
-                    <h2 className="text-card-title text-ink">Other areas with {subject.toLowerCase()}</h2>
+                    <h2 className="text-card-title text-ink">
+                      {t("discover.search.otherAreas", { subject: subject.toLowerCase() })}
+                    </h2>
                     <ul className="mt-2 flex flex-wrap gap-2">
                       {otherAreas.map((area) => (
                         <li key={area}>
@@ -371,13 +399,13 @@ export default async function SearchPage({
 
                 {results !== null && results.total_pages > 1 ? (
                   <nav
-                    aria-label="Pagination"
+                    aria-label={t("discover.search.pagination")}
                     className="mt-6 flex items-center justify-between gap-3"
                   >
                     {results.has_prev ? (
                       <Button asChild variant="secondary" size="sm">
                         <Link href={urlWith(searchParams, "page", String(page - 1))}>
-                          ← Previous
+                          {t("discover.search.previous")}
                         </Link>
                       </Button>
                     ) : (
@@ -385,13 +413,16 @@ export default async function SearchPage({
                     )}
 
                     <span className="text-meta tabular text-ink-subtle">
-                      Page {results.page} of {results.total_pages}
+                      {t("discover.search.pageOf", {
+                        page: results.page,
+                        total: results.total_pages,
+                      })}
                     </span>
 
                     {results.has_next ? (
                       <Button asChild variant="secondary" size="sm">
                         <Link href={urlWith(searchParams, "page", String(page + 1))}>
-                          Next →
+                          {t("discover.search.next")}
                         </Link>
                       </Button>
                     ) : (
@@ -410,6 +441,7 @@ export default async function SearchPage({
                 {mappable > 0 ? (
                   <ResultsMap
                     businesses={items}
+                    locale={locale}
                     origin={
                       hasPoint
                         ? { lat: params.lat as number, lng: params.lng as number }
@@ -425,17 +457,18 @@ export default async function SearchPage({
                     )}
                     <p className="text-meta text-ink-muted">
                       {locating
-                        ? "The map appears once your location is found."
-                        : "No results on this page have coordinates yet."}
+                        ? t("discover.search.mapAwaitingLocation")
+                        : t("discover.search.mapNoCoordinates")}
                     </p>
                   </div>
                 )}
               </div>
               {mappable > 0 ? (
-                <p className="border-t border-line px-3 py-2 text-meta text-ink-subtle">
-                  <span className="tabular">{mappable}</span> of{" "}
-                  <span className="tabular">{items.length}</span> on this page are
-                  mapped.
+                <p className="border-t border-line px-3 py-2 text-meta tabular text-ink-subtle">
+                  {t("discover.search.mappedCount", {
+                    mapped: mappable,
+                    total: items.length,
+                  })}
                 </p>
               ) : null}
             </div>

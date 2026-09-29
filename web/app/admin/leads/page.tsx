@@ -27,24 +27,26 @@ import { Badge, Button } from "@/components/ds/primitives";
 import { ApiError, getAdminEnquiries, getAdminStats } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
 import { formatCount, formatPhone } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { AdminEnquiryPage, EnquiryType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Leads" };
+export function generateMetadata(): Metadata {
+  return { title: tFor(getLocale())("admin.leads.metaTitle") };
+}
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
 const PAGE_SIZE = 50;
 
+// Labels are admin.leads.types.<type>.
 const TYPES: Record<
   EnquiryType,
-  { label: string; tone: "neutral" | "brand" | "warning" | "success" }
+  { tone: "neutral" | "brand" | "warning" | "success" }
 > = {
-  call_click: { label: "Call", tone: "neutral" },
-  callback: { label: "Callback", tone: "warning" },
-  quote: { label: "Quote", tone: "brand" },
-  chat: { label: "Chat", tone: "success" },
+  call_click: { tone: "neutral" },
+  callback: { tone: "warning" },
+  quote: { tone: "brand" },
+  chat: { tone: "success" },
 };
 
 function isType(value: string | undefined): value is EnquiryType {
@@ -52,6 +54,7 @@ function isType(value: string | undefined): value is EnquiryType {
 }
 
 function formatWhen(iso: string): string {
+  const intl = INTL_LOCALE[getLocale()];
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? iso
@@ -69,6 +72,10 @@ export default async function AdminLeadsPage({
 }: {
   searchParams: { type?: string; page?: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
+  const typeLabel = (value: EnquiryType): string => t(`admin.leads.types.${value}`);
   await requireAdmin("/admin/leads");
 
   const type = isType(searchParams.type) ? searchParams.type : undefined;
@@ -87,9 +94,9 @@ export default async function AdminLeadsPage({
     error =
       cause instanceof ApiError
         ? cause.isNetworkError
-          ? "The API is not reachable. Is the backend running on port 8000?"
+          ? t("admin.common.apiUnreachable")
           : cause.message
-        : "Could not load the leads.";
+        : t("admin.leads.loadError");
   }
 
   // Counts for the nav badges. Failing here must not cost the page.
@@ -103,22 +110,21 @@ export default async function AdminLeadsPage({
     <>
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <h1 className="text-page-title text-ink">Leads</h1>
-        <p className="mt-1 text-body text-ink-muted">
-          Every enquiry left on any listing, newest first.
-        </p>
+        <h1 className="text-page-title text-ink">{t("admin.leads.title")}</h1>
+        <p className="mt-1 text-body text-ink-muted">{t("admin.leads.intro")}</p>
 
         <AdminNav
           current="leads"
           pendingListings={stats?.pending_listings}
           pendingVerifications={stats?.pending_verifications}
           className="mt-4"
+          locale={locale}
         />
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by type">
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("admin.leads.filterLabel")}>
             <Button asChild variant={type === undefined ? "primary" : "secondary"} size="sm">
-              <Link href={filterHref()}>All</Link>
+              <Link href={filterHref()}>{t("admin.leads.all")}</Link>
             </Button>
             {(Object.keys(TYPES) as EnquiryType[]).map((value) => (
               <Button
@@ -127,7 +133,7 @@ export default async function AdminLeadsPage({
                 variant={type === value ? "primary" : "secondary"}
                 size="sm"
               >
-                <Link href={filterHref(value)}>{TYPES[value].label}</Link>
+                <Link href={filterHref(value)}>{typeLabel(value)}</Link>
               </Button>
             ))}
           </div>
@@ -137,48 +143,59 @@ export default async function AdminLeadsPage({
                 response is what makes Content-Disposition save a file. */}
             <a href={exportHref} download>
               <Download aria-hidden="true" />
-              Export CSV
+              {t("admin.leads.exportCsv")}
             </a>
           </Button>
         </div>
 
         {error !== null ? (
-          <Alert tone="error" title="Could not load leads" className="mt-4">
+          <Alert locale={locale} tone="error" title={t("admin.leads.loadErrorTitle")} className="mt-4">
             {error}
           </Alert>
         ) : leads === null || leads.items.length === 0 ? (
           <EmptyState
             className="mt-4"
             icon={<Inbox className="size-5" aria-hidden="true" />}
-            title={type === undefined ? "No enquiries yet" : "None of that type"}
+            title={
+              type === undefined
+                ? t("admin.leads.emptyTitle")
+                : t("admin.leads.emptyTypeTitle")
+            }
             body={
               type === undefined
-                ? "When somebody reveals a phone number or sends a request from a listing, it appears here."
-                : "Try a different type, or clear the filter."
+                ? t("admin.leads.emptyBody")
+                : t("admin.leads.emptyTypeBody")
             }
-            action={{ label: "Clear filter", href: "/admin/leads" }}
+            action={{ label: t("admin.leads.clearFilter"), href: "/admin/leads" }}
           />
         ) : (
           <>
             <p className="mt-4 text-meta text-ink-subtle">
-              {formatCount(leads.total, intl)}{" "}
-              {leads.total === 1 ? "enquiry" : "enquiries"}
-              {type !== undefined ? ` of type ${TYPES[type].label.toLowerCase()}` : ""} ·
-              page {leads.page} of {leads.total_pages}
+              {t(leads.total === 1 ? "admin.leads.countOne" : "admin.leads.countMany", {
+                count: formatCount(leads.total, intl),
+              })}
+              {type !== undefined
+                ? t("admin.leads.ofType", { type: typeLabel(type).toLowerCase() })
+                : ""}{" "}
+              ·{" "}
+              {t("admin.leads.pageOf", {
+                page: formatCount(leads.page, intl),
+                total: formatCount(leads.total_pages, intl),
+              })}
             </p>
 
             <div className="mt-3 overflow-x-auto rounded-card border border-line bg-surface">
               <table className="w-full border-collapse text-body">
                 <caption className="sr-only">
-                  Enquiries across all listings, newest first
+                  {t("admin.leads.caption")}
                 </caption>
                 <thead>
                   <tr className="border-b border-line text-left text-meta text-ink-muted">
-                    <th scope="col" className="px-4 py-2 font-medium">Type</th>
-                    <th scope="col" className="px-4 py-2 font-medium">Listing</th>
-                    <th scope="col" className="px-4 py-2 font-medium">Message</th>
-                    <th scope="col" className="px-4 py-2 font-medium">Contact</th>
-                    <th scope="col" className="px-4 py-2 font-medium">When</th>
+                    <th scope="col" className="px-4 py-2 font-medium">{t("admin.leads.th.type")}</th>
+                    <th scope="col" className="px-4 py-2 font-medium">{t("admin.leads.th.listing")}</th>
+                    <th scope="col" className="px-4 py-2 font-medium">{t("admin.leads.th.message")}</th>
+                    <th scope="col" className="px-4 py-2 font-medium">{t("admin.leads.th.contact")}</th>
+                    <th scope="col" className="px-4 py-2 font-medium">{t("admin.leads.th.when")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -189,7 +206,7 @@ export default async function AdminLeadsPage({
                     >
                       <td className="px-4 py-3">
                         <Badge tone={TYPES[lead.enquiry_type].tone}>
-                          {TYPES[lead.enquiry_type].label}
+                          {typeLabel(lead.enquiry_type)}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
@@ -204,7 +221,7 @@ export default async function AdminLeadsPage({
                         {lead.message ?? (
                           <span className="text-ink-subtle">
                             {lead.enquiry_type === "call_click"
-                              ? "Revealed the phone number"
+                              ? t("admin.leads.revealedPhone")
                               : "—"}
                           </span>
                         )}
@@ -222,7 +239,9 @@ export default async function AdminLeadsPage({
                           </div>
                         ) : null}
                         {lead.user_id === null ? (
-                          <div className="text-meta text-ink-subtle">Anonymous</div>
+                          <div className="text-meta text-ink-subtle">
+                            {t("admin.leads.anonymous")}
+                          </div>
                         ) : null}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 tabular text-ink-muted">
@@ -237,7 +256,7 @@ export default async function AdminLeadsPage({
             {leads.total_pages > 1 ? (
               <nav
                 className="mt-4 flex items-center justify-between gap-2"
-                aria-label="Pagination"
+                aria-label={t("admin.leads.pagination")}
               >
                 <Button
                   asChild={leads.page > 1}
@@ -252,10 +271,10 @@ export default async function AdminLeadsPage({
                         page: String(leads.page - 1),
                       })}`}
                     >
-                      Previous
+                      {t("admin.leads.previous")}
                     </Link>
                   ) : (
-                    <span>Previous</span>
+                    <span>{t("admin.leads.previous")}</span>
                   )}
                 </Button>
 
@@ -272,10 +291,10 @@ export default async function AdminLeadsPage({
                         page: String(leads.page + 1),
                       })}`}
                     >
-                      Next
+                      {t("admin.leads.next")}
                     </Link>
                   ) : (
-                    <span>Next</span>
+                    <span>{t("admin.leads.next")}</span>
                   )}
                 </Button>
               </nav>
@@ -284,8 +303,7 @@ export default async function AdminLeadsPage({
         )}
 
         <p className="mt-6 max-w-prose text-meta text-ink-subtle">
-          These are contact details customers gave to a business, not to us.
-          Reading this page and exporting it are both recorded in the audit log.
+          {t("admin.leads.auditNote")}
         </p>
       </main>
 

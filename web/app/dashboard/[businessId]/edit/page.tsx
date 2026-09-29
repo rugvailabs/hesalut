@@ -23,18 +23,20 @@ import { Button } from "@/components/ds/primitives";
 import { ListingStatusBadge } from "@/components/ds/status";
 import { ApiError, getCategories, getMyBusiness } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { BusinessDetail } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
 
 export default async function EditListingPage({
   params,
 }: {
   params: { businessId: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireBusinessOwner(`/dashboard/${params.businessId}/edit`);
 
   const businessId = Number(params.businessId);
@@ -61,19 +63,29 @@ export default async function EditListingPage({
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">
           <Link href="/dashboard">
             <ArrowLeft aria-hidden="true" />
-            Your listings
+            {t("dashboard.common.yourListings")}
           </Link>
         </Button>
 
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-page-title text-ink">{listing.name}</h1>
-          <ListingStatusBadge status={listing.status} showHint />
+          <ListingStatusBadge locale={locale} status={listing.status} showHint />
         </div>
 
-        <DashboardNav businessId={businessId} current="edit" className="mt-4" />
+        <DashboardNav
+          businessId={businessId}
+          current="edit"
+          className="mt-4"
+          locale={locale}
+        />
 
         <div className="mt-4">
-          <BusinessForm mode="edit" categories={categories} listing={listing} />
+          <BusinessForm
+            mode="edit"
+            categories={categories}
+            listing={listing}
+            locale={locale}
+          />
         </div>
       </main>
 

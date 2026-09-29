@@ -10,6 +10,12 @@
  * what formatTime produces under fr-CA anyway.
  */
 
+import { authFr } from "@/lib/i18n/sections/auth";
+import { registerFr } from "@/lib/i18n/sections/register";
+import { pagesFr } from "@/lib/i18n/sections/pages";
+import { discoverFr } from "@/lib/i18n/sections/discover";
+import { dashboardFr } from "@/lib/i18n/sections/dashboard";
+import { adminFr } from "@/lib/i18n/sections/admin";
 import type { Dictionary } from "@/lib/i18n/en";
 
 export const fr: Dictionary = {
@@ -117,7 +123,7 @@ export const fr: Dictionary = {
   footer: {
     forCustomers: "Pour les clients",
     forBusinesses: "Pour les entreprises",
-    company: "L'entreprise",
+    company: "L’entreprise",
     browseCategories: "Parcourir les catégories",
     howItWorks: "Comment ça marche",
     addListing: "Inscrire une entreprise",
@@ -142,4 +148,10 @@ export const fr: Dictionary = {
     noResultsBody: "Essayez une recherche plus large ou retirez un filtre.",
     clearFilters: "Effacer les filtres",
   },
+  auth: authFr,
+  register: registerFr,
+  pages: pagesFr,
+  discover: discoverFr,
+  dashboard: dashboardFr,
+  admin: adminFr,
 };

@@ -26,25 +26,32 @@ import { Alert } from "@/components/ds/feedback";
 import { FIELD, HINT, LABEL, TEXTAREA } from "@/components/ds/form";
 import { Button, Card } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 
 const RATINGS = [1, 2, 3, 4, 5] as const;
 
-/** The words that make a star count mean the same thing to everyone. */
+/**
+ * The words that make a star count mean the same thing to everyone, as
+ * dictionary keys resolved in the component.
+ */
 const RATING_LABELS: Record<number, string> = {
-  1: "Poor",
-  2: "Fair",
-  3: "Good",
-  4: "Very good",
-  5: "Excellent",
+  1: "discover.review.poor",
+  2: "discover.review.fair",
+  3: "discover.review.good",
+  4: "discover.review.veryGood",
+  5: "discover.review.excellent",
 };
 
 export default function ReviewForm({
   businessId,
   businessName,
+  locale = "en",
 }: {
   businessId: number;
   businessName: string;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const router = useRouter();
 
   const [rating, setRating] = useState(0);
@@ -62,7 +69,7 @@ export default function ReviewForm({
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (rating === 0) {
-      setError("Choose a rating from 1 to 5 stars.");
+      setError(t("discover.review.chooseRating"));
       return;
     }
 
@@ -85,7 +92,7 @@ export default function ReviewForm({
         const detail =
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not post that review (HTTP ${res.status}).`;
+            : t("discover.review.httpError", { status: res.status });
         setError(detail);
         return;
       }
@@ -95,7 +102,7 @@ export default function ReviewForm({
       // list all pick up the review that was just written.
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("business.sendFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -105,9 +112,11 @@ export default function ReviewForm({
     return (
       <Card className="border-success/30 bg-success-bg p-4">
         <div role="status">
-          <h3 className="text-card-title text-success">Thanks for the review</h3>
+          <h3 className="text-card-title text-success">
+            {t("discover.review.thanksTitle")}
+          </h3>
           <p className="mt-1 text-body text-ink-muted">
-            It is live on {businessName} now, and the owner can reply to it.
+            {t("discover.review.thanksBody", { name: businessName })}
           </p>
         </div>
       </Card>
@@ -116,11 +125,10 @@ export default function ReviewForm({
 
   return (
     <Card className="p-4">
-      <h3 className="text-card-title text-ink">Review {businessName}</h3>
-      <p className={HINT}>
-        Your name appears with your review. You can leave one review per
-        business, and it cannot be edited afterwards.
-      </p>
+      <h3 className="text-card-title text-ink">
+        {t("discover.review.heading", { name: businessName })}
+      </h3>
+      <p className={HINT}>{t("discover.review.hint")}</p>
 
       <form onSubmit={onSubmit} className="mt-4 space-y-4">
         <fieldset
@@ -129,7 +137,7 @@ export default function ReviewForm({
           // the pointer happened to cross.
           onMouseLeave={() => setPreview(0)}
         >
-          <legend className={LABEL}>Your rating</legend>
+          <legend className={LABEL}>{t("discover.review.yourRating")}</legend>
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-0.5">
@@ -170,8 +178,13 @@ export default function ReviewForm({
                   />
                   {/* The accessible name for this option. */}
                   <span className="sr-only">
-                    {value} {value === 1 ? "star" : "stars"} &ndash;{" "}
-                    {RATING_LABELS[value]}
+                    {t("discover.review.starOption", {
+                      stars:
+                        value === 1
+                          ? t("business.oneStar")
+                          : t("business.starCount", { stars: value }),
+                      label: t(RATING_LABELS[value]),
+                    })}
                   </span>
                 </label>
               ))}
@@ -184,14 +197,15 @@ export default function ReviewForm({
                 shown > 0 ? "text-ink-muted" : "text-ink-subtle",
               )}
             >
-              {shown > 0 ? RATING_LABELS[shown] : "Tap a star"}
+              {shown > 0 ? t(RATING_LABELS[shown]) : t("discover.review.tapStar")}
             </span>
           </div>
         </fieldset>
 
         <div>
           <label htmlFor="review-title" className={LABEL}>
-            Headline <span className="font-normal">(optional)</span>
+            {t("discover.review.headline")}{" "}
+            <span className="font-normal">{t("discover.review.optional")}</span>
           </label>
           <input
             id="review-title"
@@ -199,14 +213,15 @@ export default function ReviewForm({
             maxLength={255}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Sums up your experience in a few words"
+            placeholder={t("discover.review.headlinePlaceholder")}
             className={FIELD}
           />
         </div>
 
         <div>
           <label htmlFor="review-body" className={LABEL}>
-            Your review <span className="font-normal">(optional)</span>
+            {t("discover.review.body")}{" "}
+            <span className="font-normal">{t("discover.review.optional")}</span>
           </label>
           <textarea
             id="review-body"
@@ -214,18 +229,24 @@ export default function ReviewForm({
             maxLength={5000}
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder="What was done, how it went, whether you would go back."
+            placeholder={t("discover.review.bodyPlaceholder")}
             className={TEXTAREA}
           />
           <p className={HINT}>
-            {body.length > 0 ? `${body.length} of 5000 characters` : "Up to 5000 characters."}
+            {body.length > 0
+              ? t("discover.review.charCount", { count: body.length })
+              : t("discover.review.charLimit")}
           </p>
         </div>
 
-        {error !== null ? <Alert tone="error">{error}</Alert> : null}
+        {error !== null ? (
+          <Alert tone="error" locale={locale}>
+            {error}
+          </Alert>
+        ) : null}
 
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Posting…" : "Post review"}
+          {submitting ? t("discover.review.posting") : t("discover.review.post")}
         </Button>
       </form>
     </Card>

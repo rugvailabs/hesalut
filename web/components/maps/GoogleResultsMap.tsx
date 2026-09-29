@@ -20,6 +20,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { formatDistance, formatLocality, formatRating } from "@/lib/format";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import {
   GOOGLE_MAP_ID,
   GOOGLE_MAPS_API_KEY,
@@ -65,12 +66,15 @@ export default function GoogleResultsMap({
   businesses,
   origin,
   className = "",
+  locale = "en",
 }: {
   businesses: BusinessListItem[];
   /** The searcher's position on a near-me search. */
   origin?: Point;
   className?: string;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const mapped = businesses.filter(
@@ -101,7 +105,7 @@ export default function GoogleResultsMap({
         <FitBounds points={points} />
 
         {origin ? (
-          <AdvancedMarker position={origin} title="Your location" zIndex={1000}>
+          <AdvancedMarker position={origin} title={t("discover.map.yourLocation")} zIndex={1000}>
             <span
               className="block size-4 rounded-full border-2 border-white bg-[#1a73e8] shadow-[0_0_0_6px_rgba(26,115,232,0.25)]"
               aria-hidden="true"
@@ -136,7 +140,9 @@ export default function GoogleResultsMap({
               <span className="block text-[0.75rem] text-slate-600">
                 {formatLocality(selected.city, selected.province)}
                 {selected.distance_km !== null
-                  ? ` · ${formatDistance(selected.distance_km)} away`
+                  ? ` · ${t("listing.away", {
+                      distance: formatDistance(selected.distance_km, INTL_LOCALE[locale]) ?? "",
+                    })}`
                   : ""}
               </span>
               {selected.rating !== null ? (
@@ -148,7 +154,7 @@ export default function GoogleResultsMap({
                 href={`/business/${selected.slug}`}
                 className="mt-1 block text-[0.75rem] font-medium text-[#0b5953] underline"
               >
-                View listing
+                {t("discover.map.viewListing")}
               </a>
             </div>
           </InfoWindow>

@@ -34,13 +34,12 @@ import {
   formatCount,
   isProvinceCode,
 } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { Category } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
 const PAGE_SIZE = 24;
 
 interface Params {
@@ -56,6 +55,7 @@ async function resolve(params: Params): Promise<{
   provinceCode: string;
   provinceName: string;
 } | null> {
+  const locale = getLocale();
   const provinceCode = params.province.toUpperCase();
   if (!isProvinceCode(provinceCode)) return null;
 
@@ -77,16 +77,22 @@ export async function generateMetadata({
 }: {
   params: Params;
 }): Promise<Metadata> {
+  const t = tFor(getLocale());
   const resolved = await resolve(params);
-  if (resolved === null) return { title: "Not found" };
+  if (resolved === null) return { title: t("discover.city.notFound") };
 
   const { category, city, provinceCode } = resolved;
   return {
-    title: `${category.name} in ${city}, ${provinceCode}`,
-    description:
-      `Find ${category.name.toLowerCase()} in ${city}, ${provinceCode}. ` +
-      "Compare ratings, read reviews and contact businesses directly. " +
-      "Every listing has had its identity checked.",
+    title: t("discover.city.metaTitle", {
+      category: category.name,
+      city,
+      province: provinceCode,
+    }),
+    description: t("discover.city.metaDescription", {
+      category: category.name.toLowerCase(),
+      city,
+      province: provinceCode,
+    }),
   };
 }
 
@@ -95,6 +101,9 @@ export default async function CityCategoryPage({
 }: {
   params: Params;
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
   const resolved = await resolve(params);
   if (resolved === null) notFound();
 
@@ -124,28 +133,37 @@ export default async function CityCategoryPage({
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <Breadcrumbs
           className="mb-4"
+          locale={locale}
           items={[
-            { label: "Home", href: "/" },
+            { label: t("business.home"), href: "/" },
             { label: category.name, href: `/search?category=${category.slug}` },
             { label: `${city}, ${provinceCode}` },
           ]}
         />
 
         <h1 className="text-page-title text-ink">
-          {category.name} in {city}
+          {t("discover.city.heading", { category: category.name, city })}
         </h1>
         <p className="mt-1 text-body text-ink-muted">
           {total > 0
-            ? `${formatCount(total, intl)} ${total === 1 ? "listing" : "listings"}, each with its identity checked.`
-            : `No ${category.name.toLowerCase()} listed in ${city} yet.`}
+            ? t(total === 1 ? "discover.city.countOne" : "discover.city.countMany", {
+                count: formatCount(total, intl),
+              })
+            : t("discover.city.noneYet", { category: category.name.toLowerCase(), city })}
         </p>
 
         {items.length === 0 ? (
           <EmptyState
             className="mt-6"
-            title={`Nothing here yet`}
-            body={`No ${category.name.toLowerCase()} have been listed in ${city}. Try a wider search, or list yours.`}
-            action={{ label: "Search everywhere", href: `/search?category=${category.slug}` }}
+            title={t("discover.city.emptyTitle")}
+            body={t("discover.city.emptyBody", {
+              category: category.name.toLowerCase(),
+              city,
+            })}
+            action={{
+              label: t("discover.city.searchEverywhere"),
+              href: `/search?category=${category.slug}`,
+            }}
           />
         ) : (
           <>
@@ -162,7 +180,7 @@ export default async function CityCategoryPage({
                   <Link
                     href={`/search?category=${category.slug}&city=${encodeURIComponent(city)}`}
                   >
-                    See all {formatCount(total, intl)} with filters
+                    {t("discover.city.seeAll", { count: formatCount(total, intl) })}
                   </Link>
                 </Button>
               </div>

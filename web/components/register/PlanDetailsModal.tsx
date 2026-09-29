@@ -19,11 +19,12 @@ import { Check, Clock, Minus, X } from "lucide-react";
 import { Badge, Button, Input, Label } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
 import { formatCad } from "@/lib/format";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { Plan, PlanFeature } from "@/lib/types";
 
 import {
-  FEATURE_STATUS_LABEL,
   allFeatureLabels,
+  featureStatusLabel,
   isFree,
   monthlyCost,
   priceLabel,
@@ -42,6 +43,7 @@ export default function PlanDetailsModal({
   selecting,
   onSelect,
   onClose,
+  locale,
 }: {
   plan: Plan;
   plans: Plan[];
@@ -49,7 +51,10 @@ export default function PlanDetailsModal({
   selecting: boolean;
   onSelect: (plan: Plan) => void;
   onClose: () => void;
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
+  const cad = (amount: number): string => formatCad(amount, INTL_LOCALE[locale]) ?? String(amount);
   const dialog = useRef<HTMLDialogElement>(null);
   const [jobValue, setJobValue] = useState("");
 
@@ -61,7 +66,7 @@ export default function PlanDetailsModal({
     if (node && !node.open) node.showModal();
   }, []);
 
-  const price = priceLabel(plan);
+  const price = priceLabel(plan, locale);
   const perMonth = monthlyCost(plan);
   const value = Number(jobValue);
   const jobsNeeded = value > 0 ? Math.ceil(perMonth / value) : null;
@@ -87,15 +92,15 @@ export default function PlanDetailsModal({
           <p className="mt-1 text-body text-ink-muted">
             <span className="text-card-title tabular text-ink">{price.amount}</span> {price.per}
             {plan.billing_cycle === "yearly" && !isFree(plan)
-              ? ` · ${formatCad(Math.round(perMonth * 100) / 100)} a month`
+              ? t("register.modal.perMonth", { amount: cad(Math.round(perMonth * 100) / 100) })
               : ""}
-            {isFree(plan) ? "" : " · plus GST/HST"}
+            {isFree(plan) ? "" : t("register.modal.plusTax")}
           </p>
         </div>
         <button
           type="button"
           onClick={() => dialog.current?.close()}
-          aria-label="Close"
+          aria-label={t("register.modal.close")}
           className="rounded-input p-1.5 text-ink-muted hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <X className="size-5" aria-hidden="true" />
@@ -105,13 +110,15 @@ export default function PlanDetailsModal({
       <div className="space-y-7 px-6 py-5">
         {plan.details || plan.description ? (
           <section>
-            <h3 className="text-card-title text-ink">About this plan</h3>
+            <h3 className="text-card-title text-ink">{t("register.modal.about")}</h3>
             <p className="mt-2 max-w-prose text-body text-ink-muted">{plan.details ?? plan.description}</p>
           </section>
         ) : null}
 
         <section>
-          <h3 className="text-card-title text-ink">Everything in {plan.name}</h3>
+          <h3 className="text-card-title text-ink">
+            {t("register.modal.everything", { plan: plan.name })}
+          </h3>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">
             {plan.features.map((feature) => (
               <li key={feature.label} className="flex items-start gap-2 text-body">
@@ -121,7 +128,7 @@ export default function PlanDetailsModal({
                 <span>
                   {feature.label}
                   {feature.status === "coming_soon" ? (
-                    <span className="ml-1.5 text-meta text-warning">Coming soon</span>
+                    <span className="ml-1.5 text-meta text-warning">{t("register.modal.comingSoon")}</span>
                   ) : null}
                 </span>
               </li>
@@ -131,7 +138,7 @@ export default function PlanDetailsModal({
 
         {plan.benefits.length > 0 ? (
           <section>
-            <h3 className="text-card-title text-ink">Benefits</h3>
+            <h3 className="text-card-title text-ink">{t("register.modal.benefits")}</h3>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-body text-ink-muted">
               {plan.benefits.map((benefit) => (
                 <li key={benefit}>{benefit}</li>
@@ -141,23 +148,22 @@ export default function PlanDetailsModal({
         ) : null}
 
         <section className="rounded-card bg-surface-muted p-4">
-          <h3 className="text-card-title text-ink">Is it worth it?</h3>
+          <h3 className="text-card-title text-ink">{t("register.modal.worthIt")}</h3>
           {isFree(plan) ? (
             <p className="mt-2 text-body text-ink-muted">
-              {plan.name} costs nothing, so any customer it brings you is return on
-              a zero cost.
+              {t("register.modal.freeRoi", { plan: plan.name })}
             </p>
           ) : (
             <div className="mt-2 grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)] sm:items-end">
               <div>
-                <Label htmlFor={`roi-${plan.id}`}>Your average job or sale ($)</Label>
+                <Label htmlFor={`roi-${plan.id}`}>{t("register.modal.jobValue")}</Label>
                 <Input
                   id={`roi-${plan.id}`}
                   type="number"
                   inputMode="decimal"
                   min={1}
                   step="any"
-                  placeholder="e.g. 150"
+                  placeholder={t("register.modal.jobValuePlaceholder")}
                   value={jobValue}
                   onChange={(e) => setJobValue(e.target.value)}
                 />
@@ -165,20 +171,23 @@ export default function PlanDetailsModal({
               <p className="text-body text-ink-muted" aria-live="polite">
                 {jobsNeeded === null ? (
                   <>
-                    {plan.name} works out to{" "}
+                    {t("register.modal.roiBefore", { plan: plan.name })}{" "}
                     <span className="font-medium tabular text-ink">
-                      {formatCad(Math.round(perMonth * 100) / 100)}
+                      {cad(Math.round(perMonth * 100) / 100)}
                     </span>{" "}
-                    a month before tax. Enter what a typical job is worth to see how many
-                    pay for it.
+                    {t("register.modal.roiAfter")}
                   </>
                 ) : (
                   <>
                     <span className="font-semibold tabular text-ink">
-                      {jobsNeeded} {jobsNeeded === 1 ? "job" : "jobs"} a month
+                      {t(jobsNeeded === 1 ? "register.modal.jobsOne" : "register.modal.jobsMany", {
+                        count: jobsNeeded,
+                      })}
                     </span>{" "}
-                    at {formatCad(value)} each {jobsNeeded === 1 ? "covers" : "cover"} the plan&rsquo;s{" "}
-                    {formatCad(Math.round(perMonth * 100) / 100)} monthly cost, before tax.
+                    {t(jobsNeeded === 1 ? "register.modal.coversOne" : "register.modal.coversMany", {
+                      value: cad(value),
+                      cost: cad(Math.round(perMonth * 100) / 100),
+                    })}
                   </>
                 )}
               </p>
@@ -187,13 +196,13 @@ export default function PlanDetailsModal({
         </section>
 
         <section>
-          <h3 className="text-card-title text-ink">Compare plans</h3>
+          <h3 className="text-card-title text-ink">{t("register.modal.compare")}</h3>
           <div className="mt-2 overflow-x-auto rounded-card border border-line">
             <table className="w-full min-w-[34rem] border-collapse text-left text-body">
               <thead>
                 <tr className="bg-surface-muted">
                   <th scope="col" className="px-3 py-2 text-meta font-medium text-ink-muted">
-                    Feature
+                    {t("register.modal.feature")}
                   </th>
                   {plans.map((p) => (
                     <th
@@ -212,10 +221,10 @@ export default function PlanDetailsModal({
               <tbody>
                 <tr className="border-t border-line">
                   <th scope="row" className="px-3 py-2 font-normal text-ink-muted">
-                    Price
+                    {t("register.modal.price")}
                   </th>
                   {plans.map((p) => {
-                    const label = priceLabel(p);
+                    const label = priceLabel(p, locale);
                     return (
                       <td key={p.id} className={cn("px-3 py-2 tabular", p.id === plan.id && "bg-brand-50")}>
                         {label.amount} {label.per}
@@ -234,7 +243,9 @@ export default function PlanDetailsModal({
                         <td key={p.id} className={cn("px-3 py-2", p.id === plan.id && "bg-brand-50")}>
                           <span className="flex items-center gap-1.5 text-meta">
                             <StatusIcon status={status} />
-                            {status === null ? "Not included" : FEATURE_STATUS_LABEL[status]}
+                            {status === null
+                              ? t("register.modal.notIncluded")
+                              : featureStatusLabel(status, locale)}
                           </span>
                         </td>
                       );
@@ -249,16 +260,16 @@ export default function PlanDetailsModal({
 
       <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface px-6 py-4">
         <Button type="button" variant="ghost" onClick={() => dialog.current?.close()}>
-          Close
+          {t("register.modal.close")}
         </Button>
         {selectedPlanId === plan.id ? (
           <Button type="button" onClick={() => dialog.current?.close()}>
             <Check aria-hidden="true" />
-            Selected
+            {t("register.modal.selected")}
           </Button>
         ) : (
           <Button type="button" disabled={selecting} onClick={() => onSelect(plan)}>
-            {selecting ? "Selecting…" : "Select This Plan"}
+            {selecting ? t("register.modal.selecting") : t("register.modal.selectThis")}
           </Button>
         )}
       </div>

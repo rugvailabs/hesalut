@@ -23,17 +23,19 @@ import LogoutButton from "@/components/LogoutButton";
 import SiteFooter from "@/components/ds/SiteFooter";
 import { Button, Card } from "@/components/ds/primitives";
 import { getSession } from "@/lib/auth";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
 
 export default function LoginPage({
   searchParams,
 }: {
   searchParams: { next?: string; forbidden?: string };
 }): JSX.Element {
+  const locale = getLocale();
+  const t = tFor(locale);
   // Only accept internal paths - an open redirect otherwise.
   const raw = searchParams.next ?? "";
   const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "";
@@ -51,41 +53,34 @@ export default function LoginPage({
     // Signed in but not permitted. Dead end by design - no `next` redirect.
     return (
       <>
-        {/* @ts-expect-error Async Server Component in a sync parent - allowed
-            in the App Router, not yet expressible in the type system. */}
-
         <main className="mx-auto max-w-md px-4 py-section sm:px-6">
           <Card className="p-6">
             <h1 className="text-page-title text-ink">
-              {forOwners ? "This page is for business accounts" : "Not authorised"}
+              {forOwners ? t("auth.forbidden.ownersTitle") : t("auth.forbidden.title")}
             </h1>
             <p className="mt-2 text-body text-ink-muted">
               {forOwners ? (
-                <>
-                  You are signed in with a customer account. Register your business to
-                  turn it into a business account - you keep the same email and
-                  password.
-                </>
+                <>{t("auth.forbidden.ownersBody")}</>
               ) : (
                 <>
-                  Your account does not have access to{" "}
+                  {t("auth.forbidden.bodyBefore")}{" "}
                   <code className="rounded-sm bg-surface-muted px-1 text-ink">
-                    {next || "that page"}
+                    {next || t("auth.forbidden.thatPage")}
                   </code>
-                  . Sign in with an administrator account to continue.
+                  {t("auth.forbidden.bodyAfter")}
                 </>
               )}
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-2">
               {forOwners ? (
                 <Button asChild>
-                  <Link href="/register">Register your business</Link>
+                  <Link href="/register">{t("auth.forbidden.registerBusiness")}</Link>
                 </Button>
               ) : null}
               <Button asChild variant={forOwners ? "secondary" : "primary"}>
-                <Link href="/">Home</Link>
+                <Link href="/">{t("auth.forbidden.home")}</Link>
               </Button>
-              <LogoutButton />
+              <LogoutButton locale={locale} />
             </div>
           </Card>
         </main>
@@ -99,13 +94,11 @@ export default function LoginPage({
     <>
 
       <main className="mx-auto max-w-md px-4 py-section sm:px-6">
-        <h1 className="text-page-title text-ink">Sign in</h1>
-        <p className="mt-1 text-body text-ink-muted">
-          Use your email and password. Creating an account takes a moment.
-        </p>
+        <h1 className="text-page-title text-ink">{t("auth.title")}</h1>
+        <p className="mt-1 text-body text-ink-muted">{t("auth.intro")}</p>
 
         <Card className="mt-6 p-6">
-          <LoginForm next={next} />
+          <LoginForm next={next} locale={locale} />
         </Card>
       </main>
 

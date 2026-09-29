@@ -25,6 +25,7 @@ import { Alert } from "@/components/ds/feedback";
 import { Button, Input, Label } from "@/components/ds/primitives";
 import { HINT } from "@/components/ds/form";
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 import type { UserResponse } from "@/lib/types";
 
 type Mode = "login" | "signup";
@@ -33,8 +34,15 @@ interface SessionSuccess {
   user: UserResponse;
 }
 
-export default function LoginForm({ next }: { next: string }): JSX.Element {
+export default function LoginForm({
+  next,
+  locale,
+}: {
+  next: string;
+  locale: Locale;
+}): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
 
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
@@ -77,7 +85,7 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
         const detail =
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Sign-in failed (HTTP ${res.status}).`;
+            : t("auth.form.failed", { status: res.status });
         setError(detail);
         return;
       }
@@ -98,7 +106,7 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
       router.replace(target);
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("auth.form.unreachable"));
     } finally {
       setSubmitting(false);
     }
@@ -111,12 +119,12 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
       <div
         className="flex gap-2"
         role="group"
-        aria-label="Sign in or create an account"
+        aria-label={t("auth.form.modeGroup")}
       >
         {(
           [
-            ["login", "Sign in"],
-            ["signup", "Create account"],
+            ["login", t("auth.form.modeSignIn")],
+            ["signup", t("auth.form.modeSignUp")],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -143,7 +151,7 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
 
       {signup ? (
         <div>
-          <Label htmlFor="auth-name">Name</Label>
+          <Label htmlFor="auth-name">{t("auth.form.name")}</Label>
           <Input
             id="auth-name"
             type="text"
@@ -157,7 +165,7 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
       ) : null}
 
       <div>
-        <Label htmlFor="auth-email">Email</Label>
+        <Label htmlFor="auth-email">{t("auth.form.email")}</Label>
         <Input
           id="auth-email"
           type="email"
@@ -169,7 +177,7 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
       </div>
 
       <div>
-        <Label htmlFor="auth-password">Password</Label>
+        <Label htmlFor="auth-password">{t("auth.form.password")}</Label>
         <Input
           id="auth-password"
           type="password"
@@ -181,12 +189,12 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
           onChange={(event) => setPassword(event.target.value)}
           autoComplete={signup ? "new-password" : "current-password"}
         />
-        {signup ? <p className={HINT}>At least 8 characters.</p> : null}
+        {signup ? <p className={HINT}>{t("auth.form.passwordHint")}</p> : null}
       </div>
 
       {signup ? (
         <div>
-          <Label htmlFor="auth-phone">Mobile number</Label>
+          <Label htmlFor="auth-phone">{t("auth.form.phone")}</Label>
           <Input
             id="auth-phone"
             type="tel"
@@ -200,30 +208,31 @@ export default function LoginForm({ next }: { next: string }): JSX.Element {
           {/* Said plainly, because a required phone number on a sign-up form
               reads as "we will text you a code" - and that is exactly what it
               is not. */}
-          <p className={HINT}>
-            How a business reaches you about an enquiry. You sign in with your
-            email and password, never a code sent to this number.
-          </p>
+          <p className={HINT}>{t("auth.form.phoneHint")}</p>
         </div>
       ) : null}
 
       {signup ? (
         <p className="rounded-input bg-surface-muted px-3 py-2 text-body text-ink-muted">
-          Listing a business?{" "}
+          {t("auth.form.listingBusiness")}{" "}
           <Link
             href="/register"
             className="font-medium text-brand-700 underline underline-offset-4 hover:text-brand-800"
           >
-            Register your business
+            {t("auth.form.registerBusiness")}
           </Link>{" "}
-          instead - it sets up your account, listing and plan together.
+          {t("auth.form.listingBusinessAfter")}
         </p>
       ) : null}
 
-      {error !== null ? <Alert tone="error">{error}</Alert> : null}
+      {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
       <Button type="submit" disabled={submitting} className="w-full">
-        {submitting ? "Working…" : signup ? "Create account" : "Sign in"}
+        {submitting
+          ? t("auth.form.working")
+          : signup
+            ? t("auth.form.submitSignUp")
+            : t("auth.form.submitSignIn")}
       </Button>
     </form>
   );

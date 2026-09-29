@@ -13,6 +13,8 @@
 import "leaflet/dist/leaflet.css";
 
 import L from "leaflet";
+
+import { tFor, type Locale } from "@/lib/i18n";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 
 /** Downtown Vancouver - the seeded test area. */
@@ -46,13 +48,16 @@ export default function LocationPicker({
   latitude,
   longitude,
   onPick,
+  locale = "en",
 }: {
   latitude: number | null;
   longitude: number | null;
   onPick: (lat: number, lng: number) => void;
   /** Used by the Google picker's address lookup; OpenStreetMap has no geocoder here. */
   addressQuery?: string;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const hasPoint = latitude !== null && longitude !== null;
   const centre: [number, number] = hasPoint
     ? [latitude as number, longitude as number]
@@ -79,8 +84,11 @@ export default function LocationPicker({
       </MapContainer>
       <p className="mt-1 text-meta text-ink-subtle">
         {hasPoint
-          ? `Pin at ${(latitude as number).toFixed(5)}, ${(longitude as number).toFixed(5)} - click the map to move it.`
-          : "Click the map to drop a pin for this business."}
+          ? t("discover.map.osmPinAt", {
+              lat: (latitude as number).toFixed(5),
+              lng: (longitude as number).toFixed(5),
+            })
+          : t("discover.map.osmEmpty")}
       </p>
     </div>
   );

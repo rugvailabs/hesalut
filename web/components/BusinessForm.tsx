@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Alert } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { FIELD, LABEL } from "@/components/ds/form";
+import { tFor, type Locale } from "@/lib/i18n";
 import { hasGoogleMaps } from "@/lib/maps";
 import type { BusinessCreate, BusinessDetail, Category } from "@/lib/types";
 
@@ -27,34 +28,43 @@ type LocationPickerProps = {
   longitude: number | null;
   onPick: (lat: number, lng: number) => void;
   addressQuery?: string;
+  locale?: Locale;
 };
+
+function MapLoading({ locale }: { locale: Locale }): JSX.Element {
+  return (
+    <div className="flex h-64 w-full items-center justify-center rounded-card border border-line bg-surface-muted text-body text-ink-subtle">
+      {tFor(locale)("dashboard.form.loadingMap")}
+    </div>
+  );
+}
 
 // Both map libraries touch window at import, so neither can be server-rendered.
 // Google Maps when a key is configured, Leaflet otherwise (see lib/maps).
-const LocationPicker = dynamic<LocationPickerProps>(
-  () =>
-    hasGoogleMaps
-      ? import("@/components/maps/GoogleLocationPicker")
-      : import("@/components/LocationPicker"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-64 w-full items-center justify-center rounded-card border border-line bg-surface-muted text-body text-ink-subtle">
-        Loading map…
-      </div>
-    ),
-  },
-);
+//
+// One dynamic() per language, because the loading placeholder receives no
+// props and so cannot be told the locale. Each keeps its import() inline, as
+// next/dynamic needs for ssr: false; both resolve to the same chunk, so
+// switching language does not reload the map.
+const LOCATION_PICKERS: Record<Locale, React.ComponentType<LocationPickerProps>> = {
+  en: dynamic<LocationPickerProps>(
+    () =>
+      hasGoogleMaps
+        ? import("@/components/maps/GoogleLocationPicker")
+        : import("@/components/LocationPicker"),
+    { ssr: false, loading: () => <MapLoading locale="en" /> },
+  ),
+  fr: dynamic<LocationPickerProps>(
+    () =>
+      hasGoogleMaps
+        ? import("@/components/maps/GoogleLocationPicker")
+        : import("@/components/LocationPicker"),
+    { ssr: false, loading: () => <MapLoading locale="fr" /> },
+  ),
+};
 
-const DAYS: { key: string; label: string }[] = [
-  { key: "mon", label: "Monday" },
-  { key: "tue", label: "Tuesday" },
-  { key: "wed", label: "Wednesday" },
-  { key: "thu", label: "Thursday" },
-  { key: "fri", label: "Friday" },
-  { key: "sat", label: "Saturday" },
-  { key: "sun", label: "Sunday" },
-];
+/** Each day's label is dashboard.form.days.<key>. */
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const PRICE_RANGES = ["", "$", "$$", "$$$", "$$$$"];
 
@@ -71,13 +81,17 @@ export default function BusinessForm({
   mode,
   categories,
   listing,
+  locale,
 }: {
   mode: "create" | "edit";
   categories: Category[];
   /** Present in edit mode; the form is pre-filled from it. */
   listing?: BusinessDetail;
+  locale: Locale;
 }): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
+  const LocationPicker = LOCATION_PICKERS[locale];
 
   const [name, setName] = useState(listing?.name ?? "");
   const [categoryId, setCategoryId] = useState<string>(
@@ -126,7 +140,7 @@ export default function BusinessForm({
     setError(null);
 
     if (!categoryId) {
-      setError("Choose a category.");
+      setError(t("dashboard.form.chooseCategoryError"));
       return;
     }
 
@@ -164,7 +178,7 @@ export default function BusinessForm({
         const detail =
           body && typeof body === "object" && "detail" in body
             ? String((body as { detail: unknown }).detail)
-            : `Could not save (HTTP ${res.status}).`;
+            : t("dashboard.common.saveFailed", { status: res.status });
         setError(detail);
         return;
       }
@@ -173,7 +187,7 @@ export default function BusinessForm({
       // Re-run the dashboard's Server Component so the new listing appears.
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("dashboard.common.serverUnreachable"));
     } finally {
       setSubmitting(false);
     }
@@ -182,11 +196,11 @@ export default function BusinessForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <Card className="space-y-4 p-4">
-        <h2 className="font-semibold text-ink">Basics</h2>
+        <h2 className="font-semibold text-ink">{t("dashboard.form.basics")}</h2>
 
         <label className="block">
           <span className={LABEL}>
-            Business name
+            {t("dashboard.form.name")}
           </span>
           <input
             required
@@ -199,7 +213,7 @@ export default function BusinessForm({
 
         <label className="block">
           <span className={LABEL}>
-            Category
+            {t("dashboard.form.category")}
           </span>
           <select
             required
@@ -207,7 +221,7 @@ export default function BusinessForm({
             onChange={(e) => setCategoryId(e.target.value)}
             className={FIELD}
           >
-            <option value="">Choose a category…</option>
+            <option value="">{t("dashboard.form.chooseCategory")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -218,7 +232,7 @@ export default function BusinessForm({
 
         <label className="block">
           <span className={LABEL}>
-            Description
+            {t("dashboard.form.description")}
           </span>
           <textarea
             rows={4}
@@ -231,7 +245,7 @@ export default function BusinessForm({
 
         <label className="block sm:w-40">
           <span className={LABEL}>
-            Price range
+            {t("dashboard.form.priceRange")}
           </span>
           <select
             value={priceRange}
@@ -240,7 +254,7 @@ export default function BusinessForm({
           >
             {PRICE_RANGES.map((p) => (
               <option key={p || "none"} value={p}>
-                {p || "Not specified"}
+                {p || t("dashboard.form.notSpecified")}
               </option>
             ))}
           </select>
@@ -248,11 +262,11 @@ export default function BusinessForm({
       </Card>
 
       <Card className="space-y-4 p-4">
-        <h2 className="font-semibold text-ink">Contact</h2>
+        <h2 className="font-semibold text-ink">{t("dashboard.form.contact")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className={LABEL}>
-              Phone
+              {t("dashboard.form.phone")}
             </span>
             <input
               type="tel"
@@ -264,7 +278,7 @@ export default function BusinessForm({
           </label>
           <label className="block">
             <span className={LABEL}>
-              WhatsApp
+              {t("dashboard.form.whatsapp")}
             </span>
             <input
               type="tel"
@@ -276,7 +290,7 @@ export default function BusinessForm({
           </label>
           <label className="block">
             <span className={LABEL}>
-              Email
+              {t("dashboard.form.email")}
             </span>
             <input
               type="email"
@@ -288,7 +302,7 @@ export default function BusinessForm({
           </label>
           <label className="block">
             <span className={LABEL}>
-              Website
+              {t("dashboard.form.website")}
             </span>
             <input
               type="url"
@@ -302,11 +316,11 @@ export default function BusinessForm({
       </Card>
 
       <Card className="space-y-4 p-4">
-        <h2 className="font-semibold text-ink">Location</h2>
+        <h2 className="font-semibold text-ink">{t("dashboard.form.location")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block sm:col-span-2">
             <span className={LABEL}>
-              Street address
+              {t("dashboard.form.address")}
             </span>
             <input
               maxLength={255}
@@ -317,7 +331,7 @@ export default function BusinessForm({
           </label>
           <label className="block">
             <span className={LABEL}>
-              City
+              {t("dashboard.form.city")}
             </span>
             <input
               required
@@ -329,7 +343,7 @@ export default function BusinessForm({
           </label>
           <label className="block">
             <span className={LABEL}>
-              Province
+              {t("dashboard.form.province")}
             </span>
             <input
               required
@@ -341,7 +355,7 @@ export default function BusinessForm({
           </label>
           <label className="block">
             <span className={LABEL}>
-              Postal code
+              {t("dashboard.form.postalCode")}
             </span>
             <input
               maxLength={16}
@@ -353,6 +367,7 @@ export default function BusinessForm({
         </div>
 
         <LocationPicker
+          locale={locale}
           latitude={latitude}
           longitude={longitude}
           onPick={(lat, lng) => {
@@ -367,7 +382,7 @@ export default function BusinessForm({
       </Card>
 
       <Card className="space-y-4 p-4">
-        <h2 className="font-semibold text-ink">Tags</h2>
+        <h2 className="font-semibold text-ink">{t("dashboard.form.tags")}</h2>
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
             <span
@@ -378,7 +393,7 @@ export default function BusinessForm({
               <button
                 type="button"
                 onClick={() => setTags(tags.filter((t) => t !== tag))}
-                aria-label={`Remove tag ${tag}`}
+                aria-label={t("dashboard.form.removeTag", { tag })}
                 className="rounded text-ink-subtle hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 ×
@@ -386,7 +401,7 @@ export default function BusinessForm({
             </span>
           ))}
           {tags.length === 0 ? (
-            <span className="text-body text-ink-subtle">No tags yet.</span>
+            <span className="text-body text-ink-subtle">{t("dashboard.form.noTags")}</span>
           ) : null}
         </div>
         <div className="flex gap-2">
@@ -400,26 +415,28 @@ export default function BusinessForm({
                 addTag();
               }
             }}
-            placeholder="emergency, 24-7…"
+            placeholder={t("dashboard.form.tagPlaceholder")}
             className={FIELD}
           />
           <Button type="button" variant="secondary" onClick={addTag}>
-            Add
+            {t("dashboard.form.addTag")}
           </Button>
         </div>
       </Card>
 
       <Card className="space-y-3 p-4">
-        <h2 className="font-semibold text-ink">Opening hours</h2>
+        <h2 className="font-semibold text-ink">{t("dashboard.form.hours")}</h2>
         <p className="text-body text-ink-muted">
-          Leave a day blank to mark it closed.
+          {t("dashboard.form.hoursHint")}
         </p>
         <div className="space-y-2">
-          {DAYS.map(({ key, label }) => {
+          {DAYS.map((key) => {
             const range = dayRange(hours, key);
             return (
               <div key={key} className="flex flex-wrap items-center gap-2">
-                <span className="w-20 flex-none text-body text-ink-muted sm:w-24">{label}</span>
+                <span className="w-20 flex-none text-body text-ink-muted sm:w-24">
+                  {t(`dashboard.form.days.${key}`)}
+                </span>
                 <input
                   type="time"
                   value={range?.[0] ?? ""}
@@ -440,30 +457,29 @@ export default function BusinessForm({
       </Card>
 
       {error !== null ? (
-        <Alert tone="error">{error}</Alert>
+        <Alert locale={locale} tone="error">{error}</Alert>
       ) : null}
 
       {mode === "edit" && listing?.status === "approved" ? (
         <p className="rounded bg-warning-bg px-3 py-2 text-body text-warning">
-          This listing is live. Saving changes sends it back for review, so it
-          will be hidden from search until approved again.
+          {t("dashboard.form.liveWarning")}
         </p>
       ) : null}
 
       <div className="flex gap-2">
         <Button type="submit" disabled={submitting}>
           {submitting
-            ? "Saving…"
+            ? t("dashboard.common.saving")
             : mode === "create"
-              ? "Submit for review"
-              : "Save changes"}
+              ? t("dashboard.form.submitForReview")
+              : t("dashboard.common.saveChanges")}
         </Button>
         <Button
           type="button"
           variant="secondary"
           onClick={() => router.push("/dashboard")}
         >
-          Cancel
+          {t("dashboard.common.cancel")}
         </Button>
       </div>
     </form>

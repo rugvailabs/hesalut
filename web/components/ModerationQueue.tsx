@@ -21,13 +21,14 @@ import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { FIELD } from "@/components/ui/field";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { ModerationAction, ModerationQueueItem } from "@/lib/types";
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, locale: Locale): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? iso
-    : date.toLocaleDateString("en-CA", {
+    : date.toLocaleDateString(INTL_LOCALE[locale], {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -43,9 +44,12 @@ function daysWaiting(iso: string): number {
 
 export default function ModerationQueue({
   items: initialItems,
+  locale,
 }: {
   items: ModerationQueueItem[];
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [pendingId, setPendingId] = useState<number | null>(null);
@@ -75,7 +79,7 @@ export default function ModerationQueue({
         setError(
           body && typeof body === "object" && "detail" in body
             ? String((body as { detail: unknown }).detail)
-            : `Could not apply that decision (HTTP ${res.status}).`,
+            : t("admin.queue.decisionError", { status: res.status }),
         );
         return;
       }
@@ -87,7 +91,7 @@ export default function ModerationQueue({
       setReason("");
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("admin.common.networkError"));
     } finally {
       setPendingId(null);
     }
@@ -96,9 +100,9 @@ export default function ModerationQueue({
   if (items.length === 0) {
     return (
       <Card>
-        <h2 className="font-semibold text-slate-900">Nothing to review</h2>
+        <h2 className="font-semibold text-slate-900">{t("admin.queue.emptyTitle")}</h2>
         <p className="mt-1 text-sm text-slate-600">
-          No listings in this state right now.
+          {t("admin.queue.emptyBody")}
         </p>
       </Card>
     );
@@ -107,7 +111,7 @@ export default function ModerationQueue({
   return (
     <>
       {error !== null ? (
-        <Alert tone="error" className="mb-3">{error}</Alert>
+        <Alert locale={locale} tone="error" className="mb-3">{error}</Alert>
       ) : null}
 
       <ul className="space-y-3">
@@ -132,12 +136,18 @@ export default function ModerationQueue({
                       {item.address !== null ? ` · ${item.address}` : ""}
                     </p>
                     <p className="break-words text-sm text-slate-500">
-                      Submitted {formatWhen(item.created_at)}
-                      {waiting > 0 ? ` · waiting ${waiting}d` : ""}
-                      {item.owner_email !== null ? ` · ${item.owner_email}` : " · no owner"}
+                      {t("admin.queue.submitted", {
+                        date: formatWhen(item.created_at, locale),
+                      })}
+                      {waiting > 0
+                        ? ` · ${t("admin.queue.waiting", { days: waiting })}`
+                        : ""}
+                      {item.owner_email !== null
+                        ? ` · ${item.owner_email}`
+                        : ` · ${t("admin.queue.noOwner")}`}
                     </p>
                   </div>
-                  <StatusBadge status={item.status} />
+                  <StatusBadge status={item.status} locale={locale} />
                 </div>
 
                 {item.description !== null ? (
@@ -161,7 +171,7 @@ export default function ModerationQueue({
                 {item.moderation_note !== null ? (
                   <div className="rounded-md border-l-2 border-slate-300 bg-slate-50 px-3 py-2">
                     <p className="text-xs font-medium text-slate-500">
-                      Previous decision note
+                      {t("admin.queue.previousNote")}
                     </p>
                     <p className="mt-1 text-sm text-slate-700">
                       {item.moderation_note}
@@ -173,14 +183,16 @@ export default function ModerationQueue({
                   <div className="rounded-md border border-slate-200 p-3">
                     <label className="block">
                       <span className="mb-1 block text-sm font-medium text-slate-700">
-                        Reason for {promptFor.action === "reject" ? "rejecting" : "suspending"}
+                        {promptFor.action === "reject"
+                          ? t("admin.queue.reasonReject")
+                          : t("admin.queue.reasonSuspend")}
                       </span>
                       <textarea
                         rows={2}
                         maxLength={1000}
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="The owner will see this…"
+                        placeholder={t("admin.queue.reasonPlaceholder")}
                         className={FIELD}
                       />
                     </label>
@@ -190,7 +202,11 @@ export default function ModerationQueue({
                         disabled={busy || reason.trim().length < 3}
                         onClick={() => decide(item.id, promptFor.action, reason.trim())}
                       >
-                        {busy ? "Applying…" : `Confirm ${promptFor.action}`}
+                        {busy
+                          ? t("admin.common.applying")
+                          : promptFor.action === "reject"
+                            ? t("admin.queue.confirmReject")
+                            : t("admin.queue.confirmSuspend")}
                       </Button>
                       <Button
                         size="sm"
@@ -200,7 +216,7 @@ export default function ModerationQueue({
                           setReason("");
                         }}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </Button>
                     </div>
                   </div>
@@ -212,7 +228,7 @@ export default function ModerationQueue({
                         disabled={busy}
                         onClick={() => decide(item.id, "approve")}
                       >
-                        {busy ? "Applying…" : "Approve"}
+                        {busy ? t("admin.common.applying") : t("admin.common.approve")}
                       </Button>
                     ) : null}
                     {item.status !== "rejected" ? (
@@ -225,7 +241,7 @@ export default function ModerationQueue({
                           setReason("");
                         }}
                       >
-                        Reject
+                        {t("admin.common.reject")}
                       </Button>
                     ) : null}
                     {item.status === "approved" ? (
@@ -238,7 +254,7 @@ export default function ModerationQueue({
                           setReason("");
                         }}
                       >
-                        Suspend
+                        {t("admin.common.suspend")}
                       </Button>
                     ) : null}
                   </div>

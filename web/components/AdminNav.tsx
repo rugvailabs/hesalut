@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 
 /**
  * Navigation across the admin surfaces.
@@ -20,13 +21,14 @@ type AdminSection =
   | "leads"
   | "search";
 
-const TABS: { key: AdminSection; href: string; label: string }[] = [
-  { key: "overview", href: "/admin", label: "Overview" },
-  { key: "listings", href: "/admin/listings", label: "Listings" },
-  { key: "verifications", href: "/admin/verifications", label: "Verifications" },
-  { key: "reviews", href: "/admin/reviews", label: "Reviews" },
-  { key: "leads", href: "/admin/leads", label: "Leads" },
-  { key: "search", href: "/admin/search-analytics", label: "Search analytics" },
+// Labels are admin.nav.<key>.
+const TABS: { key: AdminSection; href: string }[] = [
+  { key: "overview", href: "/admin" },
+  { key: "listings", href: "/admin/listings" },
+  { key: "verifications", href: "/admin/verifications" },
+  { key: "reviews", href: "/admin/reviews" },
+  { key: "leads", href: "/admin/leads" },
+  { key: "search", href: "/admin/search-analytics" },
 ];
 
 export default function AdminNav({
@@ -34,13 +36,16 @@ export default function AdminNav({
   pendingListings,
   pendingVerifications,
   className,
+  locale,
 }: {
   current: AdminSection;
   /** Omitted when the count could not be loaded - no badge is better than a wrong one. */
   pendingListings?: number;
   pendingVerifications?: number;
   className?: string;
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const counts: Partial<Record<AdminSection, number | undefined>> = {
     listings: pendingListings,
     verifications: pendingVerifications,
@@ -49,7 +54,7 @@ export default function AdminNav({
   // mb-5 stays the default so the five pages that call this with no props
     // keep the spacing they were built against; a caller can override it.
   return (
-    <nav className={cn("mb-5 flex flex-wrap gap-2", className)} aria-label="Admin sections">
+    <nav className={cn("mb-5 flex flex-wrap gap-2", className)} aria-label={t("admin.nav.label")}>
       {TABS.map((tab) => {
         const selected = tab.key === current;
         const count = counts[tab.key];
@@ -67,7 +72,7 @@ export default function AdminNav({
                 : "border border-line-strong bg-surface text-ink hover:bg-surface-muted",
             )}
           >
-            {tab.label}
+            {t(`admin.nav.${tab.key}`)}
             {count !== undefined && count > 0 ? (
               <span
                 className={cn(

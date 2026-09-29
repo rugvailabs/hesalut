@@ -10,17 +10,18 @@ import ProfileForm from "@/components/ProfileForm";
 import Card from "@/components/ui/Card";
 import { getProfile } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { UserRole } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  customer: "Customer",
-  business_owner: "Business owner",
-  admin: "Administrator",
-};
+/** Roles with a label under dashboard.account.roles; anything else shows raw. */
+const ROLES: UserRole[] = ["customer", "business_owner", "admin"];
 
 export default async function AccountPage(): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireUser("/account");
   // Read through /profile rather than reusing the session lookup, so the page
   // shows what the server currently holds after an edit.
@@ -32,42 +33,52 @@ export default async function AccountPage(): Promise<JSX.Element> {
     <div className="mx-auto max-w-2xl px-6 py-10">
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-        Your account
+        {t("dashboard.account.title")}
       </h1>
       <p className="mt-1 mb-6 text-sm text-slate-600">
-        Update how businesses reach you.
+        {t("dashboard.account.subtitle")}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="sm:col-span-2">
-          <h2 className="mb-3 font-semibold text-slate-900">Details</h2>
-          <ProfileForm user={user} />
+          <h2 className="mb-3 font-semibold text-slate-900">
+            {t("dashboard.account.details")}
+          </h2>
+          <ProfileForm user={user} locale={locale} />
         </Card>
 
         <Card>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Account
+            {t("dashboard.account.account")}
           </h2>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="font-medium text-slate-700">Email</dt>
+              <dt className="font-medium text-slate-700">
+                {t("dashboard.account.email")}
+              </dt>
               <dd className="break-words text-slate-600">{user.email}</dd>
               <dd className="mt-0.5 text-xs text-slate-500">
-                Used to sign in, so it cannot be changed here.
+                {t("dashboard.account.emailHint")}
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-slate-700">Role</dt>
+              <dt className="font-medium text-slate-700">
+                {t("dashboard.account.role")}
+              </dt>
               <dd className="text-slate-600">
-                {ROLE_LABELS[user.role] ?? user.role}
+                {ROLES.includes(user.role)
+                  ? t(`dashboard.account.roles.${user.role}`)
+                  : user.role}
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-slate-700">Member since</dt>
+              <dt className="font-medium text-slate-700">
+                {t("dashboard.account.memberSince")}
+              </dt>
               <dd className="text-slate-600">
                 {Number.isNaN(memberSince.getTime())
                   ? user.created_at
-                  : memberSince.toLocaleDateString("en-CA", {
+                  : memberSince.toLocaleDateString(INTL_LOCALE[locale], {
                       year: "numeric",
                       month: "long",
                       day: "numeric",

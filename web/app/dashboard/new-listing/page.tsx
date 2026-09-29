@@ -15,13 +15,15 @@ import SiteFooter from "@/components/ds/SiteFooter";
 import { Button } from "@/components/ds/primitives";
 import { getCategories } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
 
 export default async function NewListingPage(): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireBusinessOwner("/dashboard/new-listing");
   const categories = await getCategories();
 
@@ -32,18 +34,17 @@ export default async function NewListingPage(): Promise<JSX.Element> {
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">
           <Link href="/dashboard">
             <ArrowLeft aria-hidden="true" />
-            Your listings
+            {t("dashboard.common.yourListings")}
           </Link>
         </Button>
 
-        <h1 className="mt-2 text-page-title text-ink">List your business</h1>
+        <h1 className="mt-2 text-page-title text-ink">{t("dashboard.newListing.title")}</h1>
         <p className="mt-1 max-w-prose text-body text-ink-muted">
-          New listings are reviewed before they appear in public search, and the
-          business behind them is verified separately. Both have to pass.
+          {t("dashboard.newListing.intro")}
         </p>
 
         <div className="mt-4">
-          <BusinessForm mode="create" categories={categories} />
+          <BusinessForm mode="create" categories={categories} locale={locale} />
         </div>
       </main>
 

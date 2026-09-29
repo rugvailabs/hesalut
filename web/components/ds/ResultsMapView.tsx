@@ -29,6 +29,7 @@ import {
 import { useEffect } from "react";
 
 import { formatLocality, formatRating } from "@/lib/format";
+import { tFor, type Locale } from "@/lib/i18n";
 import type { BusinessListItem } from "@/lib/types";
 
 /**
@@ -76,12 +77,15 @@ export default function ResultsMapView({
   businesses,
   origin,
   className = "",
+  locale = "en",
 }: {
   businesses: BusinessListItem[];
   /** The searcher's position on a near-me search. */
   origin?: { lat: number; lng: number };
   className?: string;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const mapped = businesses.filter(
     (business): business is BusinessListItem & { latitude: number; longitude: number } =>
       business.latitude !== null && business.longitude !== null,
@@ -117,7 +121,7 @@ export default function ResultsMapView({
           radius={7}
           pathOptions={{ color: "#ffffff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1 }}
         >
-          <Popup>Your location</Popup>
+          <Popup>{t("discover.map.yourLocation")}</Popup>
         </CircleMarker>
       ) : null}
 
@@ -143,7 +147,7 @@ export default function ResultsMapView({
               href={`/business/${business.slug}`}
               className="mt-1 block text-[0.75rem] font-medium underline"
             >
-              View listing
+              {t("discover.map.viewListing")}
             </a>
           </Popup>
         </Marker>

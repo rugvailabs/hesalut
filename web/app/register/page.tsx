@@ -31,31 +31,25 @@ import SiteFooter from "@/components/ds/SiteFooter";
 import { Button, Card } from "@/components/ds/primitives";
 import { getCategories, getPlans, getRegistration } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Register your business",
-  description: "List your business in four steps: your details, a plan, payment, done.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = tFor(getLocale());
+  return {
+    title: t("register.meta.title"),
+    description: t("register.meta.description"),
+  };
+}
 
-const locale = DEFAULT_LOCALE;
-
-const HEADINGS: Record<number, { title: string; body: string }> = {
-  1: {
-    title: "Register your business",
-    body: "Tell us about you and your business. Your progress is saved as you go.",
-  },
-  2: {
-    title: "Choose a plan",
-    body: "Pick the plan that suits your business. You need to choose one to continue.",
-  },
-  3: {
-    title: "Review and pay",
-    body: "Check your order, including GST/HST for your province, then complete registration.",
-  },
-  4: { title: "You're registered", body: "Here is what happens next." },
+/** The dictionary key under register.headings for each step. */
+const HEADINGS: Record<number, string> = {
+  1: "details",
+  2: "plan",
+  3: "payment",
+  4: "done",
 };
 
 export default async function RegisterPage({
@@ -64,6 +58,8 @@ export default async function RegisterPage({
   /** `resume=1` comes from signing in: a finished registration goes to the dashboard. */
   searchParams: { step?: string; resume?: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   const user = await getCurrentUser();
 
   // Signed out: step 1, creating the account.
@@ -71,7 +67,7 @@ export default async function RegisterPage({
     const categories = await getCategories();
     return (
       <Layout current={1} furthest={1} completed={false}>
-        <DetailsStep categories={categories} existing={null} />
+        <DetailsStep categories={categories} existing={null} locale={locale} />
       </Layout>
     );
   }
@@ -88,6 +84,7 @@ export default async function RegisterPage({
             details: null,
           }}
           convert
+          locale={locale}
         />
       </Layout>
     );
@@ -98,16 +95,14 @@ export default async function RegisterPage({
     return (
       <Shell>
         <Card className="mx-auto max-w-lg p-6">
-          <h1 className="text-page-title text-ink">Business registration</h1>
+          <h1 className="text-page-title text-ink">{t("register.staff.title")}</h1>
           <p className="mt-2 text-body text-ink-muted">
-            You are signed in as {user.name} ({user.email}), which is a staff account.
-            A business is registered with its own account - sign out, then start again
-            here.
+            {t("register.staff.body", { name: user.name, email: user.email })}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <LogoutButton />
+            <LogoutButton locale={locale} />
             <Button asChild variant="secondary">
-              <Link href="/">Home</Link>
+              <Link href="/">{t("register.staff.home")}</Link>
             </Button>
           </div>
         </Card>
@@ -125,7 +120,7 @@ export default async function RegisterPage({
     if (searchParams.step !== "4") redirect("/dashboard/new-listing");
     return (
       <Layout current={4} furthest={4} completed>
-        <CompleteStep state={state} />
+        <CompleteStep state={state} locale={locale} />
       </Layout>
     );
   }
@@ -144,13 +139,16 @@ export default async function RegisterPage({
       <DetailsStep
         categories={categories}
         existing={{ account: state.account, details: state.details }}
+        locale={locale}
       />
     );
   } else if (current === 2 || state.order === null) {
     const plans = await getPlans();
-    body = <PlanStep plans={plans} selectedPlanId={state.selected_plan?.id ?? null} />;
+    body = (
+      <PlanStep plans={plans} selectedPlanId={state.selected_plan?.id ?? null} locale={locale} />
+    );
   } else {
-    body = <PaymentStep order={state.order} />;
+    body = <PaymentStep order={state.order} locale={locale} />;
   }
 
   return (
@@ -171,14 +169,21 @@ function Layout({
   completed: boolean;
   children: React.ReactNode;
 }): JSX.Element {
+  const locale = getLocale();
+  const t = tFor(locale);
   const heading = HEADINGS[current];
   return (
     <Shell>
       <div className="mx-auto max-w-5xl">
-        <RegistrationSteps current={current} furthest={furthest} completed={completed} />
-        <p className="mt-6 text-meta text-ink-muted">Step {current} of 4</p>
-        <h1 className="text-page-title text-ink">{heading.title}</h1>
-        <p className="mt-1 text-body text-ink-muted">{heading.body}</p>
+        <RegistrationSteps
+          current={current}
+          furthest={furthest}
+          completed={completed}
+          locale={locale}
+        />
+        <p className="mt-6 text-meta text-ink-muted">{t("register.stepOf", { step: current })}</p>
+        <h1 className="text-page-title text-ink">{t(`register.headings.${heading}.title`)}</h1>
+        <p className="mt-1 text-body text-ink-muted">{t(`register.headings.${heading}.body`)}</p>
         <div className="mt-6">{children}</div>
       </div>
     </Shell>
@@ -186,10 +191,9 @@ function Layout({
 }
 
 function Shell({ children }: { children: React.ReactNode }): JSX.Element {
+  const locale = getLocale();
   return (
     <>
-      {/* @ts-expect-error Async Server Component in a sync parent - allowed
-          in the App Router, not yet expressible in the type system. */}
       <main className="px-4 py-8 sm:px-6">{children}</main>
       <SiteFooter locale={locale} />
     </>

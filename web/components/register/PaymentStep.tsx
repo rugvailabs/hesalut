@@ -23,16 +23,18 @@ import { ArrowLeft, Check, Clock, CreditCard, Lock } from "lucide-react";
 import { Alert } from "@/components/ds/feedback";
 import { Badge, Button, Card, Input, Label } from "@/components/ds/primitives";
 import { PROVINCES, formatCad, formatDate } from "@/lib/format";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { OrderSummary } from "@/lib/types";
 
+/** `result` is a key under register.payment. */
 const TEST_CARDS = [
-  { number: "4242 4242 4242 4242", result: "Payment succeeds" },
-  { number: "4000 0000 0000 0002", result: "Card declined" },
-  { number: "4000 0000 0000 9995", result: "Insufficient funds" },
+  { number: "4242 4242 4242 4242", result: "testSucceeds" },
+  { number: "4000 0000 0000 0002", result: "testDeclined" },
+  { number: "4000 0000 0000 9995", result: "testInsufficient" },
 ];
 
-function money(amount: string, currency: string): string {
-  return `${formatCad(amount) ?? amount} ${currency}`;
+function money(amount: string, currency: string, locale: Locale): string {
+  return `${formatCad(amount, INTL_LOCALE[locale]) ?? amount} ${currency}`;
 }
 
 /** "4242424242424242" -> "4242 4242 4242 4242", as the person types. */
@@ -46,12 +48,20 @@ function formatExpiry(value: string): string {
   return digits.length > 2 ? `${digits.slice(0, 2)} / ${digits.slice(2)}` : digits;
 }
 
-export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Element {
+export default function PaymentStep({
+  order,
+  locale,
+}: {
+  order: OrderSummary;
+  locale: Locale;
+}): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
+  const intl = INTL_LOCALE[locale];
   const { plan } = order;
   const paid = order.requires_payment;
-  const provinceName = PROVINCES.find((p) => p.code === order.province)?.en ?? order.province;
-  const cycleWord = plan.billing_cycle === "yearly" ? "year" : "month";
+  const provinceName = PROVINCES.find((p) => p.code === order.province)?.[locale] ?? order.province;
+  const every = t(plan.billing_cycle === "yearly" ? "register.payment.everyYear" : "register.payment.everyMonth");
 
   const [cardholder, setCardholder] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -68,8 +78,8 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
     if (!accepted) {
       setError(
         paid
-          ? "Tick the box to accept the terms and the automatic renewal."
-          : "Tick the box to accept the terms.",
+          ? t("register.payment.acceptPaid")
+          : t("register.payment.acceptFree"),
       );
       return;
     }
@@ -78,7 +88,7 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
     if (paid) {
       const expiryDigits = expiry.replace(/\D/g, "");
       if (expiryDigits.length !== 4) {
-        setError("Enter the expiry date as MM / YY.");
+        setError(t("register.payment.expiryInvalid"));
         return;
       }
       body = {
@@ -103,7 +113,7 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
         setError(
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not complete registration (HTTP ${res.status}).`,
+            : t("register.payment.completeFailed", { status: res.status }),
         );
         // 409: already complete, or no plan - the page knows which.
         if (res.status === 409) router.refresh();
@@ -112,7 +122,7 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
       router.push("/register?step=4");
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("register.payment.unreachable"));
     } finally {
       setSubmitting(false);
     }
@@ -127,53 +137,55 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
         <Card className="space-y-4 p-5 lg:sticky lg:top-20">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-meta text-ink-muted">Order summary</p>
-              <h2 className="text-card-title text-ink">{plan.name} plan</h2>
+              <p className="text-meta text-ink-muted">{t("register.payment.orderSummary")}</p>
+              <h2 className="text-card-title text-ink">{t("register.payment.planName", { plan: plan.name })}</h2>
             </div>
             {plan.badge ? <Badge tone={paid ? "brand" : "success"}>{plan.badge}</Badge> : null}
           </div>
 
           <dl className="space-y-1.5 text-body">
             <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Validity</dt>
+              <dt className="text-ink-muted">{t("register.payment.validity")}</dt>
               <dd className="text-right text-ink">
-                {paid ? order.period_label : "No expiry"}
+                {paid ? order.period_label : t("register.payment.noExpiry")}
               </dd>
             </div>
             {order.renews_on ? (
               <div className="flex justify-between gap-4">
-                <dt className="text-ink-muted">Renews on</dt>
-                <dd className="text-right tabular text-ink">{formatDate(order.renews_on)}</dd>
+                <dt className="text-ink-muted">{t("register.payment.renewsOn")}</dt>
+                <dd className="text-right tabular text-ink">{formatDate(order.renews_on, intl)}</dd>
               </div>
             ) : null}
             <div className="flex justify-between gap-4 border-t border-line pt-2">
-              <dt className="text-ink-muted">Subtotal</dt>
-              <dd className="tabular text-ink">{money(order.subtotal, order.currency)}</dd>
+              <dt className="text-ink-muted">{t("register.payment.subtotal")}</dt>
+              <dd className="tabular text-ink">{money(order.subtotal, order.currency, locale)}</dd>
             </div>
             {order.tax_lines.map((line) => (
               <div key={line.name} className="flex justify-between gap-4">
                 <dt className="text-ink-muted">
-                  {line.name} ({line.rate}%)
+                  {t("register.payment.taxLine", { name: line.name, rate: line.rate })}
                 </dt>
-                <dd className="tabular text-ink">{money(line.amount, order.currency)}</dd>
+                <dd className="tabular text-ink">{money(line.amount, order.currency, locale)}</dd>
               </div>
             ))}
             <div className="flex justify-between gap-4 border-t border-line pt-2 font-semibold">
-              <dt className="text-ink">{paid ? "Total due today" : "Total"}</dt>
-              <dd className="tabular text-ink">{money(order.total, order.currency)}</dd>
+              <dt className="text-ink">
+                {paid ? t("register.payment.totalDue") : t("register.payment.total")}
+              </dt>
+              <dd className="tabular text-ink">{money(order.total, order.currency, locale)}</dd>
             </div>
           </dl>
           {paid ? (
             <p className="text-meta text-ink-muted">
-              Tax calculated for {provinceName}.
+              {t("register.payment.taxFor", { province: provinceName })}
               {order.uncollected_taxes.length > 0
-                ? ` ${order.uncollected_taxes.join(", ")} is not charged.`
+                ? t("register.payment.notCharged", { taxes: order.uncollected_taxes.join(", ") })
                 : ""}
             </p>
           ) : null}
 
           <div>
-            <p className="text-meta font-medium text-ink-muted">What you get</p>
+            <p className="text-meta font-medium text-ink-muted">{t("register.payment.whatYouGet")}</p>
             <ul className="mt-1.5 space-y-1.5">
               {included.map((f) => (
                 <li key={f.label} className="flex items-start gap-2 text-meta text-ink">
@@ -184,14 +196,14 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
               {comingSoon.map((f) => (
                 <li key={f.label} className="flex items-start gap-2 text-meta text-ink-muted">
                   <Clock className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
-                  {f.label} (coming soon)
+                  {t("register.payment.comingSoon", { label: f.label })}
                 </li>
               ))}
             </ul>
           </div>
 
           <Link href="/register?step=2" className="inline-block text-meta text-brand-700 underline underline-offset-4">
-            Change plan
+            {t("register.payment.changePlan")}
           </Link>
         </Card>
       </div>
@@ -199,23 +211,21 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
       <div className="space-y-5 lg:order-1">
         {paid ? (
           <>
-            <Alert tone="warning" title="Test mode">
-              No payment processor is connected yet. Nothing is charged and real cards
-              are refused - use a test card below with any future expiry date and any
-              3-digit security code.
+            <Alert locale={locale} tone="warning" title={t("register.payment.testModeTitle")}>
+              {t("register.payment.testModeBody")}
             </Alert>
 
             <Card className="space-y-4 p-5">
               <h2 className="flex items-center gap-2 text-card-title text-ink">
                 <CreditCard className="size-5 text-ink-muted" aria-hidden="true" />
-                Card details
+                {t("register.payment.cardDetails")}
               </h2>
               <div>
-                <Label htmlFor="pay-name">Name on card</Label>
+                <Label htmlFor="pay-name">{t("register.payment.nameOnCard")}</Label>
                 <Input id="pay-name" autoComplete="cc-name" maxLength={255} value={cardholder} onChange={(e) => setCardholder(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="pay-number">Card number</Label>
+                <Label htmlFor="pay-number">{t("register.payment.cardNumber")}</Label>
                 <Input
                   id="pay-number"
                   required
@@ -229,20 +239,20 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="pay-expiry">Expiry</Label>
+                  <Label htmlFor="pay-expiry">{t("register.payment.expiry")}</Label>
                   <Input
                     id="pay-expiry"
                     required
                     inputMode="numeric"
                     autoComplete="cc-exp"
-                    placeholder="MM / YY"
+                    placeholder={t("register.payment.expiryPlaceholder")}
                     value={expiry}
                     onChange={(e) => setExpiry(formatExpiry(e.target.value))}
                     className="tabular"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="pay-cvc">Security code</Label>
+                  <Label htmlFor="pay-cvc">{t("register.payment.securityCode")}</Label>
                   <Input
                     id="pay-cvc"
                     required
@@ -257,7 +267,7 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
                 </div>
               </div>
               <div>
-                <p className="text-meta font-medium text-ink-muted">Test cards</p>
+                <p className="text-meta font-medium text-ink-muted">{t("register.payment.testCards")}</p>
                 <ul className="mt-1 space-y-1">
                   {TEST_CARDS.map((card) => (
                     <li key={card.number} className="flex flex-wrap items-center gap-x-3">
@@ -268,22 +278,22 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
                       >
                         {card.number}
                       </button>
-                      <span className="text-meta text-ink-muted">{card.result}</span>
+                      <span className="text-meta text-ink-muted">{t(`register.payment.${card.result}`)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               <p className="flex items-center gap-1.5 text-meta text-ink-muted">
                 <Lock className="size-3.5" aria-hidden="true" />
-                Card details are used for this payment only and are never stored.
+                {t("register.payment.notStored")}
               </p>
             </Card>
           </>
         ) : (
           <Card className="space-y-2 p-5">
-            <h2 className="text-card-title text-ink">No payment needed</h2>
+            <h2 className="text-card-title text-ink">{t("register.payment.noPaymentTitle")}</h2>
             <p className="text-body text-ink-muted">
-              {plan.name} is free. Accept the terms below to finish registering.
+              {t("register.payment.noPaymentBody", { plan: plan.name })}
             </p>
           </Card>
         )}
@@ -297,47 +307,51 @@ export default function PaymentStep({ order }: { order: OrderSummary }): JSX.Ele
               className="mt-1 size-4 accent-brand-700"
             />
             <span className="text-body text-ink">
-              I agree to the{" "}
+              {t("register.payment.agreeBefore")}{" "}
               <Link href="/terms" target="_blank" className="text-brand-700 underline underline-offset-4">
-                Terms of Use
+                {t("register.payment.terms")}
               </Link>{" "}
-              and{" "}
+              {t("register.payment.and")}{" "}
               <Link href="/privacy" target="_blank" className="text-brand-700 underline underline-offset-4">
-                Privacy Policy
+                {t("register.payment.privacy")}
               </Link>
               {paid ? (
                 <>
-                  , and I authorize justforyou to charge{" "}
-                  <span className="font-semibold tabular">{money(order.total, order.currency)}</span>{" "}
-                  today and the {plan.name} price plus applicable taxes every {cycleWord}{" "}
-                  after that. The plan renews automatically
-                  {order.renews_on ? ` on ${formatDate(order.renews_on)}` : ""} until I cancel.
+                  {t("register.payment.authorizeBefore")}{" "}
+                  <span className="font-semibold tabular">{money(order.total, order.currency, locale)}</span>{" "}
+                  {t("register.payment.authorizeAfter", {
+                    plan: plan.name,
+                    every,
+                    renews: order.renews_on
+                      ? t("register.payment.renewsOnDate", { date: formatDate(order.renews_on, intl) })
+                      : "",
+                  })}
                 </>
               ) : (
-                "."
+                t("register.payment.agreeEnd")
               )}
             </span>
           </label>
         </Card>
 
-        {error !== null ? <Alert tone="error">{error}</Alert> : null}
+        {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button asChild variant="ghost">
             <Link href="/register?step=2">
               <ArrowLeft aria-hidden="true" />
-              Back
+              {t("register.payment.back")}
             </Link>
           </Button>
           <Button type="submit" size="lg" disabled={submitting}>
             {paid ? <Lock aria-hidden="true" /> : null}
             {submitting
               ? paid
-                ? "Processing…"
-                : "Completing…"
+                ? t("register.payment.processing")
+                : t("register.payment.completing")
               : paid
-                ? `Pay ${money(order.total, order.currency)}`
-                : "Complete registration"}
+                ? t("register.payment.pay", { amount: money(order.total, order.currency, locale) })
+                : t("register.payment.complete")}
           </Button>
         </div>
       </div>

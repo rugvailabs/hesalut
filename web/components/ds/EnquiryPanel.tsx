@@ -87,7 +87,7 @@ export default function EnquiryPanel({
         setError(
           body && typeof body === "object" && "detail" in body
             ? String((body as { detail: unknown }).detail)
-            : `Could not send that (HTTP ${res.status}).`,
+            : t("discover.business.enquiryHttpError", { status: res.status }),
         );
         return;
       }

@@ -18,6 +18,7 @@ import { useState } from "react";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import { FIELD, LABEL } from "@/components/ui/field";
+import { tFor, type Locale } from "@/lib/i18n";
 import type { VerificationStatus } from "@/lib/types";
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
   status: VerificationStatus;
   /** Where to go after a decision. Omit to stay put and just refresh. */
   redirectTo?: string;
+  locale: Locale;
 }
 
 export default function VerificationDecision({
@@ -33,7 +35,9 @@ export default function VerificationDecision({
   businessName,
   status,
   redirectTo,
+  locale,
 }: Props): JSX.Element {
+  const t = tFor(locale);
   const router = useRouter();
 
   const [rejecting, setRejecting] = useState(false);
@@ -64,7 +68,12 @@ export default function VerificationDecision({
         setError(
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not ${action} (HTTP ${res.status}).`,
+            : t(
+                action === "approve"
+                  ? "admin.decision.approveError"
+                  : "admin.decision.rejectError",
+                { status: res.status },
+              ),
         );
         return;
       }
@@ -76,7 +85,7 @@ export default function VerificationDecision({
       router.refresh();
       if (redirectTo !== undefined) router.push(redirectTo);
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("admin.common.networkError"));
     } finally {
       setBusy(null);
     }
@@ -84,28 +93,30 @@ export default function VerificationDecision({
 
   if (done !== null) {
     return (
-      <Alert tone={done === "approved" ? "success" : "info"}>
+      <Alert locale={locale} tone={done === "approved" ? "success" : "info"}>
         {done === "approved"
-          ? `${businessName} is verified. It appears in search as soon as its listing is approved too.`
-          : `${businessName} was rejected. The owner can read the reason and resubmit.`}
+          ? t("admin.decision.approvedDone", { name: businessName })
+          : t("admin.decision.rejectedDone", { name: businessName })}
       </Alert>
     );
   }
 
   return (
     <div className="space-y-3">
-      {error !== null ? <Alert tone="error">{error}</Alert> : null}
+      {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
       {status !== "pending" ? (
         <p className="text-sm text-slate-600">
-          This submission is already {status}. Deciding again overwrites that.
+          {t("admin.decision.alreadyDecided", {
+            status: t(`admin.decision.statusWords.${status}`),
+          })}
         </p>
       ) : null}
 
       {rejecting ? (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
           <label htmlFor={`reason-${verificationId}`} className={LABEL}>
-            Why can this not be verified?
+            {t("admin.decision.reasonLabel")}
           </label>
           <textarea
             id={`reason-${verificationId}`}
@@ -113,12 +124,11 @@ export default function VerificationDecision({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className={FIELD}
-            placeholder="The licence scan is cut off - we cannot read the expiry date."
+            placeholder={t("admin.decision.reasonPlaceholder")}
             autoFocus
           />
           <p className="mt-1 text-xs text-slate-500">
-            The owner sees this exactly as written, and it is all they have to
-            go on. Name what is wrong and what would fix it.
+            {t("admin.decision.reasonHint")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
@@ -126,7 +136,9 @@ export default function VerificationDecision({
               disabled={busy !== null || reason.trim().length < 3}
               onClick={() => void decide("reject", { reason })}
             >
-              {busy === "reject" ? "Rejecting…" : "Reject submission"}
+              {busy === "reject"
+                ? t("admin.decision.rejecting")
+                : t("admin.decision.rejectSubmission")}
             </Button>
             <Button
               variant="ghost"
@@ -135,7 +147,7 @@ export default function VerificationDecision({
                 setError(null);
               }}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </div>
@@ -145,10 +157,12 @@ export default function VerificationDecision({
             disabled={busy !== null}
             onClick={() => void decide("approve")}
           >
-            {busy === "approve" ? "Approving…" : "Approve"}
+            {busy === "approve"
+              ? t("admin.decision.approving")
+              : t("admin.common.approve")}
           </Button>
           <Button variant="secondary" onClick={() => setRejecting(true)}>
-            Reject…
+            {t("admin.decision.rejectOpen")}
           </Button>
         </div>
       )}

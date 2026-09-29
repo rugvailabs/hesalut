@@ -25,6 +25,7 @@ import {
 import { useState } from "react";
 
 import { Button } from "@/components/ds/primitives";
+import { tFor, type Locale } from "@/lib/i18n";
 import { GOOGLE_MAP_ID, GOOGLE_MAPS_API_KEY, PIN_BORDER, PIN_COLOUR, VANCOUVER } from "@/lib/maps";
 
 type Props = {
@@ -33,16 +34,20 @@ type Props = {
   onPick: (lat: number, lng: number) => void;
   /** Street, city, province and postal code as typed, for the lookup. */
   addressQuery?: string;
+  locale?: Locale;
 };
 
 /** Must live inside <Map> to reach the map instance and geocoding library. */
 function AddressLookup({
   addressQuery,
   onPick,
+  locale,
 }: {
   addressQuery: string;
   onPick: (lat: number, lng: number) => void;
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const map = useMap();
   const geocoding = useMapsLibrary("geocoding");
   const [busy, setBusy] = useState(false);
@@ -59,18 +64,16 @@ function AddressLookup({
       });
       const best = results[0];
       if (!best) {
-        setMessage("Google could not find that address. Click the map instead.");
+        setMessage(t("discover.map.pickerNotFound"));
         return;
       }
       const point = best.geometry.location.toJSON();
       onPick(point.lat, point.lng);
       map.panTo(point);
       map.setZoom(17);
-      setMessage(`Found: ${best.formatted_address}. Drag the pin if it is not exact.`);
+      setMessage(t("discover.map.pickerFound", { address: best.formatted_address }));
     } catch {
-      setMessage(
-        "Address lookup failed - the Geocoding API may not be enabled for this key. Click the map instead.",
-      );
+      setMessage(t("discover.map.pickerFailed"));
     } finally {
       setBusy(false);
     }
@@ -87,7 +90,7 @@ function AddressLookup({
           onClick={lookUp}
           className="shadow-raised"
         >
-          {busy ? "Finding…" : "Find address on map"}
+          {busy ? t("discover.map.pickerFinding") : t("discover.map.pickerFind")}
         </Button>
         {message !== null ? (
           <span className="rounded-input bg-surface px-2 py-1 text-meta text-ink-muted shadow-raised">
@@ -104,7 +107,9 @@ export default function GoogleLocationPicker({
   longitude,
   onPick,
   addressQuery = "",
+  locale = "en",
 }: Props): JSX.Element {
+  const t = tFor(locale);
   const hasPoint = latitude !== null && longitude !== null;
   const point = hasPoint ? { lat: latitude as number, lng: longitude as number } : null;
 
@@ -125,12 +130,12 @@ export default function GoogleLocationPicker({
             if (latLng) onPick(latLng.lat, latLng.lng);
           }}
         >
-          <AddressLookup addressQuery={addressQuery} onPick={onPick} />
+          <AddressLookup addressQuery={addressQuery} onPick={onPick} locale={locale} />
           {point ? (
             <AdvancedMarker
               position={point}
               draggable
-              title="Business location"
+              title={t("discover.map.pickerPinTitle")}
               onDragEnd={(event) => {
                 const latLng = event.latLng;
                 if (latLng) onPick(latLng.lat(), latLng.lng());
@@ -143,8 +148,11 @@ export default function GoogleLocationPicker({
       </div>
       <p className="mt-1 text-meta text-ink-muted">
         {point
-          ? `Pin at ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)} - drag it or click the map to move it.`
-          : "Find the address above, or click the map to drop a pin for this business."}
+          ? t("discover.map.pickerPinAt", {
+              lat: point.lat.toFixed(5),
+              lng: point.lng.toFixed(5),
+            })
+          : t("discover.map.pickerEmpty")}
       </p>
     </APIProvider>
   );

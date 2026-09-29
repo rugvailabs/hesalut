@@ -4,8 +4,11 @@
 
 import { Skeleton, SkeletonRegion } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export default function ReviewsLoading(): JSX.Element {
+  const t = tFor(getLocale());
   return (
     <>
 
@@ -20,7 +23,7 @@ export default function ReviewsLoading(): JSX.Element {
           ))}
         </div>
 
-        <SkeletonRegion label="Loading reviews" className="mt-4 space-y-3">
+        <SkeletonRegion label={t("dashboard.reviews.loading")} className="mt-4 space-y-3">
           <Card className="flex gap-8 p-4">
             <Skeleton className="h-12 w-16" />
             <div className="flex-1 space-y-1.5">

@@ -16,9 +16,7 @@ import Link from "next/link";
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { formatCount } from "@/lib/format";
-import { INTL_LOCALE, DEFAULT_LOCALE } from "@/lib/i18n";
-
-const intl = INTL_LOCALE[DEFAULT_LOCALE];
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 
 export default function CategoryCard({
   name,
@@ -26,18 +24,26 @@ export default function CategoryCard({
   count,
   href,
   cityLabel,
+  locale = "en",
 }: {
   name: string;
   slug: string;
   count: number;
   href: string;
   cityLabel: string;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
+  const intl = INTL_LOCALE[locale];
+  const shown = formatCount(count, intl);
   return (
     <Link
       href={href}
       id={slug}
-      aria-label={`${name} — ${formatCount(count, intl)} ${count === 1 ? "listing" : "listings"} in ${cityLabel}`}
+      aria-label={t(
+        count === 1 ? "discover.categories.cardAriaOne" : "discover.categories.cardAriaMany",
+        { name, count: shown, city: cityLabel },
+      )}
       className="group flex min-h-[186px] flex-col justify-between overflow-hidden rounded-card border border-line bg-surface transition
                  hover:-translate-y-0.5 hover:border-brand-600 hover:shadow-overlay
                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring
@@ -48,7 +54,10 @@ export default function CategoryCard({
           {name}
         </h3>
         <p className="text-meta tabular text-ink-subtle">
-          {formatCount(count, intl)} {count === 1 ? "listing" : "listings"}
+          {t(
+            count === 1 ? "discover.categories.listingOne" : "discover.categories.listingMany",
+            { count: shown },
+          )}
         </p>
       </div>
 

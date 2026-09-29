@@ -24,10 +24,8 @@
 import Link from "next/link";
 
 import { formatCount, formatRating } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { BusinessListItem } from "@/lib/types";
-
-const intl = INTL_LOCALE[DEFAULT_LOCALE];
 
 export interface NavCategory {
   name: string;
@@ -43,14 +41,18 @@ export default function CategoryNav({
   categories,
   allCategoriesHref,
   current = "all",
+  locale = "en",
 }: {
   categories: readonly NavCategory[];
   allCategoriesHref: string;
   current?: "all" | string;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
+  const intl = INTL_LOCALE[locale];
   return (
     <nav
-      aria-label="Category navigation"
+      aria-label={t("discover.categories.navLabel")}
       className="sticky top-[65px] z-30 border-b border-line bg-surface max-[900px]:static"
     >
       <div className="mx-auto flex max-w-[1320px] gap-1 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -66,7 +68,7 @@ export default function CategoryNav({
                   : "border-transparent text-ink-muted hover:text-brand-700"
               }`}
           >
-            All Categories
+            {t("discover.categories.navAll")}
           </Link>
         </div>
 
@@ -99,7 +101,7 @@ export default function CategoryNav({
                          group-hover:block group-focus-within:block"
             >
               <h2 className="mb-2 text-micro uppercase text-ink-subtle">
-                Top in {category.name}
+                {t("discover.categories.topIn", { name: category.name })}
               </h2>
 
               {category.top.length > 0 ? (
@@ -124,7 +126,7 @@ export default function CategoryNav({
                 </ul>
               ) : (
                 <p className="px-2 py-1.5 text-meta text-ink-subtle">
-                  Nothing listed here yet.
+                  {t("discover.categories.nothingYet")}
                 </p>
               )}
 
@@ -134,8 +136,12 @@ export default function CategoryNav({
                            hover:text-brand-800
                            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
               >
-                View all {formatCount(category.count, intl)}{" "}
-                {category.count === 1 ? "listing" : "listings"} →
+                {t(
+                  category.count === 1
+                    ? "discover.categories.viewAllOne"
+                    : "discover.categories.viewAllMany",
+                  { count: formatCount(category.count, intl) },
+                )}
               </Link>
             </div>
           </div>

@@ -19,13 +19,14 @@ import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import RatingStars from "@/components/ui/RatingStars";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { AdminReviewItem } from "@/lib/types";
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, locale: Locale): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? iso
-    : date.toLocaleDateString("en-CA", {
+    : date.toLocaleDateString(INTL_LOCALE[locale], {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -34,9 +35,12 @@ function formatWhen(iso: string): string {
 
 export default function AdminReviewList({
   reviews: initial,
+  locale,
 }: {
   reviews: AdminReviewItem[];
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const router = useRouter();
   const [reviews, setReviews] = useState(initial);
   const [confirming, setConfirming] = useState<number | null>(null);
@@ -58,7 +62,7 @@ export default function AdminReviewList({
         setError(
           body && typeof body === "object" && "detail" in body
             ? String((body as { detail: unknown }).detail)
-            : `Could not delete that review (HTTP ${res.status}).`,
+            : t("admin.reviewList.deleteError", { status: res.status }),
         );
         return;
       }
@@ -67,7 +71,7 @@ export default function AdminReviewList({
       setConfirming(null);
       router.refresh();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("admin.common.networkError"));
     } finally {
       setBusyId(null);
     }
@@ -76,9 +80,9 @@ export default function AdminReviewList({
   if (reviews.length === 0) {
     return (
       <Card>
-        <h2 className="font-semibold text-slate-900">No reviews found</h2>
+        <h2 className="font-semibold text-slate-900">{t("admin.reviewList.emptyTitle")}</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Nothing matches that search.
+          {t("admin.reviewList.emptyBody")}
         </p>
       </Card>
     );
@@ -87,7 +91,7 @@ export default function AdminReviewList({
   return (
     <>
       {error !== null ? (
-        <Alert tone="error" className="mb-3">
+        <Alert locale={locale} tone="error" className="mb-3">
           {error}
         </Alert>
       ) : null}
@@ -100,14 +104,14 @@ export default function AdminReviewList({
               <Card className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <RatingStars rating={review.rating} showCount={false} />
+                    <RatingStars locale={locale} rating={review.rating} showCount={false} />
                     {review.title !== null ? (
                       <h2 className="mt-1 font-semibold text-slate-900">
                         {review.title}
                       </h2>
                     ) : null}
                     <p className="text-sm text-slate-500">
-                      on{" "}
+                      {t("admin.reviewList.on")}{" "}
                       <a
                         href={`/business/${review.business_slug}`}
                         className="underline"
@@ -120,7 +124,7 @@ export default function AdminReviewList({
                     <div className="break-words">{review.author_name}</div>
                     {/* Admin surface, so identifying the author is the point. */}
                     <div className="break-all text-xs">{review.author_email}</div>
-                    <div className="text-xs">{formatWhen(review.created_at)}</div>
+                    <div className="text-xs">{formatWhen(review.created_at, locale)}</div>
                   </div>
                 </div>
 
@@ -131,7 +135,7 @@ export default function AdminReviewList({
                 {review.owner_reply !== null ? (
                   <div className="rounded-md border-l-2 border-slate-300 bg-slate-50 px-3 py-2">
                     <p className="text-xs font-medium text-slate-500">
-                      Owner reply
+                      {t("admin.reviewList.ownerReply")}
                     </p>
                     <p className="mt-1 text-sm text-slate-700">
                       {review.owner_reply}
@@ -140,11 +144,11 @@ export default function AdminReviewList({
                 ) : null}
 
                 {confirming === review.id ? (
-                  <Alert tone="warning" title="Delete this review?">
+                  <Alert locale={locale} tone="warning" title={t("admin.reviewList.confirmTitle")}>
                     <p>
-                      It will be removed from {review.business_name} and that
-                      listing&apos;s rating will be recalculated. This cannot be
-                      undone.
+                      {t("admin.reviewList.confirmBody", {
+                        name: review.business_name,
+                      })}
                     </p>
                     <div className="mt-2 flex gap-2">
                       <Button
@@ -152,14 +156,16 @@ export default function AdminReviewList({
                         disabled={busy}
                         onClick={() => remove(review)}
                       >
-                        {busy ? "Deleting…" : "Yes, delete"}
+                        {busy
+                          ? t("admin.reviewList.deleting")
+                          : t("admin.reviewList.confirmDelete")}
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => setConfirming(null)}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </Button>
                     </div>
                   </Alert>
@@ -170,7 +176,7 @@ export default function AdminReviewList({
                       variant="secondary"
                       onClick={() => setConfirming(review.id)}
                     >
-                      Delete
+                      {t("admin.reviewList.delete")}
                     </Button>
                   </div>
                 )}

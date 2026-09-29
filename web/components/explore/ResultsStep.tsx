@@ -460,9 +460,9 @@ export default function ResultsStep({
         onLive={onLive}
       />
       </div>
-      {locateError !== null ? <Alert tone="warning">{t(locateError)}</Alert> : null}
+      {locateError !== null ? <Alert locale={locale} tone="warning">{t(locateError)}</Alert> : null}
 
-      <Breadcrumbs
+      <Breadcrumbs locale={locale}
         label={t("results.breadcrumb")}
         items={[
           { label: t("results.explore"), href: "/explore" },
@@ -834,14 +834,14 @@ export default function ResultsStep({
       {tab === "results" ? (
         <div id="results-panel" role="tabpanel" className="space-y-4">
           {widenedFrom !== null && status === "ready" ? (
-            <Alert tone="info">{t("results.widened", { km: widenedFrom })}</Alert>
+            <Alert locale={locale} tone="info">{t("results.widened", { km: widenedFrom })}</Alert>
           ) : null}
 
           {showMap ? (
             <div className="overflow-hidden rounded-card border border-line bg-surface shadow-raised">
               <div className="h-72 sm:h-96">
                 {mappable.length > 0 ? (
-                  <ResultsMap businesses={mappable} origin={selection.near ?? undefined} />
+                  <ResultsMap locale={locale} businesses={mappable} origin={selection.near ?? undefined} />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-surface-muted text-meta text-ink-muted">
                     {t("results.mapEmpty")}
@@ -920,7 +920,7 @@ export default function ResultsStep({
                     {t("results.loadingMore")}
                   </p>
                 ) : more === "error" ? (
-                  <Alert tone="error" className="w-full">
+                  <Alert locale={locale} tone="error" className="w-full">
                     {t("results.loadMoreError")}{" "}
                     <button type="button" className="font-medium underline" onClick={() => void loadMore()}>
                       {t("results.tryAgain")}
@@ -1111,7 +1111,7 @@ function SavedPanel({
 
   if (favorites.error !== null) {
     return (
-      <Alert tone="error">
+      <Alert locale={locale} tone="error">
         {t("saved.loadError")}{" "}
         <button type="button" className="font-medium underline" onClick={favorites.reload}>
           {t("results.tryAgain")}

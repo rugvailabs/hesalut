@@ -16,9 +16,9 @@ import SiteFooter from "@/components/ds/SiteFooter";
 import { Breadcrumbs } from "@/components/ds/feedback";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
-const locale = DEFAULT_LOCALE;
 
 export default function Prose({
   title,
@@ -34,20 +34,21 @@ export default function Prose({
   children: React.ReactNode;
   className?: string;
 }): JSX.Element {
+  const locale = getLocale();
+  const t = tFor(locale);
   return (
     <>
-      {/* @ts-expect-error Async Server Component in a sync parent - allowed in
-          the App Router, not yet expressible in the type system. */}
-
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        <Breadcrumbs className="mb-4" items={[{ label: "Home", href: "/" }, { label: title }]} />
+        <Breadcrumbs locale={locale} className="mb-4" items={[{ label: t("pages.prose.home"), href: "/" }, { label: title }]} />
 
         <h1 className="text-page-title text-ink">{title}</h1>
         {lede !== undefined ? (
           <p className="mt-2 max-w-prose text-body text-ink-muted">{lede}</p>
         ) : null}
         <p className="mt-2 text-meta text-ink-subtle">
-          Last updated {formatDate(updated, INTL_LOCALE[locale])}
+          {t("pages.prose.lastUpdated", {
+            date: formatDate(updated, INTL_LOCALE[locale]),
+          })}
         </p>
 
         <div
@@ -68,12 +69,12 @@ export default function Prose({
         </div>
 
         <p className="mt-10 border-t border-line pt-4 text-meta text-ink-subtle">
-          Something here unclear or wrong?{" "}
+          {t("pages.prose.unclear")}{" "}
           <Link
             href="/contact"
             className="rounded-sm text-brand-700 underline underline-offset-4 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            Tell us
+            {t("pages.prose.tellUs")}
           </Link>
           .
         </p>

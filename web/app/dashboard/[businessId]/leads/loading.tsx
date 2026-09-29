@@ -3,8 +3,11 @@
  */
 
 import { Skeleton, SkeletonRegion } from "@/components/ds/feedback";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export default function LeadsLoading(): JSX.Element {
+  const t = tFor(getLocale());
   return (
     <>
 
@@ -20,7 +23,7 @@ export default function LeadsLoading(): JSX.Element {
         </div>
 
         <SkeletonRegion
-          label="Loading leads"
+          label={t("dashboard.leads.loading")}
           className="mt-4 rounded-card border border-line bg-surface"
         >
           {Array.from({ length: 5 }).map((_, index) => (

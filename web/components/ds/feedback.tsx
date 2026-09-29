@@ -19,6 +19,7 @@ import {
 
 import { Button, Card } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 
 /* ------------------------------------------------------------ Breadcrumbs */
 
@@ -36,15 +37,17 @@ export interface Crumb {
 export function Breadcrumbs({
   items,
   className,
-  label = "Breadcrumb",
+  label,
+  locale = "en",
 }: {
   items: Crumb[];
   className?: string;
-  /** The landmark's accessible name - pass a translation where there is one. */
+  /** The landmark's accessible name. Defaults to "Breadcrumb" in `locale`. */
   label?: string;
+  locale?: Locale;
 }): JSX.Element {
   return (
-    <nav aria-label={label} className={cn("text-meta", className)}>
+    <nav aria-label={label ?? tFor(locale)("discover.feedback.breadcrumb")} className={cn("text-meta", className)}>
       <ol className="flex flex-wrap items-center gap-1 text-ink-subtle">
         {items.map((item, index) => {
           const last = index === items.length - 1;
@@ -90,18 +93,26 @@ export function Breadcrumbs({
  * everything else is announced politely.
  */
 const ALERT_TONES = {
-  error: { className: "border-danger/30 bg-danger-bg text-danger", Icon: XCircle, label: "Error" },
+  error: {
+    className: "border-danger/30 bg-danger-bg text-danger",
+    Icon: XCircle,
+    label: "discover.feedback.error",
+  },
   warning: {
     className: "border-warning/30 bg-warning-bg text-warning",
     Icon: AlertTriangle,
-    label: "Warning",
+    label: "discover.feedback.warning",
   },
   success: {
     className: "border-success/30 bg-success-bg text-success",
     Icon: CheckCircle2,
-    label: "Success",
+    label: "discover.feedback.success",
   },
-  info: { className: "border-line bg-surface-muted text-ink-muted", Icon: Info, label: "Note" },
+  info: {
+    className: "border-line bg-surface-muted text-ink-muted",
+    Icon: Info,
+    label: "discover.feedback.note",
+  },
 } as const;
 
 export type AlertTone = keyof typeof ALERT_TONES;
@@ -111,11 +122,14 @@ export function Alert({
   title,
   children,
   className,
+  locale = "en",
 }: {
   tone?: AlertTone;
   title?: string;
   children: React.ReactNode;
   className?: string;
+  /** Language of the screen-reader tone prefix ("Error:", "Note:"). */
+  locale?: Locale;
 }): JSX.Element {
   const { className: toneClass, Icon, label } = ALERT_TONES[tone];
   return (
@@ -129,7 +143,7 @@ export function Alert({
     >
       <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div className="min-w-0">
-        <span className="sr-only">{label}: </span>
+        <span className="sr-only">{tFor(locale)(label)}{locale === "fr" ? "\u202f: " : ": "}</span>
         {title !== undefined ? <p className="font-semibold">{title}</p> : null}
         <div className={title !== undefined ? "mt-0.5" : undefined}>{children}</div>
       </div>
@@ -243,14 +257,17 @@ export function ListingCardSkeleton(): JSX.Element {
 /** A list of skeletons, announced once rather than per row. */
 export function ListingListSkeleton({
   count = 4,
-  label = "Loading listings",
+  label,
+  locale = "en",
 }: {
   count?: number;
+  /** Defaults to "Loading listings" in `locale`. */
   label?: string;
+  locale?: Locale;
 }): JSX.Element {
   return (
     <div role="status" aria-live="polite" aria-busy="true" className="space-y-3">
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{label ?? tFor(locale)("discover.feedback.loadingListings")}</span>
       {Array.from({ length: count }).map((_, index) => (
         <ListingCardSkeleton key={index} />
       ))}

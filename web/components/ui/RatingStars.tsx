@@ -10,6 +10,8 @@
  * reviews" instead of five separate glyphs.
  */
 
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
+
 const FULL = "★";
 const EMPTY = "☆";
 
@@ -17,17 +19,22 @@ export default function RatingStars({
   rating,
   reviewCount,
   showCount = true,
+  locale = "en",
   className = "",
 }: {
   rating: number | null;
   reviewCount?: number;
   showCount?: boolean;
+  locale?: Locale;
   className?: string;
 }): JSX.Element {
+  const t = tFor(locale);
+  const intl = INTL_LOCALE[locale];
+
   if (rating === null) {
     return (
       <span className={`text-sm text-slate-500 ${className}`.trim()}>
-        No reviews yet
+        {t("listing.noReviews")}
       </span>
     );
   }
@@ -36,10 +43,17 @@ export default function RatingStars({
   const value = Math.max(0, Math.min(5, rating));
   const rounded = Math.round(value);
 
+  const shown = value.toLocaleString(intl, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
   const label =
     reviewCount === undefined
-      ? `Rated ${value.toFixed(1)} out of 5`
-      : `Rated ${value.toFixed(1)} out of 5 from ${reviewCount} reviews`;
+      ? t("discover.ratingStars.rated", { value: shown })
+      : t("discover.ratingStars.ratedFrom", {
+          value: shown,
+          count: reviewCount.toLocaleString(intl),
+        });
 
   return (
     <span
@@ -51,11 +65,11 @@ export default function RatingStars({
         <span className="text-slate-300">{EMPTY.repeat(5 - rounded)}</span>
       </span>
       <span aria-hidden="true" className="text-sm font-medium text-slate-900">
-        {value.toFixed(1)}
+        {shown}
       </span>
       {showCount && reviewCount !== undefined ? (
         <span aria-hidden="true" className="text-sm text-slate-500">
-          ({reviewCount.toLocaleString("en-CA")})
+          ({reviewCount.toLocaleString(intl)})
         </span>
       ) : null}
     </span>

@@ -38,13 +38,12 @@ import {
   formatCount,
   isProvinceCode,
 } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { BusinessListItem, Category } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
 
 /** How many categories get a mega-menu in the strip. More than this scrolls. */
 const NAV_LIMIT = 6;
@@ -72,6 +71,7 @@ interface Resolved {
  * unbounded set of thin 200 pages is how a directory poisons its own index.
  */
 async function resolve(params: Params): Promise<Resolved | null> {
+  const intl = INTL_LOCALE[getLocale()];
   const provinceCode = params.province.toUpperCase();
   if (!isProvinceCode(provinceCode)) return null;
 
@@ -113,15 +113,18 @@ export async function generateMetadata({
 }: {
   params: Params;
 }): Promise<Metadata> {
+  const t = tFor(getLocale());
   const resolved = await resolve(params);
-  if (resolved === null) return { title: "Not found" };
+  if (resolved === null) return { title: t("discover.city.notFound") };
 
   const { city, provinceCode, populated } = resolved;
   return {
-    title: `All categories in ${city}, ${provinceCode}`,
-    description:
-      `Browse all ${populated.length} business categories listed in ${city}, ` +
-      `${provinceCode}. Every listing has had its identity checked.`,
+    title: t("discover.categories.metaTitle", { city, province: provinceCode }),
+    description: t("discover.categories.metaDescription", {
+      count: populated.length,
+      city,
+      province: provinceCode,
+    }),
   };
 }
 
@@ -130,6 +133,9 @@ export default async function AllCategoriesPage({
 }: {
   params: Params;
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
   const resolved = await resolve(params);
   if (resolved === null) notFound();
 
@@ -174,14 +180,19 @@ export default async function AllCategoriesPage({
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+          { "@type": "ListItem", position: 1, name: t("business.home"), item: "/" },
           { "@type": "ListItem", position: 2, name: `${city}, ${provinceCode}`, item: cityHome },
-          { "@type": "ListItem", position: 3, name: "All categories", item: allCategoriesHref },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: t("discover.categories.heading"),
+            item: allCategoriesHref,
+          },
         ],
       },
       {
         "@type": "ItemList",
-        name: `Business categories in ${city}, ${provinceCode}`,
+        name: t("discover.categories.itemListName", { city, province: provinceCode }),
         numberOfItems: populated.length,
         itemListElement: populated.map((category, index) => ({
           "@type": "ListItem",
@@ -199,16 +210,20 @@ export default async function AllCategoriesPage({
         categories={navCategories}
         allCategoriesHref={allCategoriesHref}
         current="all"
+        locale={locale}
       />
 
       <main className="pb-12 pt-7">
         <div className="mx-auto max-w-[1320px] px-5">
-          <nav aria-label="Breadcrumb" className="mb-2.5 text-micro uppercase text-ink-subtle">
+          <nav
+            aria-label={t("discover.feedback.breadcrumb")}
+            className="mb-2.5 text-micro uppercase text-ink-subtle"
+          >
             <Link
               href="/"
               className="rounded-sm hover:text-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              Home
+              {t("business.home")}
             </Link>{" "}
             /{" "}
             <Link
@@ -217,25 +232,23 @@ export default async function AllCategoriesPage({
             >
               {city}
             </Link>{" "}
-            / All categories
+            / {t("discover.categories.heading")}
           </nav>
 
           <div className="mb-4 flex flex-wrap items-end justify-between gap-5">
             <div>
               <h1 className="mb-1.5 text-balance text-[clamp(26px,3.4vw,36px)] font-bold tracking-tight text-ink">
-                All categories
+                {t("discover.categories.heading")}
               </h1>
               <p className="max-w-[62ch] text-body text-ink-muted">
-                Every trade and service with a listing in {city}, {provinceName}. Pick
-                a category to see verified businesses, their hours, and how to reach
-                them.
+                {t("discover.categories.intro", { city, province: provinceName })}
               </p>
             </div>
             <p className="whitespace-nowrap text-meta tabular text-ink-subtle">
               <b className="font-medium text-ink">{formatCount(populated.length, intl)}</b>{" "}
-              categories ·{" "}
+              {t("discover.categories.statCategories")} ·{" "}
               <b className="font-medium text-ink">{formatCount(totalListings, intl)}</b>{" "}
-              listings
+              {t("discover.categories.statListings")}
             </p>
           </div>
 
@@ -243,6 +256,7 @@ export default async function AllCategoriesPage({
             categories={populated}
             cityLabel={city}
             popular={popularSlugs}
+            locale={locale}
           />
         </div>
 
@@ -251,6 +265,7 @@ export default async function AllCategoriesPage({
             topCategories={byCount
               .slice(0, CHIP_LIMIT)
               .map((c) => ({ label: c.name, href: c.href }))}
+            locale={locale}
           />
         </div>
       </main>

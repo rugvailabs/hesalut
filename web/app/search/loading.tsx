@@ -9,13 +9,13 @@
 
 import { ListingListSkeleton, Skeleton } from "@/components/ds/feedback";
 import { Card } from "@/components/ds/primitives";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 
 export default function SearchLoading(): JSX.Element {
+  const t = tFor(getLocale());
   return (
     <>
-      {/* @ts-expect-error Async Server Component in a sync parent - allowed in
-          the App Router, not yet expressible in the type system. */}
-
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <Skeleton className="h-3 w-48" />
         <Skeleton className="mt-4 h-8 w-72" />
@@ -31,7 +31,7 @@ export default function SearchLoading(): JSX.Element {
             ))}
           </Card>
 
-          <ListingListSkeleton count={5} label="Loading search results" />
+          <ListingListSkeleton count={5} label={t("discover.search.loading")} />
 
           <Skeleton className="hidden h-96 rounded-card xl:block" />
         </div>

@@ -30,7 +30,8 @@ import {
 } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
 import { formatPhone, telHref } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type {
   BusinessDetail,
   BusinessSearchPerformance,
@@ -40,28 +41,25 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
 
 /**
- * The four lead kinds, each on a token rather than a hand-picked hue.
+ * The four lead kinds, each on a token rather than a hand-picked hue. The
+ * label comes from dashboard.leads.types.<kind>.
  *
  * call_click is the passive one - the visitor took your number and may never
  * ring - so it reads as neutral. The three that carry a message someone is
  * waiting on are given weight.
  */
-const TYPES: Record<
-  EnquiryType,
-  { label: string; tone: "neutral" | "brand" | "warning" | "success" }
-> = {
-  call_click: { label: "Call", tone: "neutral" },
-  callback: { label: "Callback", tone: "warning" },
-  quote: { label: "Quote", tone: "brand" },
-  chat: { label: "Chat", tone: "success" },
+const TYPES: Record<EnquiryType, "neutral" | "brand" | "warning" | "success"> = {
+  call_click: "neutral",
+  callback: "warning",
+  quote: "brand",
+  chat: "success",
 };
 
 /** Absolute timestamp - an owner chasing a lead needs the date, not "2h ago". */
 function formatWhen(iso: string): string {
+  const intl = INTL_LOCALE[getLocale()];
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? iso
@@ -79,6 +77,9 @@ export default async function LeadsPage({
 }: {
   params: { businessId: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
   await requireBusinessOwner(`/dashboard/${params.businessId}/leads`);
 
   const businessId = Number(params.businessId);
@@ -112,17 +113,25 @@ export default async function LeadsPage({
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">
           <Link href="/dashboard">
             <ArrowLeft aria-hidden="true" />
-            Your listings
+            {t("dashboard.common.yourListings")}
           </Link>
         </Button>
 
-        <h1 className="mt-2 text-page-title text-ink">Leads for {listing.name}</h1>
+        <h1 className="mt-2 text-page-title text-ink">
+          {t("dashboard.leads.title", { name: listing.name })}
+        </h1>
         <p className="mt-1 text-body text-ink-muted">
           {leads.length === 0
-            ? "No enquiries yet."
-            : `${leads.length} ${leads.length === 1 ? "enquiry" : "enquiries"}` +
+            ? t("dashboard.leads.noneYet")
+            : (leads.length === 1
+                ? t("dashboard.leads.countOne")
+                : t("dashboard.leads.countMany", { count: leads.length })) +
               (callClicks > 0
-                ? ` · ${callClicks} phone ${callClicks === 1 ? "reveal" : "reveals"}`
+                ? ` · ${
+                    callClicks === 1
+                      ? t("dashboard.leads.revealOne")
+                      : t("dashboard.leads.revealMany", { count: callClicks })
+                  }`
                 : "")}
         </p>
 
@@ -131,11 +140,12 @@ export default async function LeadsPage({
           current="leads"
           className="mt-4"
           newLeads={leads.length}
+          locale={locale}
         />
 
         {performance !== null ? (
           <div className="mt-4">
-            <SearchPerformanceCard performance={performance} intl={intl} />
+            <SearchPerformanceCard performance={performance} locale={locale} />
           </div>
         ) : null}
 
@@ -143,31 +153,38 @@ export default async function LeadsPage({
           <EmptyState
             className="mt-4"
             icon={<Inbox className="size-5" aria-hidden="true" />}
-            title="No enquiries yet"
+            title={t("dashboard.leads.emptyTitle")}
             body={
               listing.status === "approved"
-                ? "When someone reveals your phone number or sends a request from your listing, it will appear here."
-                : "This listing is not publicly visible yet, so customers cannot contact it."
+                ? t("dashboard.leads.emptyBodyLive")
+                : t("dashboard.leads.emptyBodyHidden")
             }
-            action={{ label: "Back to listings", href: "/dashboard" }}
+            action={{ label: t("dashboard.common.backToListings"), href: "/dashboard" }}
           />
         ) : (
           <div className="mt-4 overflow-x-auto rounded-card border border-line bg-surface">
             <table className="w-full border-collapse text-body">
               <caption className="sr-only">
-                Enquiries for {listing.name}, most recent first
+                {t("dashboard.leads.caption", { name: listing.name })}
               </caption>
               <thead>
                 <tr className="border-b border-line text-left text-meta text-ink-muted">
-                  <th scope="col" className="px-4 py-2 font-medium">Type</th>
-                  <th scope="col" className="px-4 py-2 font-medium">Message</th>
-                  <th scope="col" className="px-4 py-2 font-medium">Contact</th>
-                  <th scope="col" className="px-4 py-2 font-medium">When</th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    {t("dashboard.leads.colType")}
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    {t("dashboard.leads.colMessage")}
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    {t("dashboard.leads.colContact")}
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    {t("dashboard.leads.colWhen")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {leads.map((lead) => {
-                  const type = TYPES[lead.enquiry_type];
                   const tel = telHref(lead.contact_phone);
 
                   return (
@@ -176,14 +193,16 @@ export default async function LeadsPage({
                       className="border-b border-line align-top last:border-b-0"
                     >
                       <td className="px-4 py-3">
-                        <Badge tone={type.tone}>{type.label}</Badge>
+                        <Badge tone={TYPES[lead.enquiry_type]}>
+                          {t(`dashboard.leads.types.${lead.enquiry_type}`)}
+                        </Badge>
                       </td>
 
                       <td className="px-4 py-3 text-ink-muted">
                         {lead.message ?? (
                           <span className="text-ink-subtle">
                             {lead.enquiry_type === "call_click"
-                              ? "Revealed your phone number"
+                              ? t("dashboard.leads.revealedPhone")
                               : "—"}
                           </span>
                         )}
@@ -212,7 +231,7 @@ export default async function LeadsPage({
                         ) : null}
                         {lead.user_id === null ? (
                           <div className="text-meta text-ink-subtle">
-                            Anonymous visitor
+                            {t("dashboard.leads.anonymous")}
                           </div>
                         ) : null}
                       </td>

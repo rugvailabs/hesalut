@@ -53,23 +53,22 @@ import {
   formatPhone,
   formatPostalCode,
 } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE, tFor } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import { googleDirectionsUrl, googleMapsUrl } from "@/lib/maps";
 import type { BusinessReview, BusinessReviewSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
-const t = tFor(locale);
 
 export async function generateMetadata({
   params,
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
+  const t = tFor(getLocale());
   const business = await getBusinessBySlug(params.slug);
-  if (business === null) return { title: "Listing not found" };
+  if (business === null) return { title: t("discover.business.notFoundTitle") };
 
   const where = formatLocality(business.city, business.province);
 
@@ -77,7 +76,11 @@ export async function generateMetadata({
     title: `${business.name} - ${where}`,
     description:
       business.description ??
-      `${business.name}, ${business.category_name ?? "local business"} in ${business.city}.`,
+      t("discover.business.metaFallback", {
+        name: business.name,
+        category: business.category_name ?? t("discover.business.localBusiness"),
+        city: business.city,
+      }),
   };
 }
 
@@ -86,6 +89,9 @@ export default async function BusinessPage({
 }: {
   params: { slug: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
   const business = await getBusinessBySlug(params.slug);
   if (business === null) notFound();
 
@@ -130,6 +136,7 @@ export default async function BusinessPage({
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <Breadcrumbs
           className="mb-4"
+          locale={locale}
           items={[
             { label: t("business.home"), href: "/" },
             ...(business.category_name !== null && categoryHref !== null
@@ -281,6 +288,7 @@ export default async function BusinessPage({
                       latitude={business.latitude as number}
                       longitude={business.longitude as number}
                       name={business.name}
+                      locale={locale}
                     />
                     <a
                       href={googleMapsUrl(business.latitude as number, business.longitude as number)}
@@ -321,24 +329,24 @@ export default async function BusinessPage({
                   <ReviewForm
                     businessId={business.id}
                     businessName={business.name}
+                    locale={locale}
                   />
                 ) : viewer === null ? (
                   <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
                     <p className="text-body text-ink-muted">
-                      Been here? Sign in to leave a review.
+                      {t("discover.business.reviewPrompt")}
                     </p>
                     <Button asChild variant="secondary" size="sm">
                       <Link
                         href={`/login?next=${encodeURIComponent(`/business/${business.slug}#review`)}`}
                       >
-                        Sign in
+                        {t("common.signIn")}
                       </Link>
                     </Button>
                   </Card>
                 ) : alreadyReviewed ? (
                   <p className="text-meta text-ink-subtle">
-                    You have already reviewed this business. Your review is
-                    below.
+                    {t("discover.business.alreadyReviewed")}
                   </p>
                 ) : null}
               </div>

@@ -23,18 +23,20 @@ import { KycBadge, ListingStatusBadge, visibilityBlocker } from "@/components/ds
 import { ApiError, getMyBusinesses, getVerification } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
 import { formatAddress } from "@/lib/format";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { BusinessOwnerItem, VerificationStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
 
 export default async function DashboardPage({
   searchParams,
 }: {
   searchParams: { error?: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireBusinessOwner("/dashboard");
   // Set when an ownership check bounced the owner off another listing.
   const forbidden = searchParams.error === "forbidden";
@@ -47,9 +49,9 @@ export default async function DashboardPage({
     error =
       cause instanceof ApiError
         ? cause.isNetworkError
-          ? "The API is not reachable. Is the backend running on port 8000?"
+          ? t("dashboard.common.apiUnreachable")
           : cause.message
-        : "Could not load your listings.";
+        : t("dashboard.index.loadErrorFallback");
   }
 
   // One request per listing: there is no bulk endpoint, and an owner has a
@@ -74,48 +76,44 @@ export default async function DashboardPage({
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-page-title text-ink">Your listings</h1>
+            <h1 className="text-page-title text-ink">{t("dashboard.index.title")}</h1>
             <p className="mt-1 text-body text-ink-muted">
-              Manage the businesses you have listed.
+              {t("dashboard.index.subtitle")}
             </p>
           </div>
           {listings.length > 0 ? (
             <Button asChild>
               <Link href="/dashboard/new-listing">
                 <Plus aria-hidden="true" />
-                Add a listing
+                {t("dashboard.index.addListing")}
               </Link>
             </Button>
           ) : null}
         </div>
 
         {forbidden ? (
-          <Alert tone="warning" className="mt-4">
-            That listing belongs to another account, so it cannot be opened here.
+          <Alert locale={locale} tone="warning" className="mt-4">
+            {t("dashboard.index.forbidden")}
           </Alert>
         ) : null}
 
         {error !== null ? (
-          <Alert tone="error" title="Could not load listings" className="mt-4">
+          <Alert locale={locale} tone="error" title={t("dashboard.index.loadErrorTitle")} className="mt-4">
             {error}
           </Alert>
         ) : listings.length === 0 ? (
           <EmptyState
             className="mt-4"
             icon={<Plus className="size-5" aria-hidden="true" />}
-            title="You haven't listed a business yet"
-            body={
-              "Add your business so customers searching the directory can find it. " +
-              "A new listing is reviewed, and the business behind it verified, before " +
-              "it appears publicly."
-            }
-            action={{ label: "List your business", href: "/dashboard/new-listing" }}
+            title={t("dashboard.index.emptyTitle")}
+            body={t("dashboard.index.emptyBody")}
+            action={{ label: t("dashboard.index.emptyAction"), href: "/dashboard/new-listing" }}
           />
         ) : (
           <ul className="mt-4 space-y-3">
             {listings.map((listing) => {
               const kyc = verifications.get(listing.id) ?? null;
-              const blocker = visibilityBlocker(listing.status, kyc);
+              const blocker = visibilityBlocker(listing.status, kyc, locale);
               const live = blocker === null;
 
               return (
@@ -139,8 +137,8 @@ export default async function DashboardPage({
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
-                        <ListingStatusBadge status={listing.status} />
-                        <KycBadge status={kyc} />
+                        <ListingStatusBadge locale={locale} status={listing.status} />
+                        <KycBadge locale={locale} status={kyc} />
                       </div>
                     </div>
 
@@ -148,13 +146,15 @@ export default async function DashboardPage({
                         says Live and the listing is not in search. Name the
                         missing step and link straight to it. */}
                     {blocker !== null ? (
-                      <Alert tone="warning">
+                      <Alert locale={locale} tone="warning">
                         {blocker}{" "}
                         <Link
                           href={`/dashboard/${listing.id}/verification`}
                           className="rounded-sm font-medium underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
-                          {kyc === null ? "Verify this business" : "Open verification"}
+                          {kyc === null
+                            ? t("dashboard.index.verifyThis")
+                            : t("dashboard.index.openVerification")}
                         </Link>
                       </Alert>
                     ) : null}
@@ -163,7 +163,7 @@ export default async function DashboardPage({
                         moderator's reason is surfaced rather than filed. */}
                     {listing.moderation_note !== null &&
                     (listing.status === "rejected" || listing.status === "suspended") ? (
-                      <Alert tone="warning" title="Moderator note">
+                      <Alert locale={locale} tone="warning" title={t("dashboard.index.moderatorNote")}>
                         {listing.moderation_note}
                       </Alert>
                     ) : null}
@@ -171,24 +171,26 @@ export default async function DashboardPage({
                     <div className="flex flex-wrap items-center gap-2">
                       {(
                         [
-                          ["edit", "Details"],
-                          ["leads", "Leads"],
-                          ["reviews", "Reviews"],
-                          ["verification", "Verification"],
+                          "edit",
+                          "leads",
+                          "reviews",
+                          "verification",
                         ] as const
-                      ).map(([segment, label]) => (
+                      ).map((segment) => (
                         <Button key={segment} asChild variant="secondary" size="sm">
-                          <Link href={`/dashboard/${listing.id}/${segment}`}>{label}</Link>
+                          <Link href={`/dashboard/${listing.id}/${segment}`}>
+                            {t(`dashboard.nav.${segment}`)}
+                          </Link>
                         </Button>
                       ))}
 
                       {live ? (
                         <Button asChild variant="ghost" size="sm">
-                          <Link href={`/business/${listing.slug}`}>View public page</Link>
+                          <Link href={`/business/${listing.slug}`}>{t("dashboard.index.viewPublic")}</Link>
                         </Button>
                       ) : (
                         <span className="text-meta text-ink-subtle">
-                          No public page until approved and verified
+                          {t("dashboard.index.noPublicPage")}
                         </span>
                       )}
                     </div>

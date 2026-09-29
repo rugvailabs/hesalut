@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { tFor, type Locale } from "@/lib/i18n";
+
 /**
  * One banner for every "something went wrong" or "that worked".
  *
@@ -18,22 +20,22 @@ const TONES: Record<Tone, { className: string; icon: string; label: string }> = 
   error: {
     className: "border-red-200 bg-red-50 text-red-800",
     icon: "!",
-    label: "Error",
+    label: "discover.feedback.error",
   },
   warning: {
     className: "border-amber-200 bg-amber-50 text-amber-900",
     icon: "!",
-    label: "Warning",
+    label: "discover.feedback.warning",
   },
   success: {
     className: "border-emerald-200 bg-emerald-50 text-emerald-800",
     icon: "✓",
-    label: "Success",
+    label: "discover.feedback.success",
   },
   info: {
     className: "border-slate-200 bg-slate-50 text-slate-700",
     icon: "i",
-    label: "Note",
+    label: "discover.feedback.note",
   },
 };
 
@@ -42,11 +44,14 @@ export default function Alert({
   title,
   children,
   className = "",
+  locale = "en",
 }: {
   tone?: Tone;
   title?: string;
   children: ReactNode;
   className?: string;
+  /** Language of the screen-reader tone prefix ("Error:", "Note:"). */
+  locale?: Locale;
 }): JSX.Element {
   const style = TONES[tone];
   return (
@@ -62,7 +67,7 @@ export default function Alert({
         {style.icon}
       </span>
       <div className="min-w-0">
-        <span className="sr-only">{style.label}: </span>
+        <span className="sr-only">{tFor(locale)(style.label)}{locale === "fr" ? "\u202f: " : ": "}</span>
         {title !== undefined ? <p className="font-semibold">{title}</p> : null}
         <div className={title !== undefined ? "mt-0.5" : undefined}>{children}</div>
       </div>

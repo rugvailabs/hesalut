@@ -19,15 +19,17 @@ import Alert from "@/components/ui/Alert";
 import Card from "@/components/ui/Card";
 import { ApiError, getPendingVerifications } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { BusinessStatus, PendingVerificationItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, locale: Locale): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? iso
-    : date.toLocaleDateString("en-CA", {
+    : date.toLocaleDateString(INTL_LOCALE[locale], {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -35,17 +37,28 @@ function formatWhen(iso: string): string {
 }
 
 /** How long it has been waiting, which is the thing that makes a queue urgent. */
-function waitedFor(iso: string): string {
+function waitedFor(iso: string, locale: Locale): string {
+  const t = tFor(locale);
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const days = Math.floor((Date.now() - then) / 86_400_000);
-  if (days >= 1) return `${days} day${days === 1 ? "" : "s"} ago`;
+  if (days >= 1) {
+    return days === 1
+      ? t("admin.verifications.dayAgo")
+      : t("admin.verifications.daysAgo", { count: days });
+  }
   const hours = Math.floor((Date.now() - then) / 3_600_000);
-  if (hours >= 1) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  return "just now";
+  if (hours >= 1) {
+    return hours === 1
+      ? t("admin.verifications.hourAgo")
+      : t("admin.verifications.hoursAgo", { count: hours });
+  }
+  return t("admin.verifications.justNow");
 }
 
 export default async function AdminVerificationsPage(): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireAdmin("/admin/verifications");
 
   let queue: PendingVerificationItem[] = [];
@@ -56,44 +69,49 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
     error =
       cause instanceof ApiError
         ? cause.isNetworkError
-          ? "The API is not reachable. Is the backend running on port 8000?"
+          ? t("admin.common.apiUnreachable")
           : cause.message
-        : "Could not load the verification queue.";
+        : t("admin.verifications.loadError");
   }
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-        Business verification
+        {t("admin.verifications.title")}
       </h1>
       <p className="mb-5 mt-1 text-sm text-slate-600">
-        Check that the business behind a listing is real. This is separate from
-        approving the listing&apos;s content - a listing needs both before it
-        appears in public search.
+        {t("admin.verifications.intro")}
       </p>
 
-      <AdminNav current="verifications" pendingVerifications={queue.length} />
+      <AdminNav
+        current="verifications"
+        pendingVerifications={queue.length}
+        locale={locale}
+      />
 
       {error !== null ? (
-        <Alert tone="error" title="Could not load the queue">
+        <Alert locale={locale} tone="error" title={t("admin.verifications.loadErrorTitle")}>
           {error}
         </Alert>
       ) : queue.length === 0 ? (
         <Card>
           <h2 className="font-semibold text-slate-900">
-            No pending verifications
+            {t("admin.verifications.emptyTitle")}
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Nothing is waiting on a reviewer. Submissions land here as owners
-            send them from their dashboard.
+            {t("admin.verifications.emptyBody")}
           </p>
         </Card>
       ) : (
         <>
           <p className="mb-3 text-sm text-slate-600">
-            {queue.length} {queue.length === 1 ? "submission" : "submissions"}{" "}
-            waiting, oldest first.
+            {t(
+              queue.length === 1
+                ? "admin.verifications.countOne"
+                : "admin.verifications.countMany",
+              { count: queue.length.toLocaleString(INTL_LOCALE[locale]) },
+            )}
           </p>
 
           <ul className="space-y-3">
@@ -109,29 +127,49 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
                         {item.business_name}
                       </Link>
                       <p className="text-sm text-slate-500">
-                        {item.business_city} &middot; submitted{" "}
-                        {formatWhen(item.submitted_at)} ({waitedFor(item.submitted_at)})
+                        {t("admin.verifications.submitted", {
+                          city: item.business_city,
+                          date: formatWhen(item.submitted_at, locale),
+                          ago: waitedFor(item.submitted_at, locale),
+                        })}
                       </p>
                     </div>
                     {/* The listing's own moderation state, so a reviewer knows
                         whether this decision is the last one standing. */}
-                    <StatusBadge status={item.business_status as BusinessStatus} />
+                    <StatusBadge
+                      status={item.business_status as BusinessStatus}
+                      locale={locale}
+                    />
                   </div>
 
                   <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-                    <Row label="Contact email" value={item.email} />
-                    <Row label="Mobile" value={item.mobile_number} />
                     <Row
-                      label="Licence"
+                      label={t("admin.verifications.fields.contactEmail")}
+                      value={item.email}
+                      locale={locale}
+                    />
+                    <Row
+                      label={t("admin.verifications.fields.mobile")}
+                      value={item.mobile_number}
+                      locale={locale}
+                    />
+                    <Row
+                      label={t("admin.verifications.fields.licence")}
                       value={item.license_number}
                       hasDocument={item.license_document_url !== null}
+                      locale={locale}
                     />
                     <Row
-                      label="GST/HST"
+                      label={t("admin.verifications.fields.gst")}
                       value={item.gst_number}
                       hasDocument={item.gst_document_url !== null}
+                      locale={locale}
                     />
-                    <Row label="Owner" value={item.owner_email} />
+                    <Row
+                      label={t("admin.verifications.fields.owner")}
+                      value={item.owner_email}
+                      locale={locale}
+                    />
                   </dl>
 
                   <div className="flex flex-wrap items-center gap-3">
@@ -139,12 +177,13 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
                       verificationId={item.id}
                       businessName={item.business_name}
                       status={item.status}
+                      locale={locale}
                     />
                     <Link
                       href={`/admin/verifications/${item.id}`}
                       className="text-sm underline"
                     >
-                      Open documents and full detail
+                      {t("admin.verifications.openDetail")}
                     </Link>
                   </div>
                 </Card>
@@ -161,18 +200,23 @@ function Row({
   label,
   value,
   hasDocument,
+  locale,
 }: {
   label: string;
   value: string | null;
   hasDocument?: boolean;
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   return (
     <div className="flex gap-2">
       <dt className="w-28 shrink-0 text-slate-500">{label}</dt>
       <dd className="min-w-0 break-words text-slate-800">
-        {value ?? <span className="text-slate-400">Not given</span>}
+        {value ?? <span className="text-slate-400">{t("admin.common.notGiven")}</span>}
         {hasDocument ? (
-          <span className="ml-2 text-xs text-emerald-700">document attached</span>
+          <span className="ml-2 text-xs text-emerald-700">
+            {t("admin.verifications.documentAttached")}
+          </span>
         ) : null}
       </dd>
     </div>

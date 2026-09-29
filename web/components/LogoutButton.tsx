@@ -4,9 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ds/primitives";
+import { DEFAULT_LOCALE, tFor, type Locale } from "@/lib/i18n";
 
 /** Clears the session cookies via the session route, then refreshes. */
-export default function LogoutButton(): JSX.Element {
+export default function LogoutButton({
+  locale = DEFAULT_LOCALE,
+}: {
+  /** Optional so a caller that has not threaded the language yet still builds. */
+  locale?: Locale;
+} = {}): JSX.Element {
+  const t = tFor(locale);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
@@ -32,7 +39,7 @@ export default function LogoutButton(): JSX.Element {
       onClick={signOut}
       disabled={busy || isPending}
     >
-      {busy || isPending ? "Signing out…" : "Sign out"}
+      {busy || isPending ? t("auth.signingOut") : t("auth.signOut")}
     </Button>
   );
 }

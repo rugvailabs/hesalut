@@ -27,9 +27,8 @@ import CategoryCard from "@/components/categories/CategoryCard";
 import { Button } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
 import { formatCount } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 
-const intl = INTL_LOCALE[DEFAULT_LOCALE];
 // split("") rather than the source's spread: this project targets a lower
 // ES level, where spreading a string needs downlevelIteration.
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -47,12 +46,16 @@ export default function AllCategoriesBrowser({
   categories,
   cityLabel,
   popular,
+  locale = "en",
 }: {
   categories: readonly BrowseCategory[];
   cityLabel: string;
   /** Slugs of the busiest categories, chosen server-side. */
   popular: readonly string[];
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
+  const intl = INTL_LOCALE[locale];
   const [query, setQuery] = useState("");
   const [letter, setLetter] = useState("");
   const [chip, setChip] = useState("");
@@ -89,7 +92,7 @@ export default function AllCategoriesBrowser({
   /** What the empty state should name as the reason nothing matched. */
   const activeFilter =
     query.trim() ||
-    (letter ? `the letter ${letter}` : "") ||
+    (letter ? t("discover.categories.theLetter", { letter }) : "") ||
     (chip ? (categories.find((c) => c.slug === chip)?.name ?? chip) : "");
 
   return (
@@ -97,7 +100,7 @@ export default function AllCategoriesBrowser({
       {/* --- search ---------------------------------------------------- */}
       <div className="mb-4">
         <label htmlFor="category-search" className="sr-only">
-          Search categories
+          {t("discover.categories.searchLabel")}
         </label>
         <input
           id="category-search"
@@ -108,7 +111,7 @@ export default function AllCategoriesBrowser({
             setLetter("");
             setChip("");
           }}
-          placeholder="Search categories - plumbers, restaurants, hotels…"
+          placeholder={t("discover.categories.searchPlaceholder")}
           className="h-10 w-full max-w-md rounded-input border border-line-strong bg-surface px-3 text-body text-ink
                      placeholder:text-ink-subtle focus-visible:outline focus-visible:outline-2
                      focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -119,7 +122,7 @@ export default function AllCategoriesBrowser({
       {popularCategories.length > 0 ? (
         <div className="mb-5 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface px-3.5 py-3">
           <span className="mr-0.5 text-micro uppercase text-ink-subtle">
-            Popular in {cityLabel}
+            {t("discover.categories.popularIn", { city: cityLabel })}
           </span>
           {popularCategories.map((category) => {
             const on = chip === category.slug;
@@ -152,7 +155,7 @@ export default function AllCategoriesBrowser({
       <div className="grid items-start gap-5 [grid-template-columns:56px_minmax(0,1fr)] max-[900px]:[grid-template-columns:minmax(0,1fr)]">
         {/* --- A-Z rail ------------------------------------------------ */}
         <aside
-          aria-label="Jump to letter"
+          aria-label={t("discover.categories.jumpToLetter")}
           className="sticky top-[122px] grid justify-items-center gap-px rounded-card border border-line bg-surface px-1 py-2
                      max-[900px]:static max-[900px]:grid-flow-col max-[900px]:justify-start max-[900px]:overflow-x-auto"
         >
@@ -166,7 +169,9 @@ export default function AllCategoriesBrowser({
                 disabled={!has}
                 aria-pressed={on}
                 aria-label={
-                  has ? `Categories starting with ${L}` : `No categories starting with ${L}`
+                  has
+                    ? t("discover.categories.startingWith", { letter: L })
+                    : t("discover.categories.noneStartingWith", { letter: L })
                 }
                 onClick={() => {
                   setLetter(on ? "" : L);
@@ -192,8 +197,8 @@ export default function AllCategoriesBrowser({
           <button
             type="button"
             onClick={reset}
-            title="Clear filters"
-            aria-label="Clear filters"
+            title={t("empty.clearFilters")}
+            aria-label={t("empty.clearFilters")}
             className="h-6 w-[30px] rounded-input text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
           >
             ×
@@ -203,17 +208,26 @@ export default function AllCategoriesBrowser({
         {/* --- grid ---------------------------------------------------- */}
         <div>
           <p className="mb-3 text-meta tabular text-ink-subtle" role="status" aria-live="polite">
-            Showing {formatCount(visible.length, intl)} of {formatCount(categories.length, intl)}{" "}
-            {categories.length === 1 ? "category" : "categories"}
+            {t(
+              categories.length === 1
+                ? "discover.categories.showingOne"
+                : "discover.categories.showingMany",
+              {
+                shown: formatCount(visible.length, intl),
+                total: formatCount(categories.length, intl),
+              },
+            )}
           </p>
 
           {visible.length === 0 ? (
             <div className="rounded-card border border-dashed border-line-strong px-4 py-10 text-center text-ink-muted">
               <b className="mb-1 block font-semibold text-ink">
-                No categories match {activeFilter ? `“${activeFilter}”` : "that"}.
+                {activeFilter
+                  ? t("discover.categories.noMatchFilter", { filter: activeFilter })
+                  : t("discover.categories.noMatch")}
               </b>
               <Button variant="link" size="sm" onClick={reset} className="h-auto px-1">
-                Clear the filter
+                {t("discover.categories.clearFilter")}
               </Button>
             </div>
           ) : (
@@ -226,6 +240,7 @@ export default function AllCategoriesBrowser({
                   count={category.count}
                   href={category.href}
                   cityLabel={cityLabel}
+                  locale={locale}
                 />
               ))}
             </div>

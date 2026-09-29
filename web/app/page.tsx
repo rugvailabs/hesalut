@@ -29,13 +29,13 @@ import { EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getCategories, searchBusinesses } from "@/lib/api";
 import { formatCount } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE, tFor } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { BusinessListItem, Category } from "@/lib/types";
 
 // Reads the session (for the header) and live counts.
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
 
 function describe(error: unknown): string {
   if (error instanceof ApiError) {
@@ -47,6 +47,7 @@ function describe(error: unknown): string {
 }
 
 export default async function HomePage(): Promise<JSX.Element> {
+  const locale = getLocale();
   const t = tFor(locale);
   const intl = INTL_LOCALE[locale];
 

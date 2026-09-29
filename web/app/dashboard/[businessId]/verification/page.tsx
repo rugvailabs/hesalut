@@ -22,19 +22,21 @@ import { KycBadge, ListingStatusBadge } from "@/components/ds/status";
 import { ApiError, getMyBusiness, getVerification } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
-import { DEFAULT_LOCALE, INTL_LOCALE } from "@/lib/i18n";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type { BusinessDetail, BusinessVerification } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const locale = DEFAULT_LOCALE;
-const intl = INTL_LOCALE[locale];
 
 export default async function VerificationPage({
   params,
 }: {
   params: { businessId: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
+  const t = tFor(locale);
   await requireBusinessOwner(`/dashboard/${params.businessId}/verification`);
 
   const businessId = Number(params.businessId);
@@ -61,9 +63,9 @@ export default async function VerificationPage({
     loadError =
       cause instanceof ApiError
         ? cause.isNetworkError
-          ? "The API is not reachable. Is the backend running on port 8000?"
+          ? t("dashboard.common.apiUnreachable")
           : cause.message
-        : "Could not load the verification status.";
+        : t("dashboard.verification.loadErrorFallback");
   }
 
   const moderationDone = listing.status === "approved";
@@ -77,23 +79,28 @@ export default async function VerificationPage({
         <Button asChild variant="link" size="sm" className="-ml-1 h-auto px-1">
           <Link href="/dashboard">
             <ArrowLeft aria-hidden="true" />
-            Your listings
+            {t("dashboard.common.yourListings")}
           </Link>
         </Button>
 
-        <h1 className="mt-2 text-page-title text-ink">Verify {listing.name}</h1>
+        <h1 className="mt-2 text-page-title text-ink">
+          {t("dashboard.verification.title", { name: listing.name })}
+        </h1>
         <p className="mt-1 max-w-prose text-body text-ink-muted">
-          We check that the business behind a listing is real before it appears
-          in search. This is separate from the review of the listing&apos;s
-          content.
+          {t("dashboard.verification.intro")}
         </p>
 
-        <DashboardNav businessId={businessId} current="verification" className="mt-4" />
+        <DashboardNav
+          businessId={businessId}
+          current="verification"
+          className="mt-4"
+          locale={locale}
+        />
 
         {loadError !== null ? (
-          <Alert
+          <Alert locale={locale}
             tone="error"
-            title="Could not load the verification status"
+            title={t("dashboard.verification.loadErrorTitle")}
             className="mt-4"
           >
             {loadError}
@@ -104,81 +111,86 @@ export default async function VerificationPage({
             two possible answers and the owner cannot act on the wrong one. */}
         <Card className="mt-4 p-4">
           <h2 className="text-section-heading text-ink">
-            {live ? "This listing is live" : "What this listing still needs"}
+            {live
+              ? t("dashboard.verification.liveHeading")
+              : t("dashboard.verification.needsHeading")}
           </h2>
 
           <dl className="mt-3 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <dt className="text-body text-ink-muted">Listing review</dt>
+              <dt className="text-body text-ink-muted">
+                {t("dashboard.verification.listingReview")}
+              </dt>
               <dd>
-                <ListingStatusBadge status={listing.status} showHint />
+                <ListingStatusBadge locale={locale} status={listing.status} showHint />
               </dd>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <dt className="text-body text-ink-muted">Business verification</dt>
+              <dt className="text-body text-ink-muted">
+                {t("dashboard.verification.businessVerification")}
+              </dt>
               <dd>
-                <KycBadge status={verification?.status ?? null} showHint />
+                <KycBadge locale={locale} status={verification?.status ?? null} showHint />
               </dd>
             </div>
           </dl>
 
           <p className="mt-3 text-body text-ink-muted">
-            {live ? (
-              <>Both checks have passed, so {listing.name} appears in public search.</>
-            ) : (
-              <>
-                A listing appears in search only once both are done. Right now it
-                is {moderationDone ? "approved" : "waiting on a moderator"} and{" "}
-                {kycDone
-                  ? "verified"
-                  : verification === null
-                    ? "not verified yet"
-                    : verification.status === "pending"
-                      ? "waiting on verification"
-                      : "rejected on verification"}
-                .
-              </>
-            )}
+            {live
+              ? t("dashboard.verification.liveBody", { name: listing.name })
+              : t("dashboard.verification.pendingBody", {
+                  moderation: moderationDone
+                    ? t("dashboard.verification.moderation.approved")
+                    : t("dashboard.verification.moderation.waiting"),
+                  kyc: kycDone
+                    ? t("dashboard.verification.kyc.verified")
+                    : verification === null
+                      ? t("dashboard.verification.kyc.none")
+                      : verification.status === "pending"
+                        ? t("dashboard.verification.kyc.pending")
+                        : t("dashboard.verification.kyc.rejected"),
+                })}
           </p>
         </Card>
 
         {verification?.status === "rejected" &&
         verification.rejection_reason !== null ? (
-          <Alert tone="error" title="A reviewer could not verify this" className="mt-4">
+          <Alert locale={locale} tone="error" title={t("dashboard.verification.rejectedTitle")} className="mt-4">
             <p>{verification.rejection_reason}</p>
             <p className="mt-1 text-meta">
-              Reviewed{" "}
               {verification.reviewed_at !== null
-                ? `on ${formatDate(verification.reviewed_at, intl)}`
-                : "recently"}
-              . Fix what is described above and send it again.
+                ? t("dashboard.verification.reviewedOn", {
+                    date: formatDate(verification.reviewed_at, intl),
+                  })
+                : t("dashboard.verification.reviewedRecently")}
             </p>
           </Alert>
         ) : null}
 
         {verification?.status === "pending" ? (
-          <Alert tone="info" title="With a reviewer" className="mt-4">
-            Submitted {formatDate(verification.submitted_at, intl)}. You can send
-            corrected details below at any time; the latest submission is the one
-            that gets reviewed.
+          <Alert locale={locale} tone="info" title={t("dashboard.verification.withReviewerTitle")} className="mt-4">
+            {t("dashboard.verification.withReviewerBody", {
+              date: formatDate(verification.submitted_at, intl),
+            })}
           </Alert>
         ) : null}
 
         <Card className="mt-4 p-4">
           <h2 className="mb-4 text-section-heading text-ink">
-            {verification === null ? "Your details" : "Update your details"}
+            {verification === null
+              ? t("dashboard.verification.detailsHeading")
+              : t("dashboard.verification.updateHeading")}
           </h2>
           <VerificationForm
             businessId={businessId}
             businessName={listing.name}
             existing={verification}
+            locale={locale}
           />
         </Card>
 
         <p className="mt-4 max-w-prose text-meta text-ink-subtle">
-          Documents are stored separately from your public listing and are only
-          read by a reviewer. Your licence and GST numbers never appear on your
-          public page.
+          {t("dashboard.verification.privacyNote")}
         </p>
       </main>
 

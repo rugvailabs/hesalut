@@ -19,6 +19,7 @@ import { Alert } from "@/components/ds/feedback";
 import { Badge, Button, Card } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
 import { formatCad } from "@/lib/format";
+import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { Plan } from "@/lib/types";
 
 import PlanDetailsModal from "./PlanDetailsModal";
@@ -27,12 +28,15 @@ import { isFree, monthlyCost, priceLabel } from "./planDisplay";
 export default function PlanStep({
   plans,
   selectedPlanId: savedPlanId,
+  locale,
 }: {
   plans: Plan[];
   /** The plan saved earlier, if any. */
   selectedPlanId: number | null;
+  locale: Locale;
 }): JSX.Element {
   const router = useRouter();
+  const t = tFor(locale);
   const [selected, setSelected] = useState<number | null>(savedPlanId);
   const [selecting, setSelecting] = useState<number | null>(null);
   const [details, setDetails] = useState<Plan | null>(null);
@@ -52,7 +56,7 @@ export default function PlanStep({
         setError(
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : `Could not select ${plan.name} (HTTP ${res.status}).`,
+            : t("register.plan.selectFailed", { plan: plan.name, status: res.status }),
         );
         return false;
       }
@@ -64,7 +68,7 @@ export default function PlanStep({
       router.refresh();
       return true;
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError(t("register.plan.unreachable"));
       return false;
     } finally {
       setSelecting(null);
@@ -73,7 +77,7 @@ export default function PlanStep({
 
   function onContinue(): void {
     if (selected === null) {
-      setError("Choose a plan to continue. Select one of the plans above.");
+      setError(t("register.plan.required"));
       return;
     }
     router.push("/register?step=3");
@@ -81,10 +85,7 @@ export default function PlanStep({
 
   if (plans.length === 0) {
     return (
-      <Alert tone="warning">
-        No plans are on offer right now, so registration cannot be finished. Please
-        try again later.
-      </Alert>
+      <Alert tone="warning">{t("register.plan.none")}</Alert>
     );
   }
 
@@ -93,13 +94,15 @@ export default function PlanStep({
       <div className="grid gap-4 md:grid-cols-3">
         {plans.map((plan) => {
           const active = plan.id === selected;
-          const price = priceLabel(plan);
+          const price = priceLabel(plan, locale);
           const top = plan.features.slice(0, 3);
           const more = plan.features.length - top.length;
           return (
             <Card
               key={plan.id}
-              aria-label={`${plan.name} plan${active ? ", selected" : ""}`}
+              aria-label={t(active ? "register.plan.cardLabelSelected" : "register.plan.cardLabel", {
+                plan: plan.name,
+              })}
               className={cn(
                 "flex flex-col gap-4 p-5 transition-shadow",
                 active && "border-brand-700 ring-2 ring-brand-700",
@@ -119,10 +122,13 @@ export default function PlanStep({
                 <span className="text-body text-ink-muted"> {price.per}</span>
                 <p className="text-meta tabular text-ink-muted">
                   {isFree(plan)
-                    ? "No card needed"
+                    ? t("register.plan.noCard")
                     : plan.billing_cycle === "yearly"
-                      ? `${formatCad(Math.round(monthlyCost(plan) * 100) / 100)} a month, billed yearly · plus GST/HST`
-                      : "Billed monthly · plus GST/HST"}
+                      ? t("register.plan.billedYearly", {
+                          monthly:
+                            formatCad(Math.round(monthlyCost(plan) * 100) / 100, INTL_LOCALE[locale]) ?? "",
+                        })
+                      : t("register.plan.billedMonthly")}
                 </p>
               </div>
 
@@ -137,7 +143,7 @@ export default function PlanStep({
                     <span>
                       {feature.label}
                       {feature.status === "coming_soon" ? (
-                        <span className="ml-1 text-meta text-warning">(coming soon)</span>
+                        <span className="ml-1 text-meta text-warning">{t("register.plan.comingSoon")}</span>
                       ) : null}
                     </span>
                   </li>
@@ -145,13 +151,15 @@ export default function PlanStep({
               </ul>
               {more > 0 ? (
                 <p className="-mt-2 text-meta text-ink-muted">
-                  + {more} more {more === 1 ? "feature" : "features"}
+                  {t(more === 1 ? "register.plan.moreFeature" : "register.plan.moreFeatures", {
+                    count: more,
+                  })}
                 </p>
               ) : null}
 
               <div className="mt-auto flex flex-wrap gap-2 pt-1">
                 <Button type="button" variant="secondary" onClick={() => setDetails(plan)} className="flex-1">
-                  Learn More
+                  {t("register.plan.learnMore")}
                 </Button>
                 <Button
                   type="button"
@@ -163,12 +171,12 @@ export default function PlanStep({
                   {active ? (
                     <>
                       <Check aria-hidden="true" />
-                      Selected
+                      {t("register.plan.selected")}
                     </>
                   ) : selecting === plan.id ? (
-                    "Selecting…"
+                    t("register.plan.selecting")
                   ) : (
-                    "Select"
+                    t("register.plan.select")
                   )}
                 </Button>
               </div>
@@ -183,11 +191,11 @@ export default function PlanStep({
         <Button asChild variant="ghost">
           <Link href="/register?step=1">
             <ArrowLeft aria-hidden="true" />
-            Back
+            {t("register.plan.back")}
           </Link>
         </Button>
         <Button size="lg" onClick={onContinue} disabled={selecting !== null}>
-          Continue
+          {t("register.plan.continue")}
         </Button>
       </div>
 
@@ -197,6 +205,7 @@ export default function PlanStep({
           plans={plans}
           selectedPlanId={selected}
           selecting={selecting === details.id}
+          locale={locale}
           onSelect={async (plan) => {
             // The modal closes on selection - but only once it has been saved.
             if (await select(plan)) setDetails(null);

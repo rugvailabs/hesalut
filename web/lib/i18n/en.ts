@@ -9,6 +9,14 @@
  * that appear on every page. Page bodies follow as each page is restyled.
  */
 
+import { authEn } from "@/lib/i18n/sections/auth";
+import { registerEn } from "@/lib/i18n/sections/register";
+import { pagesEn } from "@/lib/i18n/sections/pages";
+import { discoverEn } from "@/lib/i18n/sections/discover";
+import { dashboardEn } from "@/lib/i18n/sections/dashboard";
+import { adminEn } from "@/lib/i18n/sections/admin";
+import type { Translated } from "@/lib/i18n/types";
+
 export const en = {
   common: {
     brand: "justforyou",
@@ -139,19 +147,12 @@ export const en = {
     noResultsBody: "Try a broader search, or clear a filter or two.",
     clearFilters: "Clear filters",
   },
+  auth: authEn,
+  register: registerEn,
+  pages: pagesEn,
+  discover: discoverEn,
+  dashboard: dashboardEn,
+  admin: adminEn,
 } as const;
-
-/**
- * The shape every locale must fill.
- *
- * `as const` above gives each English string a literal type, which is what
- * makes a mistyped key a compile error - but it would also demand that the
- * French file repeat the English words. This widens the leaves back to
- * `string` while keeping the key structure exact, so fr.ts must supply every
- * key and may supply any text.
- */
-type Translated<T> = {
-  [K in keyof T]: T[K] extends string ? string : Translated<T[K]>;
-};
 
 export type Dictionary = Translated<typeof en>;

@@ -13,6 +13,8 @@ import ModerationQueue from "@/components/ModerationQueue";
 import Alert from "@/components/ui/Alert";
 import { ApiError, getModerationQueue, getModerationStats } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
+import { INTL_LOCALE, tFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
 import type {
   BusinessStatus,
   ModerationQueueItem,
@@ -21,12 +23,8 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-const TABS: { status: BusinessStatus; label: string }[] = [
-  { status: "pending", label: "Pending" },
-  { status: "approved", label: "Live" },
-  { status: "rejected", label: "Rejected" },
-  { status: "suspended", label: "Suspended" },
-];
+// Labels are admin.listings.tabs.<status>.
+const TABS: BusinessStatus[] = ["pending", "approved", "rejected", "suspended"];
 
 function isStatus(value: string | undefined): value is BusinessStatus {
   return (
@@ -42,6 +40,8 @@ export default async function AdminListingsPage({
 }: {
   searchParams: { status?: string };
 }): Promise<JSX.Element> {
+  const locale = getLocale();
+  const t = tFor(locale);
   await requireAdmin("/admin/listings");
 
   const active: BusinessStatus = isStatus(searchParams.status)
@@ -61,34 +61,37 @@ export default async function AdminListingsPage({
     error =
       cause instanceof ApiError
         ? cause.isNetworkError
-          ? "The API is not reachable. Is the backend running on port 8000?"
+          ? t("admin.common.apiUnreachable")
           : cause.message
-        : "Could not load the moderation queue.";
+        : t("admin.listings.loadError");
   }
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-        Listing moderation
+        {t("admin.listings.title")}
       </h1>
       <p className="mt-1 text-sm text-slate-600">
-        Approve a listing to make it visible in public search. Rejecting or
-        suspending takes a reason, which the owner sees on their dashboard.
+        {t("admin.listings.intro")}
       </p>
 
       <div className="mt-5">
-        <AdminNav current="listings" pendingListings={stats?.pending ?? 0} />
+        <AdminNav
+          current="listings"
+          pendingListings={stats?.pending ?? 0}
+          locale={locale}
+        />
       </div>
 
-      <nav className="flex flex-wrap gap-2" aria-label="Filter by status">
-        {TABS.map((tab) => {
-          const count = stats?.[tab.status] ?? 0;
-          const selected = tab.status === active;
+      <nav className="flex flex-wrap gap-2" aria-label={t("admin.listings.filterLabel")}>
+        {TABS.map((status) => {
+          const count = stats?.[status] ?? 0;
+          const selected = status === active;
           return (
             <Link
-              key={tab.status}
-              href={`/admin/listings?status=${tab.status}`}
+              key={status}
+              href={`/admin/listings?status=${status}`}
               aria-current={selected ? "page" : undefined}
               className={`rounded-md px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
                 selected
@@ -96,7 +99,10 @@ export default async function AdminListingsPage({
                   : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
               }`}
             >
-              {tab.label} ({count})
+              {t("admin.listings.tabCount", {
+                label: t(`admin.listings.tabs.${status}`),
+                count: count.toLocaleString(INTL_LOCALE[locale]),
+              })}
             </Link>
           );
         })}
@@ -104,13 +110,13 @@ export default async function AdminListingsPage({
 
       <div className="mt-6">
         {error !== null ? (
-          <Alert tone="error" title="Could not load the queue">
+          <Alert locale={locale} tone="error" title={t("admin.listings.loadErrorTitle")}>
             {error}
           </Alert>
         ) : (
           // Keyed on the filter so switching tabs rebuilds the list rather
           // than reusing the previous tab's optimistic state.
-          <ModerationQueue key={active} items={items} />
+          <ModerationQueue key={active} items={items} locale={locale} />
         )}
       </div>
     </div>

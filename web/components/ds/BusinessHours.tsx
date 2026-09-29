@@ -110,9 +110,7 @@ export default function BusinessHours({
           table, rather than beside every row. */}
       {state.status !== "unknown" ? (
         <p className="border-t border-line bg-surface-muted px-4 py-2 text-meta text-ink-muted">
-          {locale === "fr"
-            ? "Heures locales de l’entreprise."
-            : "Times are the business’s local hours."}
+          {t("discover.business.localHours")}
         </p>
       ) : null}
     </Card>

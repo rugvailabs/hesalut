@@ -13,31 +13,36 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { tFor, type Locale } from "@/lib/i18n";
 
-export const STEP_LABELS = ["Your details", "Choose a plan", "Payment", "Done"] as const;
+/** Dictionary keys under register.steps, in step order. */
+export const STEP_LABELS = ["details", "plan", "payment", "done"] as const;
 
 export default function RegistrationSteps({
   current,
   furthest,
   completed,
+  locale,
 }: {
   /** The step on screen, 1-4. */
   current: number;
   /** The furthest step reached, 1-4. */
   furthest: number;
   completed: boolean;
+  locale: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const percent = Math.round(((completed ? 4 : current) - 1) / 3 * 100);
 
   return (
-    <nav aria-label="Registration progress">
+    <nav aria-label={t("register.steps.progress")}>
       <div
         className="h-1.5 overflow-hidden rounded-pill bg-line"
         role="progressbar"
         aria-valuemin={1}
         aria-valuemax={4}
         aria-valuenow={completed ? 4 : current}
-        aria-valuetext={`Step ${completed ? 4 : current} of 4`}
+        aria-valuetext={t("register.stepOf", { step: completed ? 4 : current })}
       >
         <div
           className="h-full rounded-pill bg-brand-700 transition-[width] duration-300"
@@ -46,8 +51,9 @@ export default function RegistrationSteps({
       </div>
 
       <ol className="mt-3 grid grid-cols-4 gap-2">
-        {STEP_LABELS.map((label, index) => {
+        {STEP_LABELS.map((key, index) => {
           const step = index + 1;
+          const label = t(`register.steps.${key}`);
           const isCurrent = !completed && step === current;
           // Everything before the furthest step has been saved.
           const done = !isCurrent && (completed || step < furthest);
@@ -76,10 +82,14 @@ export default function RegistrationSteps({
               {label}
             </span>
           );
-          const status = done ? "complete" : isCurrent ? "current step" : "not started";
+          const status = done
+            ? t("register.steps.statusComplete")
+            : isCurrent
+              ? t("register.steps.statusCurrent")
+              : t("register.steps.statusNotStarted");
 
           return (
-            <li key={label} aria-current={isCurrent ? "step" : undefined} className="min-w-0">
+            <li key={key} aria-current={isCurrent ? "step" : undefined} className="min-w-0">
               {reachable ? (
                 <Link
                   href={`/register?step=${step}`}
@@ -87,13 +97,13 @@ export default function RegistrationSteps({
                 >
                   {marker}
                   {text}
-                  <span className="sr-only">{`Step ${step}, ${label}: ${status}. Go to this step.`}</span>
+                  <span className="sr-only">{t("register.steps.srLink", { step, label, status })}</span>
                 </Link>
               ) : (
                 <span className="flex min-w-0 items-center gap-2">
                   {marker}
                   {text}
-                  <span className="sr-only">{`Step ${step}, ${label}: ${status}.`}</span>
+                  <span className="sr-only">{t("register.steps.srText", { step, label, status })}</span>
                 </span>
               )}
             </li>

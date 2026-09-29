@@ -21,16 +21,20 @@ import { LocateFixed } from "lucide-react";
 
 import { Alert } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
+import { tFor, type Locale } from "@/lib/i18n";
 import { NEAR_ME_RADIUS_KM } from "@/lib/near-me";
 
 export default function NearMeLocator({
   query,
   /** The search's other parameters, already without `near` and with `q` cleaned. */
   baseParams,
+  locale = "en",
 }: {
   query: string | undefined;
   baseParams: Record<string, string>;
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -43,7 +47,7 @@ export default function NearMeLocator({
   const locate = useCallback(() => {
     setError(null);
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setError("This browser does not support location sharing.");
+      setError(t("discover.nearMe.unsupported"));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -59,8 +63,8 @@ export default function NearMeLocator({
       (failure) => {
         setError(
           failure.code === failure.PERMISSION_DENIED
-            ? "Location permission is blocked for this site. Allow it from the icon in the address bar and try again, or search by city instead."
-            : "Could not get your location. Try again, or search by city instead.",
+            ? t("discover.nearMe.denied")
+            : t("discover.nearMe.unavailable"),
         );
       },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
@@ -68,7 +72,7 @@ export default function NearMeLocator({
     // baseParams is rebuilt by the server on each navigation; its contents,
     // not its identity, are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, JSON.stringify(baseParams)]);
+  }, [router, JSON.stringify(baseParams), locale]);
 
   useEffect(() => {
     locate();
@@ -81,24 +85,30 @@ export default function NearMeLocator({
         <div className="min-w-0 space-y-3">
           <div>
             <h2 className="text-card-title text-ink">
-              {query ? `Finding ${query} near you` : "Finding businesses near you"}
+              {query
+                ? t("discover.nearMe.findingQuery", { query })
+                : t("discover.nearMe.finding")}
             </h2>
             {error === null ? (
               <p role="status" className="mt-1 text-body text-ink-muted">
-                Waiting for your browser to share your location…
+                {t("discover.nearMe.waiting")}
               </p>
             ) : null}
           </div>
 
-          {error !== null ? <Alert tone="warning">{error}</Alert> : null}
+          {error !== null ? (
+            <Alert tone="warning" locale={locale}>
+              {error}
+            </Alert>
+          ) : null}
 
           {error !== null ? (
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => setAttempt((n) => n + 1)}>
-                Try again
+                {t("common.retry")}
               </Button>
               <Button asChild variant="secondary">
-                <Link href={withoutLocation}>Search without location</Link>
+                <Link href={withoutLocation}>{t("discover.nearMe.withoutLocation")}</Link>
               </Button>
             </div>
           ) : null}

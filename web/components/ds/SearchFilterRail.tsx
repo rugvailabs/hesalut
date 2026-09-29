@@ -25,19 +25,20 @@ import { formatCount } from "@/lib/format";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { Category } from "@/lib/types";
 
+/** Labels are dictionary keys, resolved in the component. */
 const RATINGS = [
-  { value: "", label: "Any rating" },
-  { value: "3", label: "3.0 and up" },
-  { value: "4", label: "4.0 and up" },
-  { value: "4.5", label: "4.5 and up" },
+  { value: "", label: "discover.filters.anyRating" },
+  { value: "3", label: "discover.filters.rating3" },
+  { value: "4", label: "discover.filters.rating4" },
+  { value: "4.5", label: "discover.filters.rating45" },
 ];
 
 const SORTS = [
-  { value: "relevance", label: "Most relevant" },
-  { value: "rating", label: "Highest rated" },
-  { value: "reviews", label: "Most reviewed" },
-  { value: "name", label: "Name (A–Z)" },
-  { value: "newest", label: "Newest" },
+  { value: "relevance", label: "discover.filters.sortRelevance" },
+  { value: "rating", label: "discover.filters.sortRating" },
+  { value: "reviews", label: "discover.filters.sortReviews" },
+  { value: "name", label: "discover.filters.sortName" },
+  { value: "newest", label: "discover.filters.sortNewest" },
 ];
 
 export default function SearchFilterRail({
@@ -81,7 +82,7 @@ export default function SearchFilterRail({
   }
 
   const sortOptions = hasPoint
-    ? [{ value: "distance", label: "Nearest first" }, ...SORTS]
+    ? [{ value: "distance", label: "discover.filters.sortDistance" }, ...SORTS]
     : SORTS;
 
   return (
@@ -94,7 +95,7 @@ export default function SearchFilterRail({
         aria-controls="filter-rail"
       >
         <SlidersHorizontal aria-hidden="true" />
-        Filters
+        {t("discover.filters.heading")}
         {activeCount > 0 ? (
           <span className="rounded-pill bg-brand-100 px-1.5 text-micro text-brand-800">
             {activeCount}
@@ -110,7 +111,7 @@ export default function SearchFilterRail({
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-card-title text-ink">Filters</h2>
+          <h2 className="text-card-title text-ink">{t("discover.filters.heading")}</h2>
           {activeCount > 0 ? (
             <Button
               variant="link"
@@ -126,7 +127,9 @@ export default function SearchFilterRail({
         {/* Category as a list rather than a select: it is the filter people
             reach for most, and the counts are worth showing. */}
         <div>
-          <h3 className="mb-2 text-micro uppercase text-ink-subtle">Category</h3>
+          <h3 className="mb-2 text-micro uppercase text-ink-subtle">
+            {t("discover.filters.category")}
+          </h3>
           <ul className="max-h-72 space-y-0.5 overflow-y-auto pr-1">
             <li>
               <button
@@ -140,7 +143,7 @@ export default function SearchFilterRail({
                     : "text-ink-muted hover:bg-surface-muted",
                 )}
               >
-                All categories
+                {t("discover.filters.allCategories")}
               </button>
             </li>
             {categories.map((category) => {
@@ -177,7 +180,7 @@ export default function SearchFilterRail({
         </div>
 
         <div>
-          <Label htmlFor="filter-city">City</Label>
+          <Label htmlFor="filter-city">{t("discover.filters.city")}</Label>
           <input
             id="filter-city"
             defaultValue={activeCity}
@@ -199,7 +202,7 @@ export default function SearchFilterRail({
         </div>
 
         <div>
-          <Label htmlFor="filter-rating">Minimum rating</Label>
+          <Label htmlFor="filter-rating">{t("discover.filters.minRating")}</Label>
           <Select
             id="filter-rating"
             value={activeRating}
@@ -207,14 +210,14 @@ export default function SearchFilterRail({
           >
             {RATINGS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.label)}
               </option>
             ))}
           </Select>
         </div>
 
         <div>
-          <Label htmlFor="filter-sort">Sort by</Label>
+          <Label htmlFor="filter-sort">{t("discover.filters.sortBy")}</Label>
           <Select
             id="filter-sort"
             value={activeSort}
@@ -222,7 +225,7 @@ export default function SearchFilterRail({
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.label)}
               </option>
             ))}
           </Select>
@@ -242,8 +245,9 @@ export default function SearchFilterRail({
         {hasPoint ? (
           <div className="rounded-input bg-brand-50 p-3">
             <p className="text-meta text-brand-800">
-              Searching within {params.get("radius_km") ?? "25"} km of your
-              location.
+              {t("discover.filters.searchingWithin", {
+                km: params.get("radius_km") ?? "25",
+              })}
             </p>
             <Button
               variant="link"
@@ -260,7 +264,7 @@ export default function SearchFilterRail({
               }
             >
               <X aria-hidden="true" />
-              Clear location
+              {t("discover.filters.clearLocation")}
             </Button>
           </div>
         ) : null}

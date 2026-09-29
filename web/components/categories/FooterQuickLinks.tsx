@@ -21,6 +21,8 @@
 
 import Link from "next/link";
 
+import { tFor, type Locale } from "@/lib/i18n";
+
 interface QuickLink {
   label: string;
   href: string;
@@ -37,17 +39,18 @@ const NEIGHBOURHOODS = [
   "Richmond",
 ] as const;
 
+/** Labels are dictionary keys, resolved per request in the component. */
 const FOR_BUSINESSES: QuickLink[] = [
-  { label: "Free listing", href: "/register" },
-  { label: "Business sign-in", href: "/dashboard" },
-  { label: "Verified badge", href: "/about" },
+  { label: "footer.freeListing", href: "/register" },
+  { label: "footer.ownerSignIn", href: "/dashboard" },
+  { label: "footer.businessBadge", href: "/about" },
 ];
 
 const COMPANY: QuickLink[] = [
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Terms of use", href: "/terms" },
+  { label: "footer.about", href: "/about" },
+  { label: "discover.categories.quickContact", href: "/contact" },
+  { label: "footer.privacy", href: "/privacy" },
+  { label: "discover.categories.quickTerms", href: "/terms" },
 ];
 
 const LINK_CLASS =
@@ -71,14 +74,17 @@ function Column({
 
 export default function FooterQuickLinks({
   topCategories,
+  locale = "en",
 }: {
   topCategories: readonly QuickLink[];
+  locale?: Locale;
 }): JSX.Element {
+  const t = tFor(locale);
   return (
     <div className="border-t border-line bg-surface pb-6 pt-8">
       <div className="mx-auto max-w-[1320px] px-5">
         <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(190px,1fr))]">
-          <Column heading="Top categories">
+          <Column heading={t("discover.categories.quickTop")}>
             {topCategories.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className={LINK_CLASS}>
@@ -88,32 +94,32 @@ export default function FooterQuickLinks({
             ))}
           </Column>
 
-          <Column heading="Neighbourhoods">
+          <Column heading={t("discover.categories.quickNeighbourhoods")}>
             {NEIGHBOURHOODS.map((name) => (
               <li key={name} className="text-body text-ink-subtle">
                 {name}
               </li>
             ))}
             <li className="mt-1 text-meta text-ink-subtle">
-              Neighbourhood pages are not built yet.
+              {t("discover.categories.quickNotBuilt")}
             </li>
           </Column>
 
-          <Column heading="For businesses">
+          <Column heading={t("footer.forBusinesses")}>
             {FOR_BUSINESSES.map((link) => (
               <li key={link.label}>
                 <Link href={link.href} className={LINK_CLASS}>
-                  {link.label}
+                  {t(link.label)}
                 </Link>
               </li>
             ))}
           </Column>
 
-          <Column heading="Company">
+          <Column heading={t("footer.company")}>
             {COMPANY.map((link) => (
               <li key={link.label}>
                 <Link href={link.href} className={LINK_CLASS}>
-                  {link.label}
+                  {t(link.label)}
                 </Link>
               </li>
             ))}
