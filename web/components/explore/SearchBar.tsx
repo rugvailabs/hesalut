@@ -27,6 +27,7 @@ import { Bookmark, Building2, Hash, History, LocateFixed, Loader2, MapPin, Searc
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { Button } from "@/components/ds/primitives";
 import { useExploreT } from "@/components/explore/ExploreProviders";
+import { categoryName, categoryNames, foldAccents } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import { looksLikePostal, normalisePostal } from "@/lib/explore";
 import { splitNearMe } from "@/lib/near-me";
@@ -88,7 +89,7 @@ export default function SearchBar({
   onLive?: (q: string) => void;
   size?: "md" | "lg";
 }): JSX.Element {
-  const { t } = useExploreT();
+  const { t, locale } = useExploreT();
   const [what, setWhat] = useState(q);
   const [place, setPlace] = useState(where);
 
@@ -202,10 +203,16 @@ export default function SearchBar({
         run: () => submit(),
       },
     ];
-    for (const category of categories.filter((c) => c.name.toLowerCase().includes(text)).slice(0, 4)) {
+    // Either language finds a trade, accents optional: "plomb" and "plumb" both
+    // suggest Plumbers, "electr" finds Électriciens.
+    const folded = foldAccents(text);
+    const matching = categories.filter((c) =>
+      categoryNames(c.slug, c.name).some((name) => foldAccents(name).includes(folded)),
+    );
+    for (const category of matching.slice(0, 4)) {
       options.push({
         key: `category-${category.slug}`,
-        label: category.name,
+        label: categoryName(category.slug, category.name, locale),
         hint: t("search.categoryHint"),
         icon: <CategoryIcon slug={category.slug} className="size-4" />,
         run: () => {
@@ -218,7 +225,7 @@ export default function SearchBar({
       options.push({
         key: `business-${business.id}`,
         label: business.name,
-        hint: `${business.category_name} · ${business.city}`,
+        hint: `${categoryName(business.category_slug, business.category_name, locale)} · ${business.city}`,
         icon: <Building2 className="size-4" aria-hidden="true" />,
         run: () => onBusiness(business.slug),
       });
@@ -226,7 +233,7 @@ export default function SearchBar({
     return options;
     // submit() reads `what` and `place`, both listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [what, place, categories, matches, history, onCategory, onBusiness, onHistory, t]);
+  }, [what, place, categories, matches, history, onCategory, onBusiness, onHistory, t, locale]);
 
   const whereOptions = useMemo<Option[]>(() => {
     const text = place.trim();

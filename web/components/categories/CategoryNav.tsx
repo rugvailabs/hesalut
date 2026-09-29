@@ -28,6 +28,7 @@ import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { BusinessListItem } from "@/lib/types";
 
 export interface NavCategory {
+  /** Already in the page's locale - the caller localizes it (lib/categories). */
   name: string;
   slug: string;
   href: string;

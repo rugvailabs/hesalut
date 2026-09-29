@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Alert } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { FIELD, LABEL } from "@/components/ds/form";
+import { categoryName } from "@/lib/categories";
 import { tFor, type Locale } from "@/lib/i18n";
 import { hasGoogleMaps } from "@/lib/maps";
 import type { BusinessCreate, BusinessDetail, Category } from "@/lib/types";
@@ -224,7 +225,7 @@ export default function BusinessForm({
             <option value="">{t("dashboard.form.chooseCategory")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {categoryName(c.slug, c.name, locale)}
               </option>
             ))}
           </select>

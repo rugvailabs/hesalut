@@ -32,6 +32,7 @@ import CategoryNav, { type NavCategory } from "@/components/categories/CategoryN
 import FooterQuickLinks from "@/components/categories/FooterQuickLinks";
 import SiteFooter from "@/components/ds/SiteFooter";
 import { getCategories, searchBusinesses } from "@/lib/api";
+import { categoryName } from "@/lib/categories";
 import {
   PROVINCES,
   cityFromSlug,
@@ -71,7 +72,8 @@ interface Resolved {
  * unbounded set of thin 200 pages is how a directory poisons its own index.
  */
 async function resolve(params: Params): Promise<Resolved | null> {
-  const intl = INTL_LOCALE[getLocale()];
+  const locale = getLocale();
+  const intl = INTL_LOCALE[locale];
   const provinceCode = params.province.toUpperCase();
   if (!isProvinceCode(provinceCode)) return null;
 
@@ -94,7 +96,8 @@ async function resolve(params: Params): Promise<Resolved | null> {
     .filter((row) => row.total > 0)
     .map((row) => ({
       id: row.category.id,
-      name: row.category.name,
+      // Localized here, once, so the nav, grid, footer and JSON-LD all agree.
+      name: categoryName(row.category.slug, row.category.name, locale),
       slug: row.category.slug,
       count: row.total,
       href: `/${params.province.toLowerCase()}/${params.city.toLowerCase()}/${row.category.slug}`,

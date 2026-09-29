@@ -28,6 +28,7 @@ import SiteFooter from "@/components/ds/SiteFooter";
 import { Breadcrumbs, EmptyState } from "@/components/ds/feedback";
 import { Button } from "@/components/ds/primitives";
 import { getCategories, searchBusinesses } from "@/lib/api";
+import { categoryName } from "@/lib/categories";
 import {
   PROVINCES,
   cityFromSlug,
@@ -51,6 +52,8 @@ interface Params {
 /** Everything the page needs, or null when any segment is not real. */
 async function resolve(params: Params): Promise<{
   category: Category;
+  /** The category's name in the current locale. */
+  name: string;
   city: string;
   provinceCode: string;
   provinceName: string;
@@ -66,6 +69,7 @@ async function resolve(params: Params): Promise<{
   const province = PROVINCES.find((p) => p.code === provinceCode);
   return {
     category,
+    name: categoryName(category.slug, category.name, locale),
     city: cityFromSlug(params.city),
     provinceCode,
     provinceName: province?.[locale] ?? provinceCode,
@@ -81,15 +85,15 @@ export async function generateMetadata({
   const resolved = await resolve(params);
   if (resolved === null) return { title: t("discover.city.notFound") };
 
-  const { category, city, provinceCode } = resolved;
+  const { category, name, city, provinceCode } = resolved;
   return {
     title: t("discover.city.metaTitle", {
-      category: category.name,
+      category: name,
       city,
       province: provinceCode,
     }),
     description: t("discover.city.metaDescription", {
-      category: category.name.toLowerCase(),
+      category: name.toLowerCase(),
       city,
       province: provinceCode,
     }),
@@ -107,7 +111,7 @@ export default async function CityCategoryPage({
   const resolved = await resolve(params);
   if (resolved === null) notFound();
 
-  const { category, city, provinceCode } = resolved;
+  const { category, name, city, provinceCode } = resolved;
 
   const results = await searchBusinesses({
     category_slug: category.slug,
@@ -136,20 +140,20 @@ export default async function CityCategoryPage({
           locale={locale}
           items={[
             { label: t("business.home"), href: "/" },
-            { label: category.name, href: `/search?category=${category.slug}` },
+            { label: name, href: `/search?category=${category.slug}` },
             { label: `${city}, ${provinceCode}` },
           ]}
         />
 
         <h1 className="text-page-title text-ink">
-          {t("discover.city.heading", { category: category.name, city })}
+          {t("discover.city.heading", { category: name, city })}
         </h1>
         <p className="mt-1 text-body text-ink-muted">
           {total > 0
             ? t(total === 1 ? "discover.city.countOne" : "discover.city.countMany", {
                 count: formatCount(total, intl),
               })
-            : t("discover.city.noneYet", { category: category.name.toLowerCase(), city })}
+            : t("discover.city.noneYet", { category: name.toLowerCase(), city })}
         </p>
 
         {items.length === 0 ? (
@@ -157,7 +161,7 @@ export default async function CityCategoryPage({
             className="mt-6"
             title={t("discover.city.emptyTitle")}
             body={t("discover.city.emptyBody", {
-              category: category.name.toLowerCase(),
+              category: name.toLowerCase(),
               city,
             })}
             action={{

@@ -22,6 +22,7 @@ import { LocateFixed, SlidersHorizontal, X } from "lucide-react";
 import { Button, Label, Select } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
 import { formatCount } from "@/lib/format";
+import { categoryName } from "@/lib/categories";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { Category } from "@/lib/types";
 
@@ -167,7 +168,7 @@ export default function SearchFilterRail({
                       {category.icon ? (
                         <span aria-hidden="true">{category.icon}</span>
                       ) : null}
-                      <span className="truncate">{category.name}</span>
+                      <span className="truncate">{categoryName(category.slug, category.name, locale)}</span>
                     </span>
                     <span className="shrink-0 text-meta tabular text-ink-subtle">
                       {formatCount(category.business_count, intl)}

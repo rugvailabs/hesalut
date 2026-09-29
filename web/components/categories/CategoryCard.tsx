@@ -26,6 +26,7 @@ export default function CategoryCard({
   cityLabel,
   locale = "en",
 }: {
+  /** Display name, already localized by the caller (lib/categories). */
   name: string;
   slug: string;
   count: number;

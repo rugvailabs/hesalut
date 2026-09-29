@@ -47,6 +47,7 @@ import { Badge, Button, Card } from "@/components/ds/primitives";
 import MapEmbed from "@/components/MapEmbed";
 import { getBusinessBySlug, getReviewSummary, getReviews } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { categoryName } from "@/lib/categories";
 import {
   formatDate,
   formatLocality,
@@ -66,7 +67,8 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const t = tFor(getLocale());
+  const locale = getLocale();
+  const t = tFor(locale);
   const business = await getBusinessBySlug(params.slug);
   if (business === null) return { title: t("discover.business.notFoundTitle") };
 
@@ -78,7 +80,10 @@ export async function generateMetadata({
       business.description ??
       t("discover.business.metaFallback", {
         name: business.name,
-        category: business.category_name ?? t("discover.business.localBusiness"),
+        category:
+          business.category_name !== null
+            ? categoryName(business.category_slug, business.category_name, locale)
+            : t("discover.business.localBusiness"),
         city: business.city,
       }),
   };
@@ -113,6 +118,10 @@ export default async function BusinessPage({
     business.category_slug !== null
       ? `/search?category=${encodeURIComponent(business.category_slug)}`
       : null;
+  const categoryLabel =
+    business.category_name !== null
+      ? categoryName(business.category_slug, business.category_name, locale)
+      : null;
 
   // The histogram is only honest when it has something in it.
   const showBreakdown = summary !== null && summary.review_count > 0;
@@ -139,8 +148,8 @@ export default async function BusinessPage({
           locale={locale}
           items={[
             { label: t("business.home"), href: "/" },
-            ...(business.category_name !== null && categoryHref !== null
-              ? [{ label: business.category_name, href: categoryHref }]
+            ...(categoryLabel !== null && categoryHref !== null
+              ? [{ label: categoryLabel, href: categoryHref }]
               : []),
             { label: business.name },
           ]}
@@ -165,10 +174,10 @@ export default async function BusinessPage({
                   href={categoryHref}
                   className="rounded-sm hover:text-brand-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  {business.category_name}
+                  {categoryLabel}
                 </Link>
               ) : (
-                business.category_name
+                categoryLabel
               )}
               {where ? <> &middot; {where}</> : null}
             </p>
@@ -461,7 +470,7 @@ export default async function BusinessPage({
                         href={categoryHref}
                         className="rounded-sm text-brand-700 underline underline-offset-4 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
-                        {business.category_name}
+                        {categoryLabel}
                       </Link>
                     ) : (
                       t("business.notListed")

@@ -24,6 +24,7 @@ import { useExploreT } from "@/components/explore/ExploreProviders";
 import FavoriteButton from "@/components/explore/FavoriteButton";
 import { OpenStatus, PlacementBadge, RatingPill, VerifiedBadge } from "@/components/ds/indicators";
 import { Badge, Button, Card } from "@/components/ds/primitives";
+import { categoryName } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import { directionsUrl, displayHost } from "@/lib/explore";
 import {
@@ -115,7 +116,7 @@ export default function ResultCard({
               </button>
             </h2>
             <p className="mt-0.5 text-meta text-ink-subtle">
-              {business.category_name}
+              {categoryName(business.category_slug, business.category_name, locale)}
               {business.price_range ? (
                 <>
                   {" · "}

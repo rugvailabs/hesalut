@@ -34,6 +34,7 @@ import BusinessHours from "@/components/ds/BusinessHours";
 import { Skeleton } from "@/components/ds/feedback";
 import { OpenStatus, RatingPill, VerifiedBadge } from "@/components/ds/indicators";
 import { Button } from "@/components/ds/primitives";
+import { categoryName } from "@/lib/categories";
 import { directionsUrl, displayHost } from "@/lib/explore";
 import {
   formatAddress,
@@ -179,7 +180,11 @@ export default function PreviewModal({
             </h2>
             {business ? (
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-meta text-ink-muted">{business.category_name}</span>
+                <span className="text-meta text-ink-muted">
+                  {business.category_name !== null
+                    ? categoryName(business.category_slug, business.category_name, locale)
+                    : null}
+                </span>
                 <RatingPill
                   rating={business.rating}
                   reviewCount={business.review_count}

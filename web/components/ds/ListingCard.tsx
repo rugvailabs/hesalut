@@ -25,6 +25,7 @@ import { PlacementBadge, RatingPill, VerifiedBadge } from "@/components/ds/indic
 import { Button, Card } from "@/components/ds/primitives";
 import { cn } from "@/lib/cn";
 import { formatDistance, formatLocality } from "@/lib/format";
+import { categoryName } from "@/lib/categories";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { BusinessListItem } from "@/lib/types";
 
@@ -115,7 +116,7 @@ export default function ListingCard({
         </div>
 
         <p className="mt-0.5 text-meta text-ink-subtle">
-          {business.category_name} &middot; {formatLocality(business.city, business.province)}
+          {categoryName(business.category_slug, business.category_name, locale)} &middot; {formatLocality(business.city, business.province)}
         </p>
 
         <div className="mt-1.5">

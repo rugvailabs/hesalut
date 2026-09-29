@@ -29,6 +29,7 @@ import SiteFooter from "@/components/ds/SiteFooter";
 import { Alert, Breadcrumbs, EmptyState } from "@/components/ds/feedback";
 import { Button, Card } from "@/components/ds/primitives";
 import { ApiError, getCategories, searchBusinesses } from "@/lib/api";
+import { categoryName as localizedCategoryName } from "@/lib/categories";
 import { formatCount, formatDistance } from "@/lib/format";
 import { INTL_LOCALE, tFor } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
@@ -52,14 +53,18 @@ export async function generateMetadata({
 }: {
   searchParams: RawParams;
 }): Promise<Metadata> {
-  const t = tFor(getLocale());
+  const locale = getLocale();
+  const t = tFor(locale);
   const params = toSearchParams(searchParams);
 
   let subject = t("discover.search.defaultSubject");
   if (params.category_slug) {
     const categories = await getCategories().catch(() => []);
     const match = categories.find((c) => c.slug === params.category_slug);
-    subject = match?.name ?? params.category_slug;
+    subject =
+      match !== undefined
+        ? localizedCategoryName(match.slug, match.name, locale)
+        : params.category_slug;
   }
   if (params.q) subject = `${params.q}`;
 
@@ -253,7 +258,11 @@ export default async function SearchPage({
     : null;
 
   const page = results?.page ?? params.page ?? 1;
-  const categoryName = categories.find((c) => c.slug === params.category_slug)?.name;
+  const categoryMatch = categories.find((c) => c.slug === params.category_slug);
+  const categoryName =
+    categoryMatch !== undefined
+      ? localizedCategoryName(categoryMatch.slug, categoryMatch.name, locale)
+      : undefined;
 
   // The h1 states what was actually searched, so a shared link reads as its
   // own page rather than as "Search" with different contents.

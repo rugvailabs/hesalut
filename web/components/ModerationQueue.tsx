@@ -21,6 +21,7 @@ import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { FIELD } from "@/components/ui/field";
+import { categoryNameFromEnglish } from "@/lib/categories";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { ModerationAction, ModerationQueueItem } from "@/lib/types";
 
@@ -132,7 +133,7 @@ export default function ModerationQueue({
                       </Link>
                     </h2>
                     <p className="text-sm text-ink-subtle">
-                      {item.category_name} · {item.city}, {item.province}
+                      {categoryNameFromEnglish(item.category_name, locale)} · {item.city}, {item.province}
                       {item.address !== null ? ` · ${item.address}` : ""}
                     </p>
                     <p className="break-words text-sm text-ink-subtle">

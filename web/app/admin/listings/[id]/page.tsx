@@ -19,6 +19,7 @@ import Card from "@/components/ui/Card";
 import RatingStars from "@/components/ui/RatingStars";
 import { ApiError, getMyBusiness } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
+import { categoryName } from "@/lib/categories";
 import { tFor, type Locale } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
 import type { BusinessDetail, ModerationQueueItem } from "@/lib/types";
@@ -89,7 +90,10 @@ export default async function AdminListingDetailPage({
         <StatusBadge status={listing.status} showHint locale={locale} />
       </div>
       <p className="mt-1 text-sm text-ink-muted">
-        {listing.category_name} &middot; {listing.city}, {listing.province}
+        {listing.category_name !== null
+          ? categoryName(listing.category_slug, listing.category_name, locale)
+          : null}{" "}
+        &middot; {listing.city}, {listing.province}
       </p>
       <div className="mt-2">
         <RatingStars locale={locale} rating={listing.rating} reviewCount={listing.review_count} />

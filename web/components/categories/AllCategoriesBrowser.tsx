@@ -16,15 +16,18 @@
  * idea which control emptied it. The empty state names the active filter and
  * clears it in one click.
  *
- * Search matches the category name only. The source also searched a
- * `subcategories` array; ours has none - every category in this taxonomy is
- * top-level - so searching it would be searching an empty list.
+ * Search matches the category name in either language (accents ignored), and
+ * the A-Z rail files by the displayed name with its accent stripped, so
+ * "Épiceries" sits under E. The source also searched a `subcategories` array;
+ * ours has none - every category in this taxonomy is top-level - so searching
+ * it would be searching an empty list.
  */
 
 import { useMemo, useState } from "react";
 
 import CategoryCard from "@/components/categories/CategoryCard";
 import { Button } from "@/components/ds/primitives";
+import { categoryLetter, categoryNames, foldAccents } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import { formatCount } from "@/lib/format";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
@@ -35,6 +38,7 @@ const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export interface BrowseCategory {
   id: number;
+  /** Already in the page's locale - the server page localizes it. */
   name: string;
   slug: string;
   /** Listings in THIS city, not the global count. */
@@ -61,7 +65,7 @@ export default function AllCategoriesBrowser({
   const [chip, setChip] = useState("");
 
   const available = useMemo(
-    () => new Set(categories.map((c) => c.name[0]?.toUpperCase() ?? "")),
+    () => new Set(categories.map((c) => categoryLetter(c.name))),
     [categories],
   );
 
@@ -74,11 +78,11 @@ export default function AllCategoriesBrowser({
   );
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = foldAccents(query.trim());
     return categories.filter((c) => {
       if (chip && c.slug !== chip) return false;
-      if (letter && c.name[0]?.toUpperCase() !== letter) return false;
-      if (q && !c.name.toLowerCase().includes(q)) return false;
+      if (letter && categoryLetter(c.name) !== letter) return false;
+      if (q && !categoryNames(c.slug, c.name).some((n) => foldAccents(n).includes(q))) return false;
       return true;
     });
   }, [categories, query, letter, chip]);

@@ -50,6 +50,7 @@ import SearchBar, { type SearchSubmit } from "@/components/explore/SearchBar";
 import { useExplore } from "@/components/explore/state";
 import { useFavorites } from "@/components/explore/useFavorites";
 import { useLocate } from "@/components/explore/useLocate";
+import { categoryName as localizedCategoryName } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import {
   PRICE_LEVELS,
@@ -120,8 +121,9 @@ export default function ResultsStep({
   }, [hydrated, selection]);
 
   const categoryName = useCallback(
-    (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug,
-    [categories],
+    (slug: string) =>
+      localizedCategoryName(slug, categories.find((c) => c.slug === slug)?.name ?? slug, locale),
+    [categories, locale],
   );
 
   /** "Plumbers in Burnaby" - the heading, and the label of a saved search. */
@@ -542,7 +544,7 @@ export default function ResultsStep({
                   <li key={category.id}>
                     <Pill
                       active={active}
-                      label={category.name}
+                      label={localizedCategoryName(category.slug, category.name, locale)}
                       icon={<CategoryIcon slug={category.slug} className="size-4" />}
                       // A second click on the active category clears it.
                       onClick={announced(() => setList("categories", active ? [] : [category.slug]))}
@@ -1168,7 +1170,7 @@ function SavedPanel({
                   </button>
                 </h2>
                 <p className="text-meta text-ink-muted">
-                  {saved.category_name} · {saved.city}, {saved.province}
+                  {localizedCategoryName(saved.category_slug, saved.category_name, locale)} · {saved.city}, {saved.province}
                 </p>
                 <RatingPill
                   rating={saved.rating}

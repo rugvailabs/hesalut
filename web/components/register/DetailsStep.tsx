@@ -23,6 +23,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ds/feedback";
 import { HINT } from "@/components/ds/form";
 import { Button, Card, Input, Label, Select } from "@/components/ds/primitives";
+import { categoryName } from "@/lib/categories";
 import { PROVINCES } from "@/lib/format";
 import { tFor, type Locale } from "@/lib/i18n";
 import { hasGoogleMaps } from "@/lib/maps";
@@ -320,7 +321,7 @@ export default function DetailsStep({
               <option value="">{t("register.details.categoryPlaceholder")}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.name}
+                  {categoryName(category.slug, category.name, locale)}
                 </option>
               ))}
             </Select>
