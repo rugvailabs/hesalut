@@ -14,11 +14,13 @@
     "@vis.gl/react-google-maps": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "i18next": "^26.4.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.43.0",
     "next": "14.2.33",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.14",
     "react-leaflet": "^4.2.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7"

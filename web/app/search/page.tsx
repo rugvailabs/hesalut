@@ -114,8 +114,11 @@ function wantsNearMe(raw: RawParams): boolean {
   return one(raw.near) === "me" || splitNearMe(one(raw.q)).nearMe;
 }
 
+/** This page filters on one category and one city at a time. */
+type SingleSearchParams = BusinessSearchParams & { category_slug?: string; city?: string };
+
 /** Translate the URL into API params, dropping anything malformed. */
-function toSearchParams(raw: RawParams): BusinessSearchParams {
+function toSearchParams(raw: RawParams): SingleSearchParams {
   const lat = num(raw.lat);
   const lng = num(raw.lng);
   // The API rejects a half-supplied point, so only forward a complete one.
@@ -281,7 +284,9 @@ export default async function SearchPage({
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <Breadcrumbs
           items={[
-            { label: "Home", href: "/" },
+            // The Browse page opens without a Home link, as asked; it stays
+            // in the markup, hidden.
+            { label: "Home", href: "/", hidden: true },
             { label: "Search", href: "/search" },
             ...(categoryName !== undefined ? [{ label: categoryName }] : []),
           ]}

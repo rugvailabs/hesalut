@@ -123,6 +123,10 @@ export default async function SiteHeader({
             <Link href="/search">{t("common.browse")}</Link>
           </Button>
 
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link href="/explore">{t("common.explore")}</Link>
+          </Button>
+
           {user === null ? (
             <>
               <Button asChild variant="secondary" size="sm">

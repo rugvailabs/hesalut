@@ -32,6 +32,7 @@ import type {
   BusinessUpdate,
   BusinessVerification,
   Category,
+  CityCount,
   ChatMessage,
   Conversation,
   ConversationDetail,
@@ -39,6 +40,7 @@ import type {
   EnquiryCreate,
   EnquiryOut,
   EnquiryType,
+  Favorite,
   ModerationAction,
   ModerationQueueItem,
   ModerationStats,
@@ -324,8 +326,11 @@ export function searchBusinesses(
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
-    if (typeof value === "string" && value.trim() === "") continue;
-    qs.set(key, String(value));
+    // Multi-select filters repeat the parameter: ?city=Burnaby&city=Richmond.
+    for (const one of Array.isArray(value) ? value : [value]) {
+      if (typeof one === "string" && one.trim() === "") continue;
+      qs.append(key, String(one));
+    }
   }
   const suffix = qs.toString();
   // Signed-in searches are attributed in search analytics; the token is sent
@@ -358,6 +363,28 @@ export async function getBusinessBySlug(
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+/** GET /businesses/cities - cities with public listings, busiest first. */
+export function getCities(): Promise<CityCount[]> {
+  return apiFetch<CityCount[]>("/businesses/cities", { method: "GET", auth: false });
+}
+
+/* ------------------------------------------------------- saved listings */
+
+/** GET /favorites - the caller's saved listings, newest first. */
+export function getFavorites(): Promise<Favorite[]> {
+  return apiFetch<Favorite[]>("/favorites", { method: "GET" });
+}
+
+/** PUT /favorites/{id} - save a listing. Idempotent. */
+export function saveFavorite(businessId: number): Promise<void> {
+  return apiFetch<void>(`/favorites/${businessId}`, { method: "PUT" });
+}
+
+/** DELETE /favorites/{id} - unsave a listing. Idempotent. */
+export function removeFavorite(businessId: number): Promise<void> {
+  return apiFetch<void>(`/favorites/${businessId}`, { method: "DELETE" });
 }
 
 /* ---------------------------------------------------------- owner calls */

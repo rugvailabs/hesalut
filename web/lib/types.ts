@@ -142,7 +142,8 @@ export type BusinessSort =
   | "reviews"
   | "distance"
   | "name"
-  | "newest";
+  | "newest"
+  | "price";
 
 /** GET /api/v1/categories */
 export interface Category {
@@ -178,6 +179,12 @@ export interface BusinessListItem {
   rating: number | null;
   review_count: number;
   verified: boolean;
+  /** "$" to "$$$$"; null when the owner has not said. */
+  price_range?: string | null;
+  /** Same shape as BusinessDetail.opening_hours; null when not listed. */
+  opening_hours?: Record<string, [string, string][]> | null;
+  /** ISO timestamp the listing went up. */
+  created_at?: string | null;
   /** Only present when the request supplied lat/lng. */
   distance_km: number | null;
   /**
@@ -219,11 +226,42 @@ export interface SearchResponse {
   has_prev: boolean;
 }
 
+/** GET /api/v1/businesses/cities - a city with public listings. */
+export interface CityCount {
+  city: string;
+  province: string;
+  business_count: number;
+}
+
+/** GET /api/v1/favorites - one saved listing. */
+export interface Favorite {
+  business_id: number;
+  slug: string;
+  name: string;
+  category_slug: string;
+  category_name: string;
+  city: string;
+  province: string;
+  phone: string | null;
+  rating: number | null;
+  review_count: number;
+  saved_at: string;
+}
+
 /** Query parameters accepted by searchBusinesses(). */
 export interface BusinessSearchParams {
   q?: string;
-  category_slug?: string;
-  city?: string;
+  /** Several values mean any of them. */
+  category_slug?: string | string[];
+  city?: string | string[];
+  /** Rating bands: "5", "4.5" (4.5-4.99), "4" (4-4.49), "3" (3-3.99). Any of them. */
+  rating_band?: string[];
+  /** open_now, weekends, evenings. Every one given must hold. */
+  hours?: string[];
+  /** "$" to "$$$$". Any of them. */
+  price?: string[];
+  /** A postal code or its start ("V6B"); spaces are ignored. */
+  postal_code?: string;
   /** lat and lng must be supplied together; the API 422s otherwise. */
   lat?: number;
   lng?: number;

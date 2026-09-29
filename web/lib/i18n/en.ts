@@ -23,6 +23,7 @@ export const en = {
     messages: "Messages",
     admin: "Admin",
     browse: "Browse",
+    explore: "Explore",
     listYourBusiness: "List your business",
     loading: "Loading…",
     retry: "Try again",

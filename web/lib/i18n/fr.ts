@@ -26,6 +26,7 @@ export const fr: Dictionary = {
     messages: "Messages",
     admin: "Administration",
     browse: "Parcourir",
+    explore: "Explorer",
     listYourBusiness: "Inscrire mon entreprise",
     loading: "Chargement…",
     retry: "Réessayer",

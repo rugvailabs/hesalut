@@ -26,22 +26,33 @@ export interface Crumb {
   label: string;
   /** Omit on the last crumb: the page you are on is not a link to itself. */
   href?: string;
+  /**
+   * Keep the crumb in the markup but don't display it (display: none). Its
+   * separator goes with it, since each crumb carries its own.
+   */
+  hidden?: boolean;
 }
 
 export function Breadcrumbs({
   items,
   className,
+  label = "Breadcrumb",
 }: {
   items: Crumb[];
   className?: string;
+  /** The landmark's accessible name - pass a translation where there is one. */
+  label?: string;
 }): JSX.Element {
   return (
-    <nav aria-label="Breadcrumb" className={cn("text-meta", className)}>
+    <nav aria-label={label} className={cn("text-meta", className)}>
       <ol className="flex flex-wrap items-center gap-1 text-ink-subtle">
         {items.map((item, index) => {
           const last = index === items.length - 1;
           return (
-            <li key={`${item.label}-${index}`} className="flex items-center gap-1">
+            <li
+              key={`${item.label}-${index}`}
+              className={cn("flex items-center gap-1", item.hidden && "hidden")}
+            >
               {item.href !== undefined && !last ? (
                 <Link
                   href={item.href}

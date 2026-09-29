@@ -95,6 +95,27 @@
   }
 
   .dark {
+    /* Native controls (selects, scrollbars, date pickers) follow the theme. */
+    color-scheme: dark;
+
+    /* Brand, inverted: the light theme's dark teals carry text on white; here
+       light teals carry it on near-black. Measured on this palette:
+         700 as text on surface          8.91:1
+         ink-inverse on 700 (buttons)    9.67:1
+         800 on 50 (active pills)        9.55:1
+         800 on 100 (count badges)       7.12:1 */
+    --brand-50: 175 40% 14%;
+    --brand-100: 175 40% 20%;
+    --brand-200: 174 40% 30%;
+    --brand-300: 173 45% 40%;
+    --brand-400: 172 55% 45%;
+    --brand-500: 172 60% 48%;
+    --brand-600: 172 62% 50%;
+    --brand-700: 172 66% 50%;
+    --brand-800: 170 60% 75%;
+    --brand-900: 170 55% 85%;
+    --brand-950: 170 50% 92%;
+
     --canvas: 195 30% 8%;
     --surface: 195 26% 11%;
     --surface-muted: 195 22% 15%;

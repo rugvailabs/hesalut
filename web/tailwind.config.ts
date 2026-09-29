@@ -124,9 +124,21 @@ const config: Config = {
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
+        // Small and quick: a menu, a toast or a new card settling in, never
+        // a flourish. Used with motion-safe: so reduced-motion users get none.
+        "menu-in": {
+          from: { opacity: "0", transform: "translateY(-4px) scale(0.98)" },
+          to: { opacity: "1", transform: "none" },
+        },
+        "rise-in": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "none" },
+        },
       },
       animation: {
         shimmer: "shimmer 1.6s infinite",
+        "menu-in": "menu-in 120ms ease-out",
+        "rise-in": "rise-in 200ms ease-out both",
       },
     },
   },
