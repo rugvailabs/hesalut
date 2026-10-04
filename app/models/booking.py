@@ -88,6 +88,15 @@ class Booking(Base):
         ),
         Index("ix_bookings_business_status", "business_id", "status"),
         Index("ix_bookings_customer", "customer_id", "created_at"),
+        # One booking per (customer, key): a retried or double-clicked request
+        # replays the first one instead of creating a second.
+        Index(
+            "uq_bookings_customer_idempotency_key",
+            "customer_id",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("idempotency_key IS NOT NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -132,6 +141,9 @@ class Booking(Base):
     decline_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cancelled_by: Mapped[str | None] = mapped_column(String(16), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

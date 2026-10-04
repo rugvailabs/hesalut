@@ -30,10 +30,13 @@ three days - see `settle`.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
+import json
+import re
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Response, status
 from fastapi.responses import Response
 from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -294,6 +297,34 @@ def booking_info(business_id: int, db: Session = Depends(get_db)) -> BookingInfo
 
 
 # --------------------------------------------------------------- customer
+_KEY_PATTERN = re.compile(r"[A-Za-z0-9_-]{8,64}")
+
+
+def _hash_request(payload: BookingCreate) -> str:
+    """A stable fingerprint of what was asked for (consent is always true)."""
+    canonical = json.dumps(payload.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _replay(db: Session, customer_id: int, key: str, request_hash: str) -> BookingOut | None:
+    """The booking this key already made for this customer, if any."""
+    existing = db.scalar(
+        select(Booking).where(Booking.customer_id == customer_id, Booking.idempotency_key == key)
+    )
+    if existing is None:
+        return None
+    if existing.request_hash != request_hash:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "That Idempotency-Key was already used for a different request.",
+        )
+    settle(db, customer_id=customer_id)
+    db.refresh(existing)
+    business = db.get(Business, existing.business_id)
+    assert business is not None
+    return _to_out(existing, business)
+
+
 @router.post(
     "/bookings",
     response_model=BookingOut,
@@ -303,9 +334,32 @@ def booking_info(business_id: int, db: Session = Depends(get_db)) -> BookingInfo
 def create_booking(
     payload: BookingCreate,
     background: BackgroundTasks,
+    response: Response,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> BookingOut:
+    """Ask a business for a booking.
+
+    Send an `Idempotency-Key` header (8-64 characters of letters, digits, `-`
+    or `_`) and a retry of the same request - a double click, a dropped
+    connection - returns the booking the first attempt made, with 200 instead
+    of 201, rather than creating a second one. Reusing a key for a different
+    request is a 409.
+    """
+    request_hash = None
+    if idempotency_key is not None:
+        if not _KEY_PATTERN.fullmatch(idempotency_key):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Idempotency-Key must be 8-64 letters, digits, '-' or '_'",
+            )
+        request_hash = _hash_request(payload)
+        replay = _replay(db, current_user.id, idempotency_key, request_hash)
+        if replay is not None:
+            response.status_code = status.HTTP_200_OK
+            return replay
+
     business = require_visible_business(db, payload.business_id)
     style = _category_style(db, business)
     if business.booking_mode != "request" or style is None:
@@ -366,13 +420,29 @@ def create_booking(
         customer_phone=(payload.phone or current_user.phone or None),
         note=" ".join(payload.note.split()) if payload.note and payload.note.strip() else None,
         consent_shared=True,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
         proposed_times=[
             BookingProposedTime(starts_at=p.starts_at, ends_at=p.ends_at, part_of_day=p.part_of_day)
             for p in proposals
         ],
     )
     db.add(booking)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two copies of the same request raced past the lookup above; the
+        # unique index let one in. Hand back the winner.
+        db.rollback()
+        replay = (
+            _replay(db, current_user.id, idempotency_key, request_hash)
+            if idempotency_key is not None and request_hash is not None
+            else None
+        )
+        if replay is None:
+            raise
+        response.status_code = status.HTTP_200_OK
+        return replay
     db.refresh(booking)
     background.add_task(_notify_requested, booking.id, db.get_bind())
     return _to_out(booking, business)

@@ -1124,8 +1124,13 @@ export function getBookingInfo(businessId: number): Promise<BookingInfo> {
 }
 
 /** POST /bookings - a signed-in customer asks for a service. */
-export function createBooking(body: BookingCreate): Promise<Booking> {
-  return apiFetch<Booking>("/bookings", { method: "POST", body });
+export function createBooking(body: BookingCreate, idempotencyKey?: string): Promise<Booking> {
+  return apiFetch<Booking>("/bookings", {
+    method: "POST",
+    body,
+    // A retry with the same key returns the first booking instead of a second.
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+  });
 }
 
 /** GET /bookings/mine */

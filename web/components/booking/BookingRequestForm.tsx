@@ -15,7 +15,7 @@
  */
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CalendarCheck, Plus, X } from "lucide-react";
 
 import { Alert } from "@/components/ds/feedback";
@@ -49,6 +49,14 @@ export default function BookingRequestForm({
   const t = tFor(locale);
   const intl = INTL_LOCALE[locale];
   const windowStyle = info.style === "window";
+
+  // One key for this form's lifetime: pressing Send twice, or retrying after a
+  // dropped connection, then reaches the server as the same request.
+  const idempotencyKey = useRef<string>(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`,
+  );
 
   const [serviceId, setServiceId] = useState<number | null>(
     info.services.length === 1 ? info.services[0].id : null,
@@ -100,7 +108,10 @@ export default function BookingRequestForm({
     try {
       const res = await fetch("/api/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey.current,
+        },
         body: JSON.stringify({
           business_id: info.business_id,
           service_id: serviceId,

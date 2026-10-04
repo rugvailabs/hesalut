@@ -25,8 +25,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json({ detail: "Malformed JSON body." }, { status: 400 });
   }
+  // Passed on so a retry or double click cannot create two requests.
+  const key = req.headers.get("idempotency-key") ?? undefined;
   try {
-    return NextResponse.json(await createBooking(body), { status: 201 });
+    return NextResponse.json(await createBooking(body, key), { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);
   }
