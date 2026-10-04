@@ -36,7 +36,7 @@ from app.core.visibility import join_verification, public_visibility_filters
 from app.models.business import Business
 from app.models.category import Category
 from app.schemas.directory import BusinessListItem, BusinessSort
-from app.services import embeddings, placement
+from app.services import booking_rules, embeddings, placement
 
 EARTH_RADIUS_KM = 6371.0088
 
@@ -102,6 +102,30 @@ def _day_ranges(day_param: str) -> str:
     return f"jsonb_array_elements(CASE WHEN jsonb_typeof({day}) = 'array' THEN {day} ELSE '[]'::jsonb END)"
 
 
+def is_bookable(booking_mode: str | None, category_slug: str | None) -> bool:
+    """Whether a visitor can book this listing, for the badge.
+
+    An external link always counts. Booking requests count only while the
+    category still takes them: an owner who later moves to a category that
+    does not (restaurants, hotels) has a booking page that answers 404, and
+    must not be advertised as bookable. Mirrors `bookable_clause`.
+    """
+    if booking_mode == "external":
+        return True
+    return booking_mode == "request" and booking_rules.style_for(category_slug) is not None
+
+
+def bookable_clause() -> Any:
+    """SQL form of `is_bookable`, for the "Bookable" filter."""
+    return or_(
+        Business.booking_mode == "external",
+        and_(
+            Business.booking_mode == "request",
+            Category.slug.in_(sorted(booking_rules.STYLE_BY_CATEGORY)),
+        ),
+    )
+
+
 def _rating_band(band: str) -> Any:
     low, high = RATING_BANDS[band]
     clause = Business.rating >= low
@@ -162,6 +186,9 @@ class SearchFilters:
     rating_bands: tuple[str, ...] = ()
     hours: tuple[str, ...] = ()
     price_levels: tuple[str, ...] = ()
+    # Only listings a visitor can book: requests on this site, or the
+    # owner's own booking link. See `bookable_clause`.
+    bookable: bool = False
 
     @property
     def has_point(self) -> bool:
@@ -290,6 +317,8 @@ def get_nearby_services_with_priority(
         )
     if search.price_levels:
         filters.append(Business.price_range.in_(sorted(set(search.price_levels))))
+    if search.bookable:
+        filters.append(bookable_clause())
     for requirement in sorted(set(search.hours)):
         filters.append(_hours_clause(requirement, placement.now_utc()))
     postal = "".join((postal_code or "").split())
@@ -358,6 +387,7 @@ def get_nearby_services_with_priority(
                 Business.created_at,
                 Business.price_range,
                 Business.opening_hours,
+                Business.booking_mode,
                 Category.slug.label("category_slug"),
                 Category.name.label("category_name"),
                 (distance if has_point else null().cast(Float)).label("distance_km"),
@@ -460,6 +490,8 @@ def get_nearby_services_with_priority(
                 review_count=row["review_count"],
                 verified=row["verified"],
                 price_range=row["price_range"],
+                booking_mode=row["booking_mode"],
+                bookable=is_bookable(row["booking_mode"], row["category_slug"]),
                 opening_hours=row["opening_hours"] if isinstance(row["opening_hours"], dict) else None,
                 created_at=row["created_at"],
                 distance_km=round(row["distance_km"], 2) if has_point else None,

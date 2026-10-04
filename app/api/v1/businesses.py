@@ -81,6 +81,10 @@ def search_businesses(
     price: list[PriceLevel] | None = Query(
         default=None, description="Repeat for any of several price levels: $, $$, $$$, $$$$"
     ),
+    bookable: bool = Query(
+        default=False,
+        description="Only listings that can be booked: requests on this site, or the owner's own booking link",
+    ),
     sort: BusinessSort = Query(default=BusinessSort.relevance),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=50),
@@ -124,6 +128,7 @@ def search_businesses(
             rating_bands=tuple(rating_band or ()),
             hours=tuple(hours or ()),
             price_levels=tuple(price or ()),
+            bookable=bookable,
             postal_code=postal_code,
             lat=lat,
             lng=lng,

@@ -463,12 +463,16 @@ export default function ResultsStep({
       label: level,
       remove: () => toggle("prices", level),
     })),
+    ...(selection.bookable
+      ? [{ key: "bookable", label: t("filters.bookable"), remove: () => set({ bookable: false }) }]
+      : []),
   ];
 
   // What the empty state offers: undo the narrowest filters first.
   const suggestions = [
     selection.ratings.length > 0 && { label: t("results.anyRating"), run: () => setList("ratings", []) },
     selection.prices.length > 0 && { label: t("results.anyPrice"), run: () => setList("prices", []) },
+    selection.bookable && { label: t("results.anyBookable"), run: () => set({ bookable: false }) },
     selection.hours.length > 0 && { label: t("results.anyHours"), run: () => setList("hours", []) },
     selection.near !== null &&
       selection.radius !== "any" && { label: t("results.anyDistance"), run: () => set({ radius: "any" }) },
@@ -710,6 +714,30 @@ export default function ResultsStep({
                   );
                 })}
               </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="mb-2 text-micro uppercase text-ink-subtle">{t("filters.booking")}</legend>
+              <label
+                className={cn(
+                  "flex cursor-pointer items-start gap-2.5 rounded-input px-2 py-1.5 text-body",
+                  "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring",
+                  selection.bookable ? "bg-brand-50 font-medium text-brand-800" : "text-ink-muted hover:bg-surface-muted",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selection.bookable}
+                  onChange={announced(() => set({ bookable: !selection.bookable }))}
+                  className="mt-1 size-4 accent-brand-700"
+                />
+                <span>
+                  {t("filters.bookable")}
+                  <span className="mt-0.5 block text-meta font-normal text-ink-muted">
+                    {t("filters.bookableHint")}
+                  </span>
+                </span>
+              </label>
             </fieldset>
 
             <fieldset>

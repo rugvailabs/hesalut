@@ -95,6 +95,9 @@ const en = {
     allCategories: "All categories",
     price: "Price",
     priceHint: "Only listings that show a price can match.",
+    booking: "Booking",
+    bookable: "Bookable",
+    bookableHint: "Only listings you can book online, here or on their own booking page.",
   },
   radius: {
     "5": "Within 5 km",
@@ -172,6 +175,7 @@ const en = {
     tryThese: "Try one of these",
     anyRating: "Any rating",
     anyPrice: "Any price",
+    anyBookable: "Include listings that cannot be booked online",
     anyHours: "Any hours",
     anyDistance: "Any distance",
     dropKeyword: "Search without “{{q}}”",
@@ -201,6 +205,8 @@ const en = {
     callName: "Call {{name}}",
     enquire: "Enquire",
     recentlyAdded: "Recently added",
+    bookable: "Bookable",
+    bookableHint: "You can book this business online",
     price: "Price level: {{price}}",
   },
   preview: {
@@ -327,6 +333,9 @@ const fr: ExploreResources & { results: { found_many: string; filtered_many: str
     allCategories: "Toutes les catégories",
     price: "Prix",
     priceHint: "Seules les fiches qui indiquent un prix peuvent correspondre.",
+    booking: "Réservation",
+    bookable: "Réservable",
+    bookableHint: "Seulement les fiches que vous pouvez réserver en ligne, ici ou sur leur propre page de réservation.",
   },
   radius: {
     "5": "Moins de 5 km",
@@ -406,6 +415,7 @@ const fr: ExploreResources & { results: { found_many: string; filtered_many: str
     tryThese: "Essayez plutôt",
     anyRating: "Toutes les notes",
     anyPrice: "Tous les prix",
+    anyBookable: "Inclure les fiches non réservables en ligne",
     anyHours: "Toutes les heures",
     anyDistance: "Toute distance",
     dropKeyword: "Chercher sans « {{q}} »",
@@ -436,6 +446,8 @@ const fr: ExploreResources & { results: { found_many: string; filtered_many: str
     callName: "Appeler {{name}}",
     enquire: "Demande",
     recentlyAdded: "Ajoutée récemment",
+    bookable: "Réservable",
+    bookableHint: "Vous pouvez réserver cette entreprise en ligne",
     price: "Niveau de prix : {{price}}",
   },
   preview: {

@@ -43,6 +43,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     params[key] = value;
   }
+  if (incoming.get("bookable") === "true") params.bookable = true;
   // Live counts and typeahead are not results anybody chose to see.
   if (incoming.get("track") === "false") params.track = false;
 

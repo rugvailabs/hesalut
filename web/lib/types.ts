@@ -183,6 +183,10 @@ export interface BusinessListItem {
   price_range?: string | null;
   /** Same shape as BusinessDetail.opening_hours; null when not listed. */
   opening_hours?: Record<string, [string, string][]> | null;
+  /** What the owner offers: "none", "external" (their own page) or "request". */
+  booking_mode?: BookingMode;
+  /** Whether a visitor can actually book; drives the "Bookable" badge. */
+  bookable?: boolean;
   /** ISO timestamp the listing went up. */
   created_at?: string | null;
   /** Only present when the request supplied lat/lng. */
@@ -282,6 +286,8 @@ export interface BusinessSearchParams {
   hours?: string[];
   /** "$" to "$$$$". Any of them. */
   price?: string[];
+  /** true: only listings that can be booked (requests here, or the owner's link). */
+  bookable?: boolean;
   /** A postal code or its start ("V6B"); spaces are ignored. */
   postal_code?: string;
   /** lat and lng must be supplied together; the API 422s otherwise. */

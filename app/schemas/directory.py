@@ -70,6 +70,11 @@ class BusinessListItem(BaseModel):
     verified: bool
     # "$" to "$$$$", or None when the owner has not said.
     price_range: str | None = None
+    # "none", "external" (the owner's own booking page) or "request" (booking
+    # requests on this site); `bookable` is what the "Bookable" badge and
+    # filter use, and is False for a mode whose booking page would not open.
+    booking_mode: str = "none"
+    bookable: bool = False
     # {"mon": [["09:00", "17:00"]], ...}, or None. Carried so a card can say
     # "Open now" from the same data the profile page uses.
     opening_hours: dict[str, Any] | None = None

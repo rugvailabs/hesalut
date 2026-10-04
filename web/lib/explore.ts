@@ -38,6 +38,8 @@ export interface ExploreSelection {
   ratings: RatingBand[];
   hours: HoursOption[];
   prices: PriceLevel[];
+  /** Only listings a visitor can book (requests here, or the owner's own link). */
+  bookable: boolean;
   q: string;
   sort: ExploreSort;
 }
@@ -51,6 +53,7 @@ export const EMPTY_SELECTION: ExploreSelection = {
   ratings: [],
   hours: [],
   prices: [],
+  bookable: false,
   q: "",
   sort: "relevance",
 };
@@ -98,6 +101,8 @@ export function normalise(s: ExploreSelection): ExploreSelection {
     ratings: unique(s.ratings).filter((r) => RATING_BANDS.includes(r)),
     hours: unique(s.hours).filter((h) => HOURS_OPTIONS.includes(h)),
     prices: unique(s.prices ?? []).filter((p) => PRICE_LEVELS.includes(p)),
+    // Older saved selections predate this field, so absent means off.
+    bookable: s.bookable === true,
     postal: looksLikePostal(s.postal) ? normalisePostal(s.postal) : s.postal.trim() ? s.postal : "",
     q: s.q.slice(0, 128),
   };
@@ -113,6 +118,7 @@ export function countActive(s: ExploreSelection): number {
     s.ratings.length +
     s.hours.length +
     s.prices.length +
+    (s.bookable ? 1 : 0) +
     (s.postal ? 1 : 0) +
     (s.near ? 1 : 0) +
     (s.q.trim() ? 1 : 0)
@@ -136,12 +142,13 @@ export function toPageQuery(s: ExploreSelection): string {
   for (const r of s.ratings) qs.append("rating", r);
   for (const h of s.hours) qs.append("hours", h);
   for (const p of s.prices) qs.append("price", p);
+  if (s.bookable) qs.set("bookable", "1");
   if (s.q.trim()) qs.set("q", s.q.trim());
   if (s.sort !== "relevance") qs.set("sort", s.sort);
   return qs.toString();
 }
 
-const PAGE_KEYS = ["category", "city", "postal", "lat", "rating", "hours", "price", "q", "sort"];
+const PAGE_KEYS = ["category", "city", "postal", "lat", "rating", "hours", "price", "bookable", "q", "sort"];
 
 export function hasSelectionParams(params: URLSearchParams): boolean {
   return PAGE_KEYS.some((key) => params.has(key));
@@ -170,6 +177,7 @@ export function fromPageQuery(params: URLSearchParams): ExploreSelection {
     ratings: params.getAll("rating") as RatingBand[],
     hours: params.getAll("hours") as HoursOption[],
     prices: params.getAll("price") as PriceLevel[],
+    bookable: params.get("bookable") === "1",
     q: params.get("q") ?? "",
     sort: sort && SORTS.includes(sort) ? sort : "relevance",
   });
@@ -191,6 +199,7 @@ export function toApiQuery(
   for (const r of s.ratings) qs.append("rating_band", r);
   for (const h of s.hours) qs.append("hours", h);
   for (const p of s.prices) qs.append("price", p);
+  if (s.bookable) qs.set("bookable", "true");
   if (s.q.trim()) qs.set("q", s.q.trim());
 
   const radius = overrides.radius ?? s.radius;
