@@ -82,6 +82,10 @@ export default function SearchScreen({
   const [submitted, setSubmitted] = useState(initial.q ?? "");
   const [categorySlug, setCategorySlug] = useState(initial.category_slug);
   const [minRating, setMinRating] = useState<number | undefined>(undefined);
+  // The "Bookable" chip. null means "follow what the words said" (a search like
+  // "dentist I can book online" arrives bookable); true or false is the
+  // person's own choice, which a new search starts over from.
+  const [bookable, setBookable] = useState<boolean | null>(null);
   const [sort, setSort] = useState<BusinessSort>("relevance");
   const [point, setPoint] = useState<Point | null>(null);
   const [locating, setLocating] = useState(false);
@@ -118,6 +122,7 @@ export default function SearchScreen({
       hours: smart?.hours,
       rating_band: smart?.rating_bands,
       price: smart?.price_levels,
+      bookable: (bookable ?? smart?.bookable === true) ? true : undefined,
       min_rating: minRating,
       // The API 422s on sort=distance without a point, so the two move together.
       sort: point !== null ? "distance" : sort,
@@ -128,12 +133,13 @@ export default function SearchScreen({
       page_size: 20,
     };
     return searchBusinesses(params);
-  }, [understanding, understood, submitted, categorySlug, minRating, sort, point, page]);
+  }, [understanding, understood, submitted, categorySlug, minRating, bookable, sort, point, page]);
 
   const { data, error, loading, refreshing, reload } = useAsync<SearchResponse>(
     load,
-    [understanding, understood, submitted, categorySlug, minRating, sort, point, page],
+    [understanding, understood, submitted, categorySlug, minRating, bookable, sort, point, page],
   );
+  const bookableOn = bookable ?? understood?.bookable === true;
 
   /** Any change to the filters starts again at page 1. */
   const resetTo = useCallback((apply: () => void) => {
@@ -198,6 +204,7 @@ export default function SearchScreen({
       const run = ++understandRun.current;
       setQuery(text);
       setPage(1);
+      setBookable(null);
       setSubmitted(text);
       setUnderstood(null);
       if (text === "") {
@@ -238,6 +245,7 @@ export default function SearchScreen({
   const searchExactly = useCallback(() => {
     ++understandRun.current;
     setPage(1);
+    setBookable(null);
     setUnderstood(null);
     setUnderstanding(false);
     if (locatedFromText.current) {
@@ -357,6 +365,14 @@ export default function SearchScreen({
             />
           )}
         />
+
+        <View style={styles.chipRow}>
+          <Chip
+            label={bookableOn ? "📅 Bookable ✕" : "📅 Bookable"}
+            selected={bookableOn}
+            onPress={() => resetTo(() => setBookable(!bookableOn))}
+          />
+        </View>
 
         {point === null ? (
           <FlatList

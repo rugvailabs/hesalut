@@ -174,6 +174,10 @@ export interface BusinessListItem {
   rating: number | null;
   review_count: number;
   verified: boolean;
+  /** "none", "external" (the owner's own booking page) or "request" (requests on the site). */
+  booking_mode?: "none" | "external" | "request";
+  /** Whether a visitor can book this business; drives the "Bookable" badge. */
+  bookable?: boolean;
   /** Only present when the request supplied lat/lng. */
   distance_km: number | null;
 }
@@ -204,6 +208,8 @@ export interface SearchUnderstanding {
   hours: ("open_now" | "weekends" | "evenings")[];
   rating_bands: ("5" | "4.5" | "4" | "3")[];
   price_levels: ("$" | "$$" | "$$$" | "$$$$")[];
+  /** They asked for businesses they can book online. Absent from an older API. */
+  bookable?: boolean;
   /** What is left once the filters are taken out; becomes `q`. */
   keywords: string | null;
   /** Asked-for things that cannot be filtered on yet, in the query's language. */
@@ -224,6 +230,8 @@ export interface BusinessSearchParams {
   hours?: string[];
   /** "$" to "$$$$". Any of them. */
   price?: string[];
+  /** true: only businesses that can be booked (requests on the site, or the owner's own link). */
+  bookable?: boolean;
   /** A postal code or its start ("V6B"); spaces are ignored. */
   postal_code?: string;
   /** lat and lng must be supplied together; the API 422s otherwise. */
