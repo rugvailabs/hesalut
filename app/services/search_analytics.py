@@ -21,6 +21,7 @@ from typing import Callable
 from sqlalchemy import Date, case, cast, func, insert, select, update
 from sqlalchemy.orm import Session
 
+from app.models.booking_link_click import BookingLinkClick
 from app.models.business import Business
 from app.models.search_impression import SearchImpression
 from app.schemas.directory import BusinessListItem
@@ -197,6 +198,14 @@ def top_performers(db: Session, start: datetime, *, min_impressions: int = 20, l
         }
         for row in rows
     ]
+
+
+def booking_clicks(db: Session, business_id: int, start: datetime) -> int:
+    return db.scalar(
+        select(func.count())
+        .select_from(BookingLinkClick)
+        .where(BookingLinkClick.business_id == business_id, BookingLinkClick.created_at >= start)
+    ) or 0
 
 
 def business_performance(db: Session, business_id: int, start: datetime, days: int) -> dict:

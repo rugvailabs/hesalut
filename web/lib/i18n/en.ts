@@ -46,6 +46,8 @@ export const en = {
     call: "Call",
     directions: "Directions",
     website: "Website",
+    bookOnline: "Book online",
+    bookOnlineHint: "Opens the business’s own booking page in a new tab",
     verified: "Verified",
     verifiedHint: "Identity checked by our team",
     featured: "Featured",

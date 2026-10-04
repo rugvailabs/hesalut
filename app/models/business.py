@@ -122,6 +122,12 @@ class Business(Base):
     tags: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     # {"mon": [["09:00","17:00"]], ...}; a day absent or [] means closed.
     opening_hours: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Booking, phase 0: "none", or "external" with booking_url pointing at the
+    # owner's own tool (Square, Fresha...). Enforced together by a CHECK.
+    booking_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="none", server_default="none"
+    )
+    booking_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

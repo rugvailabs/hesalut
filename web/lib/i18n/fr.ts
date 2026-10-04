@@ -47,6 +47,8 @@ export const fr: Dictionary = {
     call: "Appeler",
     directions: "Itinéraire",
     website: "Site Web",
+    bookOnline: "Réserver en ligne",
+    bookOnlineHint: "Ouvre la page de réservation de l’entreprise dans un nouvel onglet",
     verified: "Vérifiée",
     verifiedHint: "Identité vérifiée par notre équipe",
     featured: "En vedette",

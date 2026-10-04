@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.deps import get_current_user_optional
+from app.core.rate_limit import rate_limit
 from app.models.support import SupportMessage
 from app.models.user import User
 from app.schemas.support import SupportMessageAccepted, SupportMessageCreate
@@ -63,7 +64,10 @@ def _notify(record: SupportMessage) -> None:
 
 
 @router.post(
-    "", response_model=SupportMessageAccepted, status_code=status.HTTP_201_CREATED
+    "",
+    response_model=SupportMessageAccepted,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("support", 5, 3600))],
 )
 def create_support_message(
     payload: SupportMessageCreate,

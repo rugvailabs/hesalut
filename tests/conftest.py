@@ -127,3 +127,13 @@ def clean_uploaded_objects():
 def unique_email() -> str:
     """A fresh email per test, so runs never collide on the unique index."""
     return f"test-{uuid.uuid4().hex[:12]}@example.ca"
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Counters are process-global; keep one test's requests from throttling the next."""
+    from app.core import rate_limit
+
+    rate_limit.reset()
+    yield
+    rate_limit.reset()

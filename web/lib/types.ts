@@ -345,6 +345,9 @@ export interface BusinessDetail extends BusinessOwnerItem {
   price_range: string | null;
   tags: string[] | null;
   opening_hours: Record<string, [string, string][]> | null;
+  /** "external" means booking_url is the owner's own booking page. */
+  booking_mode: BookingMode;
+  booking_url: string | null;
   owner_id: number | null;
   category_slug: string | null;
   category_name: string | null;
@@ -373,6 +376,8 @@ export interface BusinessCreate {
   price_range?: string | null;
   tags?: string[] | null;
   opening_hours?: Record<string, [string, string][]> | null;
+  booking_mode?: BookingMode;
+  booking_url?: string | null;
 }
 
 /** PATCH /businesses/{id} body. Omitted fields are left alone. */
@@ -879,6 +884,8 @@ export interface SearchAnalytics {
 }
 
 /** GET /businesses/{id}/search-performance */
+export type BookingMode = "none" | "external";
+
 export interface BusinessSearchPerformance {
   business_id: number;
   days: number;
@@ -887,6 +894,8 @@ export interface BusinessSearchPerformance {
   ctr: number;
   avg_position: number | null;
   clicks_by_action: Record<ClickAction, number>;
+  /** Presses of the external "Book online" button, from any page. */
+  booking_clicks: number;
   impressions_by_tier: Partial<Record<SubscriptionTier, number>>;
   daily: { day: string; impressions: number; clicks: number }[];
 }

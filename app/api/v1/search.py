@@ -16,11 +16,14 @@ import math
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import get_db
 from app.core.deps import get_current_user_optional, require_admin, require_owned_business
+from app.core.rate_limit import rate_limit
+from app.core.visibility import require_visible_business
+from app.models.booking_link_click import BookingLinkClick
 from app.models.business import Business
 from app.models.user import User
 from app.schemas.directory import BusinessSort, SearchResponse
@@ -113,7 +116,11 @@ def search_nearby(
     )
 
 
-@router.get("/search/understand", response_model=UnderstandResponse)
+@router.get(
+    "/search/understand",
+    response_model=UnderstandResponse,
+    dependencies=[Depends(rate_limit("understand", 30, 60))],
+)
 def understand_query(
     q: str = Query(min_length=1, max_length=300),
     lang: Literal["en", "fr"] = Query(default="en"),
@@ -144,6 +151,25 @@ def record_click(payload: ClickIn, db: Session = Depends(get_db)) -> ClickRecord
     return ClickRecorded(recorded=recorded)
 
 
+@router.post(
+    "/businesses/{business_id}/booking-clicks",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit("booking-click", 30, 3600))],
+)
+def record_booking_click(business_id: int, db: Session = Depends(get_db)) -> None:
+    """Someone pressed "Book online" on a listing's profile.
+
+    Public, and only for a publicly visible listing that actually has an
+    external booking link, so ids cannot be probed or the counter padded for
+    listings without the button. Rate-limited per client.
+    """
+    business = require_visible_business(db, business_id)
+    if business.booking_mode != "external":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+    db.add(BookingLinkClick(business_id=business.id))
+    db.commit()
+
+
 @router.get("/admin/search-analytics", response_model=SearchAnalytics)
 def admin_search_analytics(
     days: int = Query(default=30, ge=1, le=365),
@@ -166,8 +192,8 @@ def business_search_performance(
     db: Session = Depends(get_db),
 ) -> BusinessSearchPerformance:
     """How often the listing was shown in search, where, and how often chosen."""
+    start = search_analytics.since(days)
     return BusinessSearchPerformance(
-        **search_analytics.business_performance(
-            db, business.id, search_analytics.since(days), days
-        )
+        **search_analytics.business_performance(db, business.id, start, days),
+        booking_clicks=search_analytics.booking_clicks(db, business.id, start),
     )

@@ -8,7 +8,9 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from urllib.parse import urlsplit
+
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 from app.models.business import BusinessStatus
 from app.models.enquiry import EnquiryType
@@ -149,9 +151,30 @@ class BusinessDetail(BusinessOwnerItem):
     price_range: str | None
     tags: list[str] | None
     opening_hours: dict[str, Any] | None
+    # "none" or "external"; the link is only meaningful in external mode.
+    booking_mode: str = "none"
+    booking_url: str | None = None
     owner_id: int | None
     category_slug: str | None = None
     category_name: str | None = None
+
+
+BookingMode = Literal["none", "external"]
+
+
+def _check_booking_url(value: str | None) -> str | None:
+    """An https URL with a host, or None. Blank counts as unset.
+
+    https only: the link is rendered as a button on a public page, and a
+    javascript:, data: or plain-http target must never be reachable from it.
+    """
+    if value is None or not value.strip():
+        return None
+    value = value.strip()
+    parts = urlsplit(value)
+    if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+        raise ValueError("Booking link must be a full https:// address")
+    return value
 
 
 class BusinessCreate(BaseModel):
@@ -178,6 +201,10 @@ class BusinessCreate(BaseModel):
     price_range: str | None = Field(default=None, max_length=8)
     tags: list[str] | None = None
     opening_hours: dict[str, Any] | None = None
+    booking_mode: BookingMode = "none"
+    booking_url: str | None = Field(default=None, max_length=512)
+
+    _v_booking_url = field_validator("booking_url")(_check_booking_url)
 
 
 class BusinessUpdate(BaseModel):
@@ -199,8 +226,12 @@ class BusinessUpdate(BaseModel):
     price_range: str | None = Field(default=None, max_length=8)
     tags: list[str] | None = None
     opening_hours: dict[str, Any] | None = None
+    booking_mode: BookingMode | None = None
+    booking_url: str | None = Field(default=None, max_length=512)
     # The owner may pause a listing, but cannot change its moderation status.
     is_active: bool | None = None
+
+    _v_booking_url = field_validator("booking_url")(_check_booking_url)
 
 
 class EnquiryCreate(BaseModel):

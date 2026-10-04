@@ -22,7 +22,7 @@ import { FIELD, LABEL } from "@/components/ds/form";
 import { categoryName } from "@/lib/categories";
 import { tFor, type Locale } from "@/lib/i18n";
 import { hasGoogleMaps } from "@/lib/maps";
-import type { BusinessCreate, BusinessDetail, Category } from "@/lib/types";
+import type { BookingMode, BusinessCreate, BusinessDetail, Category } from "@/lib/types";
 
 type LocationPickerProps = {
   latitude: number | null;
@@ -103,6 +103,8 @@ export default function BusinessForm({
   const [whatsapp, setWhatsapp] = useState(listing?.whatsapp ?? "");
   const [email, setEmail] = useState(listing?.email ?? "");
   const [website, setWebsite] = useState(listing?.website ?? "");
+  const [bookingMode, setBookingMode] = useState<BookingMode>(listing?.booking_mode ?? "none");
+  const [bookingUrl, setBookingUrl] = useState(listing?.booking_url ?? "");
   const [address, setAddress] = useState(listing?.address ?? "");
   const [city, setCity] = useState(listing?.city ?? "Vancouver");
   const [province, setProvince] = useState(listing?.province ?? "BC");
@@ -160,6 +162,8 @@ export default function BusinessForm({
       whatsapp: whatsapp.trim() || null,
       email: email.trim() || null,
       website: website.trim() || null,
+      booking_mode: bookingMode,
+      booking_url: bookingMode === "external" ? bookingUrl.trim() || null : null,
       price_range: priceRange || null,
       tags: tags.length > 0 ? tags : null,
       opening_hours: Object.keys(hours).length > 0 ? hours : null,
@@ -314,6 +318,46 @@ export default function BusinessForm({
             />
           </label>
         </div>
+      </Card>
+
+      <Card className="space-y-4 p-4">
+        <h2 className="font-semibold text-ink">{t("dashboard.form.bookingTitle")}</h2>
+        <fieldset className="space-y-2">
+          <legend className="sr-only">{t("dashboard.form.bookingTitle")}</legend>
+          {(["none", "external"] as const).map((value) => (
+            <label key={value} className="flex items-start gap-2 text-body text-ink">
+              <input
+                type="radio"
+                name="booking_mode"
+                value={value}
+                checked={bookingMode === value}
+                onChange={() => setBookingMode(value)}
+                className="mt-1"
+              />
+              {value === "none"
+                ? t("dashboard.form.bookingNone")
+                : t("dashboard.form.bookingExternal")}
+            </label>
+          ))}
+        </fieldset>
+        {bookingMode === "external" ? (
+          <label className="block">
+            <span className={LABEL}>{t("dashboard.form.bookingUrl")}</span>
+            <input
+              type="url"
+              required
+              maxLength={512}
+              pattern="https://.*"
+              placeholder="https://book.example.com/your-business"
+              value={bookingUrl}
+              onChange={(e) => setBookingUrl(e.target.value)}
+              className={FIELD}
+            />
+            <span className="mt-1 block text-meta text-ink-muted">
+              {t("dashboard.form.bookingUrlHint")}
+            </span>
+          </label>
+        ) : null}
       </Card>
 
       <Card className="space-y-4 p-4">

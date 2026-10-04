@@ -176,6 +176,31 @@ async function tokenFromCookie(): Promise<string | undefined> {
 }
 
 /**
+ * Tell the API who the visitor is. The browser reaches the API through this
+ * server, so without this every visitor shares the server's address and the
+ * API's per-IP rate limits would throttle everyone together. The secret proves
+ * the header comes from us (see app/core/rate_limit.py). Only attached to
+ * calls that are rate limited - reading headers() opts a page out of static
+ * rendering, which ordinary GETs must keep.
+ */
+async function forwardClientIp(headers: Headers, method: string, path: string): Promise<void> {
+  const secret = process.env.INTERNAL_PROXY_SECRET;
+  if (!secret) return;
+  if (method === "GET" && !path.startsWith("/search/understand")) return;
+  try {
+    const { headers: requestHeaders } = await import("next/headers");
+    const h = requestHeaders();
+    const ip = h.get("x-real-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (ip) {
+      headers.set("X-Client-IP", ip);
+      headers.set("X-Proxy-Secret", secret);
+    }
+  } catch {
+    // Outside a request scope (build, scripts): no visitor to forward.
+  }
+}
+
+/**
  * Fetch `path` (e.g. "/login") against the API base URL.
  *
  * Resolves with the parsed JSON body on 2xx; throws {@link ApiError} on
@@ -197,6 +222,8 @@ export async function apiFetch<T>(
     const bearer = token ?? (await tokenFromCookie());
     if (bearer) finalHeaders.set("Authorization", `Bearer ${bearer}`);
   }
+
+  await forwardClientIp(finalHeaders, (rest.method ?? "GET").toUpperCase(), path);
 
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
@@ -1052,6 +1079,14 @@ export function recordSearchClick(payload: {
   return apiFetch<{ recorded: boolean }>("/search/clicks", {
     method: "POST",
     body: payload,
+    auth: false,
+  });
+}
+
+/** POST /businesses/{id}/booking-clicks - the "Book online" button was pressed. */
+export function recordBookingClick(businessId: number): Promise<void> {
+  return apiFetch<void>(`/businesses/${businessId}/booking-clicks`, {
+    method: "POST",
     auth: false,
   });
 }

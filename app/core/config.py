@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     #: skips its startup work, which is what lets the API run on a small host
     #: with no ClamAV, no workers, no Redis and no Whisper model.
     voice_pipeline_enabled: bool = True
+    #: Per-IP request limits on login, signup, enquiries, support and search.
+    rate_limit_enabled: bool = True
+    #: Shared with the web server (INTERNAL_PROXY_SECRET there). A request that
+    #: presents it may name the real visitor in X-Client-IP; without this the
+    #: API only ever sees the web server's address. Empty disables the header.
+    trusted_proxy_secret: str = ""
 
     # Malware scanning (ClamAV daemon).
     clamav_host: str = "clamav"

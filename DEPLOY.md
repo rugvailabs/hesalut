@@ -108,6 +108,7 @@ Keep `ENVIRONMENT` as `staging`: the test checkout (fake cards) refuses to run i
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional. Blank uses OpenStreetMap |
 | `NEXT_PUBLIC_GOOGLE_MAP_ID` | Optional |
 | `ALLOW_INDEXING` | **Leave unset.** The site stays out of search engines |
+| `INTERNAL_PROXY_SECRET` | A long random string, the same value as `TRUSTED_PROXY_SECRET` on the API. Without it every visitor shares Vercel's address and the API's per-IP rate limits (login, signup, enquiries) throttle everyone together |
 
 4. Deploy.
 

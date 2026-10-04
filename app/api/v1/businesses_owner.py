@@ -103,6 +103,14 @@ def get_business_by_slug(slug: str, db: Session = Depends(get_db)) -> BusinessDe
     return _detail(db, require_visible_business_by_slug(db, slug))
 
 
+def _require_booking_link(mode: str | None, url: str | None) -> None:
+    if mode == "external" and not url:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Add your booking link, or turn online booking off",
+        )
+
+
 @router.post("", response_model=BusinessDetail, status_code=status.HTTP_201_CREATED)
 def create_business(
     payload: BusinessCreate,
@@ -120,6 +128,10 @@ def create_business(
     data = payload.model_dump()
     # HttpUrl is not a str as far as SQLAlchemy is concerned.
     website = data.pop("website", None)
+
+    _require_booking_link(data.get("booking_mode"), data.get("booking_url"))
+    if data.get("booking_mode") != "external":
+        data["booking_url"] = None
 
     business = Business(
         **data,
@@ -175,6 +187,13 @@ def update_business(
 
     if "website" in updates and updates["website"] is not None:
         updates["website"] = str(updates["website"])
+
+    if "booking_mode" in updates or "booking_url" in updates:
+        mode = updates.get("booking_mode", business.booking_mode)
+        # Leaving "none" clears the link so a stale URL cannot linger.
+        url = None if mode == "none" else updates.get("booking_url", business.booking_url)
+        _require_booking_link(mode, url)
+        updates["booking_mode"], updates["booking_url"] = mode, url
 
     # Editing a live listing sends it back for re-approval, so an owner cannot
     # get something approved and then swap its content. Admins are exempt.

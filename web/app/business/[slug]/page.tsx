@@ -35,6 +35,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Globe, MapPin } from "lucide-react";
 
+import BookOnlineButton from "@/components/ds/BookOnlineButton";
 import BusinessHours from "@/components/ds/BusinessHours";
 import EnquiryPanel from "@/components/ds/EnquiryPanel";
 import RatingBreakdown from "@/components/ds/RatingBreakdown";
@@ -215,6 +216,15 @@ export default async function BusinessPage({
           ) : (
             <span className="text-meta text-ink-subtle">{t("business.noPhone")}</span>
           )}
+
+          {business.booking_mode === "external" && business.booking_url ? (
+            <BookOnlineButton
+              businessId={business.id}
+              href={business.booking_url}
+              label={t("business.bookOnline")}
+              hint={t("business.bookOnlineHint")}
+            />
+          ) : null}
 
           {business.website !== null ? (
             <Button asChild variant="secondary">
