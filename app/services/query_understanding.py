@@ -88,6 +88,13 @@ class SearchIntent(BaseModel):
     price_levels: list[Price] = Field(
         description="cheap/affordable/pas cher -> $ and $$; upscale/luxury -> $$$ and $$$$."
     )
+    bookable: bool = Field(
+        default=False,
+        description="True only when the user wants to book, reserve or make an "
+        "appointment online ('book online', 'can I book', 'réserver en ligne', "
+        "'prendre rendez-vous en ligne'). Not for wanting a trade or an appointment "
+        "in general, a specific time, or same-day availability.",
+    )
     keywords: str | None = Field(
         description="Only a specific business name, brand or product worth matching "
         "literally. Never a category word, a place, or a word already turned into a filter."
@@ -116,7 +123,15 @@ is not in the city list, do not invent a filter for it: add it to `unsupported`
 instead (for example "in Montreal").
 
 Never put a word into `keywords` that you already turned into a category, city, hours,
-rating or price filter. Most searches have no keywords.
+rating, price or bookable filter. Most searches have no keywords.
+
+Set `bookable` only when the user wants to book, reserve or make an appointment online
+("book online", "can I book", "réserver en ligne", "prendre rendez-vous en ligne"). It
+limits the results to businesses that take bookings on this site or through their own
+booking page. Wanting a trade, or an appointment in general, is not a bookable search;
+neither is asking for a particular time or same-day availability (that goes in
+`unsupported`, as below). Never put booking words ("book", "booking", "reserve",
+"appointment") into `keywords`.
 
 The directory currently has no data on languages spoken, appointment availability,
 insurance or payment methods accepted, or accessibility, so requests like those go in
@@ -275,6 +290,7 @@ def _validated(
         hours=list(dict.fromkeys(intent.hours)),
         rating_bands=BANDS_AT_LEAST.get(intent.min_rating, []),
         price_levels=list(dict.fromkeys(intent.price_levels)),
+        bookable=intent.bookable,
         keywords=keywords,
         unsupported=list(dict.fromkeys(unsupported)),
         summary=" ".join(intent.summary.split()),
@@ -291,6 +307,7 @@ def _is_empty(result: UnderstandResponse) -> bool:
         or result.hours
         or result.rating_bands
         or result.price_levels
+        or result.bookable
         or result.keywords
     )
 

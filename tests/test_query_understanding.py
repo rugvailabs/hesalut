@@ -193,3 +193,43 @@ def test_too_short_or_catalogue_failure_falls_back(monkeypatch):
     monkeypatch.setattr(qu, "_catalogue", broken)
     assert qu.understand(None, "leaky pipe").source == "keywords"
     assert calls == []
+
+
+# ----------------------------------------------------------------- bookable
+def test_a_request_to_book_online_becomes_the_bookable_filter(monkeypatch):
+    calls = model_returns(
+        monkeypatch,
+        intent(category_slugs=["dentists"], bookable=True, summary="Dentists you can book online"),
+    )
+    result = qu.understand(None, "dentist I can book online")
+    assert result.source == "ai" and result.category_slugs == ["dentists"]
+    assert result.bookable is True
+    assert result.keywords is None  # "book" must not also be searched as a word
+    # The model is told what bookable means, and not to leak booking words into keywords.
+    system = calls[0]["system"]
+    assert "`bookable`" in system and "same-day availability" in system and '"book"' in system
+
+
+def test_bookable_is_off_unless_the_model_asks_for_it(monkeypatch):
+    model_returns(monkeypatch, intent(category_slugs=["dentists"], summary="Dentists"))
+    assert qu.understand(None, "dentist appointment tomorrow morning").bookable is False
+
+
+def test_a_search_that_is_only_bookable_is_still_a_search(monkeypatch):
+    model_returns(monkeypatch, intent(bookable=True, summary="Businesses you can book online"))
+    result = qu.understand(None, "places I can book online")
+    assert result.source == "ai" and result.bookable is True  # not thrown away as "understood nothing"
+
+
+def test_the_fallback_and_the_name_shortcut_are_never_bookable(monkeypatch):
+    assert qu.fallback("book a plumber").bookable is False
+    assert qu.understand(None, "Plumbers").bookable is False  # answered without the model
+    model_returns(monkeypatch, error=llm.LLMUnavailable("no key"))
+    assert qu.understand(None, "plumber I can book online").bookable is False  # model down: keywords
+
+
+def test_the_response_shape_carries_the_flag():
+    from app.schemas.smart_search import UnderstandResponse
+
+    assert UnderstandResponse(source="keywords").bookable is False
+    assert UnderstandResponse(source="ai", bookable=True).model_dump()["bookable"] is True

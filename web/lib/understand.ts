@@ -45,6 +45,7 @@ export function keywordsOnly(q: string): SearchUnderstanding {
     hours: [],
     rating_bands: [],
     price_levels: [],
+    bookable: false,
     keywords: text || null,
     unsupported: [],
     summary: "",
@@ -80,6 +81,7 @@ export function sanitiseUnderstanding(raw: unknown, q: string): SearchUnderstand
     hours: oneOf(r.hours, HOURS_OPTIONS),
     rating_bands: oneOf(r.rating_bands, RATING_BANDS),
     price_levels: oneOf(r.price_levels, PRICE_LEVELS),
+    bookable: r.bookable === true,
     keywords: keywords ? keywords.slice(0, UNDERSTAND_MAX_LENGTH) : null,
     unsupported: strings(r.unsupported, 5),
     summary: typeof r.summary === "string" ? r.summary.trim().slice(0, 200) : "",
@@ -171,6 +173,7 @@ export function applyUnderstanding(
     ratings: answer.rating_bands,
     hours: answer.hours,
     prices: answer.price_levels,
+    bookable: answer.bookable === true,
     q: answer.keywords ?? "",
   });
   if (where.trim() !== "") selection = withSearch(selection, selection.q, where, known.cities);
@@ -183,7 +186,8 @@ export function applyUnderstanding(
     selection.categories.length > 0 ||
     selection.ratings.length > 0 ||
     selection.hours.length > 0 ||
-    selection.prices.length > 0;
+    selection.prices.length > 0 ||
+    selection.bookable;
   return found ? { selection, nearMe } : null;
 }
 

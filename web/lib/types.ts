@@ -266,6 +266,8 @@ export interface SearchUnderstanding {
   hours: ("open_now" | "weekends" | "evenings")[];
   rating_bands: ("5" | "4.5" | "4" | "3")[];
   price_levels: ("$" | "$$" | "$$$" | "$$$$")[];
+  /** They asked for businesses they can book online. Absent from an older API. */
+  bookable?: boolean;
   /** Leftover free text worth keyword-matching, else null. */
   keywords: string | null;
   /** Asked for but not filterable yet, in the query's language. */

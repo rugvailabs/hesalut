@@ -22,6 +22,8 @@ class UnderstandResponse(BaseModel):
     hours: list[Literal["open_now", "weekends", "evenings"]] = []
     rating_bands: list[Literal["5", "4.5", "4", "3"]] = []
     price_levels: list[Literal["$", "$$", "$$$", "$$$$"]] = []
+    #: The user asked for businesses they can book online (the "Bookable" filter).
+    bookable: bool = False
     keywords: str | None = None
     #: Things asked for that no filter can express yet, in the query's language.
     unsupported: list[str] = []
