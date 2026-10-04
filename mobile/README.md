@@ -40,6 +40,22 @@ Two things about the dev backend being plain HTTP: iOS needs
 traffic, which Expo Go allows but a standalone release build does not. Both stop
 mattering once the API is behind TLS.
 
+### Voice search needs a development build
+
+The microphone in the Search box uses `expo-speech-recognition`, a native
+module that Expo Go does not include. In Expo Go the button is simply hidden
+and typed search works as usual. To try voice search, build the app yourself:
+
+```bash
+npx expo run:android     # or: npx expo run:ios
+# or a dev build from EAS: eas build --profile development
+```
+
+Recognition runs on the phone's own recogniser and asks for on-device
+recognition wherever the OS supports it, in `fr-CA` or `en-CA` following the
+device language. The transcript goes through the same smart search as typed
+text (`GET /api/v1/search/understand`, then `/businesses/search`).
+
 ## What is shared with the web app
 
 - `src/lib/types.ts` is a byte-identical copy of `web/lib/types.ts`.

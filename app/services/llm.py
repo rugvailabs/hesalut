@@ -32,6 +32,7 @@ T = TypeVar("T", bound=BaseModel)
 #: Per-million-token prices for the configured model, used for cost logging.
 #: Update alongside settings.llm_model.
 _PRICING: dict[str, tuple[float, float]] = {
+    "claude-opus-5-5": (4.00, 20.00),
     "claude-opus-5": (5.00, 25.00),
     "claude-sonnet-5": (2.00, 10.00),
     "claude-haiku-4-5": (1.00, 5.00),
@@ -83,24 +84,23 @@ def get_client() -> "anthropic.Anthropic":
     )
 
 
-def _log_usage(label: str, response: Any, elapsed: float) -> None:
+def _log_usage(label: str, response: Any, elapsed: float, model: str) -> None:
     """Record tokens and estimated cost for every call."""
     usage = getattr(response, "usage", None)
     if usage is None:
         return
 
-    settings = get_settings()
     in_tok = getattr(usage, "input_tokens", 0) or 0
     out_tok = getattr(usage, "output_tokens", 0) or 0
     cached = getattr(usage, "cache_read_input_tokens", 0) or 0
 
-    in_price, out_price = _PRICING.get(settings.llm_model, (0.0, 0.0))
+    in_price, out_price = _PRICING.get(model, (0.0, 0.0))
     cost = (in_tok / 1_000_000 * in_price) + (out_tok / 1_000_000 * out_price)
 
     logger.info(
         "llm: %s model=%s in=%d out=%d cached=%d cost=$%.5f elapsed=%.2fs",
         label,
-        settings.llm_model,
+        model,
         in_tok,
         out_tok,
         cached,
@@ -117,6 +117,9 @@ def parse(
     output_format: type[T],
     max_tokens: int | None = None,
     effort: str | None = None,
+    model: str | None = None,
+    timeout: float | None = None,
+    max_retries: int | None = None,
 ) -> T:
     """Run one structured-output call and return the validated model.
 
@@ -131,6 +134,10 @@ def parse(
         output_format: Pydantic model the response must conform to.
         max_tokens: Override the configured default.
         effort: Override the configured reasoning effort.
+        model: Override the configured model (smart search runs its own).
+        timeout: Override the client timeout, in seconds - for callers a
+            person is waiting on.
+        max_retries: Override the client's retry count.
 
     Raises:
         LLMUnavailable: no credentials, or a request the model rejects outright.
@@ -139,12 +146,20 @@ def parse(
     import anthropic
 
     settings = get_settings()
+    model = model or settings.llm_model
     client = get_client()
+    overrides: dict[str, Any] = {}
+    if timeout is not None:
+        overrides["timeout"] = timeout
+    if max_retries is not None:
+        overrides["max_retries"] = max_retries
+    if overrides:
+        client = client.with_options(**overrides)
 
     started = time.perf_counter()
     try:
         response = client.messages.parse(
-            model=settings.llm_model,
+            model=model,
             max_tokens=max_tokens or settings.llm_max_tokens,
             thinking={"type": "adaptive"},
             output_config={"effort": effort or settings.llm_effort},
@@ -163,7 +178,7 @@ def parse(
     except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as exc:
         raise LLMUnavailable(f"Anthropic rejected our credentials: {exc}") from exc
     except anthropic.NotFoundError as exc:
-        raise LLMUnavailable(f"Model {settings.llm_model!r} is not available: {exc}") from exc
+        raise LLMUnavailable(f"Model {model!r} is not available: {exc}") from exc
     except anthropic.BadRequestError as exc:
         # A malformed request will be malformed again on retry.
         raise LLMUnavailable(f"Anthropic rejected the request: {exc}") from exc
@@ -177,7 +192,7 @@ def parse(
         raise LLMUnavailable(f"Anthropic error {exc.status_code}: {exc}") from exc
 
     elapsed = time.perf_counter() - started
-    _log_usage(label, response, elapsed)
+    _log_usage(label, response, elapsed, model)
 
     if response.stop_reason == "refusal":
         detail = getattr(response, "stop_details", None)

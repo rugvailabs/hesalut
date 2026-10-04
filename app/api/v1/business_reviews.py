@@ -30,28 +30,9 @@ from app.schemas.directory import (
     BusinessReviewSummary,
     OwnerReplyCreate,
 )
+from app.services.ratings import recalculate_rating
 
 router = APIRouter(prefix="/businesses", tags=["directory"])
-
-
-def _recalculate_rating(db: Session, business: Business) -> None:
-    """Refresh the denormalised rating/review_count on the listing.
-
-    The aggregate lives on businesses because search sorts and filters on it;
-    a correlated subquery per row would not survive a real catalogue. It is
-    recomputed here rather than incremented so it cannot drift.
-
-    A listing with no reviews goes back to NULL, not 0.0 - "unrated" and "rated
-    zero" are different, and ?min_rating must not match the former.
-    """
-    row = db.execute(
-        select(func.avg(BusinessReview.rating), func.count(BusinessReview.id)).where(
-            BusinessReview.business_id == business.id
-        )
-    ).one()
-    average, count = row[0], row[1] or 0
-    business.rating = round(float(average), 2) if average is not None else None
-    business.review_count = count
 
 
 def _to_out(review: BusinessReview) -> BusinessReviewOut:
@@ -169,7 +150,7 @@ def create_review(
             detail="You have already reviewed this listing",
         )
 
-    _recalculate_rating(db, business)
+    recalculate_rating(db, business)
     db.commit()
     db.refresh(review)
     return _to_out(review)

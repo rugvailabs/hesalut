@@ -57,6 +57,7 @@ import type {
   LoginRequest,
   AdminEnquiryPage,
   SearchResponse,
+  SearchUnderstanding,
   SupportMessageAccepted,
   SupportMessageCreate,
   SignupRequest,
@@ -363,6 +364,24 @@ export async function getBusinessBySlug(
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+/**
+ * GET /search/understand - free search text read as filters. Public. The
+ * backend answers `source: "keywords"` itself when its model fails; transport
+ * failures and timeouts still throw, and the caller falls back.
+ */
+export function understandSearch(
+  q: string,
+  lang: "en" | "fr",
+  signal?: AbortSignal,
+): Promise<SearchUnderstanding> {
+  const qs = new URLSearchParams({ q, lang });
+  return apiFetch<SearchUnderstanding>(`/search/understand?${qs.toString()}`, {
+    method: "GET",
+    auth: false,
+    signal,
+  });
 }
 
 /** GET /businesses/cities - cities with public listings, busiest first. */

@@ -48,7 +48,9 @@ x-app-base: &app-base
 
 services:
   postgres:
-    image: postgres:16
+    # The pgvector build of the same Postgres 16 - same data format, so the
+    # existing volume carries over. Smart search layer 2 stores embeddings in it.
+    image: pgvector/pgvector:pg16
     container_name: justforyou_postgres
     restart: unless-stopped
     environment:

@@ -13,6 +13,11 @@
  * overwrite the answer to the current one. Results scroll infinitely, with a
  * real "Load more" button beside the observer for keyboards and for browsers
  * where the sentinel never comes into view.
+ *
+ * A search smart search understood (lib/understand.ts) is announced above the
+ * results - "Showing: plumbers in Burnaby, open now" - with what it could not
+ * filter by and a way back to the exact words. The line goes once the
+ * visitor changes the filters it describes; the chips stay the way to edit.
  */
 
 import Link from "next/link";
@@ -31,6 +36,7 @@ import {
   RotateCcw,
   SearchX,
   SlidersHorizontal,
+  Sparkles,
   Star,
   X,
 } from "lucide-react";
@@ -50,9 +56,11 @@ import SearchBar, { type SearchSubmit } from "@/components/explore/SearchBar";
 import { useExplore } from "@/components/explore/state";
 import { useFavorites } from "@/components/explore/useFavorites";
 import { useLocate } from "@/components/explore/useLocate";
+import { useSmartSearch } from "@/components/explore/useSmartSearch";
 import { categoryName as localizedCategoryName } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import {
+  EMPTY_SELECTION,
   PRICE_LEVELS,
   RADII,
   SORTS,
@@ -60,7 +68,6 @@ import {
   fromPageQuery,
   toApiQuery,
   toPageQuery,
-  withSearch,
   type ExploreSelection,
   type ExploreSort,
   type RadiusFilter,
@@ -69,6 +76,7 @@ import {
 import { formatCount, formatPhone, telHref } from "@/lib/format";
 import { HISTORY_EVENT, isSaved, recordSearch, toggleSaved as toggleSavedSearch } from "@/lib/search-history";
 import { trackSearchClick } from "@/lib/track-search-click";
+import { smartKey } from "@/lib/understand";
 import type { BusinessListItem, Category, CityCount, SearchResponse } from "@/lib/types";
 
 const FETCH_DEBOUNCE_MS = 150;
@@ -110,7 +118,7 @@ export default function ResultsStep({
   cities: CityCount[];
 }): JSX.Element {
   const { t, locale, intl } = useExploreT();
-  const { selection, hydrated, toggle, set, setNear, setList, replace, reset } = useExplore();
+  const { selection, hydrated, smart, setSmart, toggle, set, setNear, setList, replace, reset } = useExplore();
   const { locate, locating, error: locateError } = useLocate();
 
   // ----------------------------------------------------------- URL sync
@@ -292,18 +300,56 @@ export default function ResultsStep({
   }, [hasNext, loadMore, more, status]);
 
   // ------------------------------------------------------------ search bar
-  const cityNames = useMemo(() => cities.map((c) => c.city), [cities]);
-  const onSearch = useCallback(
-    ({ q, where, nearMe }: SearchSubmit) => {
-      // A new search keeps the category and rating filters, replaces the
-      // words and the place.
-      replace(withSearch(selection, q, where, cityNames));
+  const known = useMemo(
+    () => ({ categories: categories.map((c) => c.slug), cities: cities.map((c) => c.city) }),
+    [categories, cities],
+  );
+  const {
+    search: smartSearch,
+    exactWords: searchExactWords,
+    cancel: cancelSmart,
+    cancelIfEdited,
+    pending: understanding,
+  } = useSmartSearch(known);
+
+  const apply = useCallback(
+    (next: ExploreSelection, nearMe: boolean) => {
+      replace(next);
       if (nearMe) locate();
     },
-    [cityNames, locate, replace, selection],
+    [locate, replace],
   );
 
-  const onLive = useCallback((q: string) => set({ q }), [set]);
+  // A plain word search keeps the category and rating filters, replaces the
+  // words and the place; an understood one replaces them all (useSmartSearch).
+  const onSearch = useCallback(
+    (submit: SearchSubmit) => smartSearch(submit, selection, apply),
+    [apply, selection, smartSearch],
+  );
+
+  const onLive = useCallback(
+    (q: string) => {
+      cancelIfEdited(q);
+      set({ q });
+    },
+    [cancelIfEdited, set],
+  );
+
+  // The "Showing: ..." line describes what was understood; once the filters
+  // it describes change, the chips and heading do that instead.
+  useEffect(() => {
+    if (hydrated && smart !== null && smartKey(selection) !== smart.key) setSmart(null);
+  }, [hydrated, selection, smart, setSmart]);
+
+  const exactWords = useCallback(() => {
+    if (smart === null) return;
+    searchExactWords(
+      smart.text,
+      smart.where,
+      { ...EMPTY_SELECTION, sort: selection.sort, radius: selection.radius },
+      apply,
+    );
+  }, [apply, selection.radius, selection.sort, smart, searchExactWords]);
 
   // ------------------------------------------------------------ favorites
   const favorites = useFavorites();
@@ -455,10 +501,20 @@ export default function ResultsStep({
         categories={categories}
         cities={cities}
         onSearch={onSearch}
-        onCategory={(slug) => setList("categories", [slug])}
-        onNearMe={() => locate()}
+        understanding={understanding !== null}
+        onCategory={(slug) => {
+          cancelSmart();
+          setList("categories", [slug]);
+        }}
+        onNearMe={() => {
+          cancelSmart();
+          locate();
+        }}
         onBusiness={(slug) => setPreview({ slug, distanceKm: null })}
-        onHistory={(query) => replace(fromPageQuery(new URLSearchParams(query)))}
+        onHistory={(query) => {
+          cancelSmart();
+          replace(fromPageQuery(new URLSearchParams(query)));
+        }}
         onLive={onLive}
       />
       </div>
@@ -803,6 +859,35 @@ export default function ResultsStep({
               </Button>
             </div>
           </div>
+
+          {smart !== null ? (
+            <div
+              role="region"
+              aria-label={t("smart.label")}
+              className="flex items-start gap-2 rounded-card border border-line bg-surface-muted px-3 py-2 text-meta text-ink-muted"
+            >
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-brand-700" aria-hidden="true" />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <p>
+                  <span className="text-ink">{t("smart.showing", { summary: smart.summary || heading })}</span>{" "}
+                  <Button variant="link" size="sm" className="h-auto p-0 text-meta" onClick={exactWords}>
+                    {t("smart.exact")}
+                  </Button>
+                </p>
+                {smart.unsupported.length > 0 ? (
+                  <p>{t("smart.unsupported", { list: smart.unsupported.join(", ") })}</p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSmart(null)}
+                aria-label={t("smart.dismiss")}
+                className="flex size-6 shrink-0 items-center justify-center rounded-pill text-ink-subtle hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
 
           {chips.length > 0 ? (
             <ul aria-label={t("results.active")} className="flex flex-wrap gap-2">

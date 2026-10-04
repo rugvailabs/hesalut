@@ -189,11 +189,43 @@ export interface SearchResponse {
   has_prev: boolean;
 }
 
+/**
+ * GET /api/v1/search/understand - plain-language text turned into filters.
+ *
+ * `source: "keywords"` means the model was unavailable and nothing was
+ * extracted: search the text exactly as typed and ignore the other fields.
+ */
+export interface SearchUnderstanding {
+  source: "ai" | "keywords";
+  category_slugs: string[];
+  cities: string[];
+  postal_code: string | null;
+  near_me: boolean;
+  hours: ("open_now" | "weekends" | "evenings")[];
+  rating_bands: ("5" | "4.5" | "4" | "3")[];
+  price_levels: ("$" | "$$" | "$$$" | "$$$$")[];
+  /** What is left once the filters are taken out; becomes `q`. */
+  keywords: string | null;
+  /** Asked-for things that cannot be filtered on yet, in the query's language. */
+  unsupported: string[];
+  /** Short description of the filters, e.g. "Plumbers in Burnaby, open now". */
+  summary: string;
+}
+
 /** Query parameters accepted by searchBusinesses(). */
 export interface BusinessSearchParams {
   q?: string;
-  category_slug?: string;
-  city?: string;
+  /** Several values mean any of them. */
+  category_slug?: string | string[];
+  city?: string | string[];
+  /** Rating bands: "5", "4.5" (4.5-4.99), "4" (4-4.49), "3" (3-3.99). Any of them. */
+  rating_band?: string[];
+  /** open_now, weekends, evenings. Every one given must hold. */
+  hours?: string[];
+  /** "$" to "$$$$". Any of them. */
+  price?: string[];
+  /** A postal code or its start ("V6B"); spaces are ignored. */
+  postal_code?: string;
   /** lat and lng must be supplied together; the API 422s otherwise. */
   lat?: number;
   lng?: number;

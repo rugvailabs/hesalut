@@ -55,6 +55,22 @@ const en = {
     postal: "Postal code {{postal}}",
     postalArea: "Everything in this area",
     postalPrefix: "Starting with this code",
+    understanding: "Understanding your search…",
+  },
+  voice: {
+    start: "Search by voice",
+    stop: "Stop listening",
+    listening: "Listening…",
+    denied: "Voice search needs permission to use your microphone. Allow it for this site and try again.",
+    noMic: "No microphone was found. Type your search instead.",
+    failed: "Voice search didn’t work. Try again, or type your search.",
+  },
+  smart: {
+    label: "How your search was understood",
+    showing: "Showing: {{summary}}",
+    unsupported: "We can’t filter by {{list}} yet.",
+    exact: "Search the exact words instead",
+    dismiss: "Dismiss",
   },
   filters: {
     toggle: "Filters",
@@ -270,6 +286,23 @@ const fr: ExploreResources & { results: { found_many: string; filtered_many: str
     postal: "Code postal {{postal}}",
     postalArea: "Tout ce secteur",
     postalPrefix: "Commençant par ce code",
+    understanding: "Analyse de votre recherche…",
+  },
+  voice: {
+    start: "Rechercher par la voix",
+    stop: "Arrêter l’écoute",
+    listening: "À l’écoute…",
+    denied:
+      "La recherche vocale a besoin d’accéder à votre microphone. Autorisez-le pour ce site et réessayez.",
+    noMic: "Aucun microphone détecté. Tapez plutôt votre recherche.",
+    failed: "La recherche vocale n’a pas fonctionné. Réessayez, ou tapez votre recherche.",
+  },
+  smart: {
+    label: "Comment votre recherche a été comprise",
+    showing: "Résultats : {{summary}}",
+    unsupported: "Pas encore de filtre pour : {{list}}.",
+    exact: "Chercher plutôt les mots exacts",
+    dismiss: "Fermer",
   },
   filters: {
     toggle: "Filtres",

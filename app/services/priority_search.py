@@ -29,14 +29,14 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Float, String, and_, asc, case, desc, func, null, or_, select, text
+from sqlalchemy import Float, String, and_, asc, case, desc, func, literal, null, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.core.visibility import join_verification, public_visibility_filters
 from app.models.business import Business
 from app.models.category import Category
 from app.schemas.directory import BusinessListItem, BusinessSort
-from app.services import placement
+from app.services import embeddings, placement
 
 EARTH_RADIUS_KM = 6371.0088
 
@@ -190,12 +190,18 @@ def apply_rotation_logic(spotlight: Any) -> list[Any]:
     return [asc(spotlight)]
 
 
-def sort_within_tier(r: Any, sort: BusinessSort, has_point: bool) -> list[Any]:
+def sort_within_tier(
+    r: Any, sort: BusinessSort, has_point: bool, by_meaning: bool = False
+) -> list[Any]:
     """ORDER BY terms inside a tier (spec: sortByRatingAndDistance).
 
     Relevance - the default, and what "near me" uses - is rating, then
     distance, then the oldest listing first, so equal listings keep a stable
     order. An explicit sort replaces it inside each tier.
+
+    `by_meaning`: the text search also matched listings by meaning
+    (app/services/embeddings.py). Under relevance, listings that contain the
+    words come first, then the closest meaning matches, then the usual order.
     """
     # NULLS LAST wherever rating is ordered on: in Postgres a DESC sort puts
     # NULLs first, which would lead the list with unrated listings.
@@ -215,7 +221,10 @@ def sort_within_tier(r: Any, sort: BusinessSort, has_point: bool) -> list[Any]:
     else:
         # Relevance, within a tier: best rated first, then the closest when the
         # search has a point, then the longest-listed.
-        order = [desc(r.rating).nulls_last()]
+        order = []
+        if by_meaning:
+            order = [desc(r.word_match), desc(r.meaning_score).nulls_last()]
+        order.append(desc(r.rating).nulls_last())
         if has_point:
             order.append(asc(r.distance_km))
         order.append(asc(r.created_at))
@@ -243,6 +252,11 @@ def get_nearby_services_with_priority(
     filters = list(public_visibility_filters())
 
     needle = _escape_like(q.strip()) if q else ""
+    # Smart search layer 2: listings close in meaning to the text, with their
+    # similarity. {} whenever semantic search is off or fails - then this is
+    # exactly the keyword search it always was.
+    meaning = embeddings.similar(db, q) if needle else {}
+    word_match: Any = literal(True)
     if needle:
         pattern = f"%{needle}%"
         matches = [
@@ -261,7 +275,8 @@ def get_nearby_services_with_priority(
                     f"{compact}%", escape="\\"
                 )
             )
-        filters.append(or_(*matches))
+        word_match = or_(*matches)
+        filters.append(or_(word_match, Business.id.in_(sorted(meaning))) if meaning else word_match)
 
     slugs = {s for s in (category_slug, *search.category_slugs) if s}
     if slugs:
@@ -347,6 +362,12 @@ def get_nearby_services_with_priority(
                 Category.name.label("category_name"),
                 (distance if has_point else null().cast(Float)).label("distance_km"),
                 tier.label("tier"),
+                word_match.label("word_match"),
+                (
+                    case(*((Business.id == bid, score) for bid, score in meaning.items()), else_=None)
+                    if meaning
+                    else null()
+                ).cast(Float).label("meaning_score"),
             ).join(Category, Category.id == Business.category_id)
         )
         .where(where)
@@ -383,7 +404,7 @@ def get_nearby_services_with_priority(
         else_=1,
     )
 
-    order = sort_within_tier(r, sort, has_point)
+    order = sort_within_tier(r, sort, has_point, by_meaning=bool(meaning))
 
     # Tier leads every sort; inside Monthly, this window's rotation leads.
     # Deterministic tiebreak last: without it, equal-ranked rows can repeat on

@@ -248,6 +248,28 @@ export interface Favorite {
   saved_at: string;
 }
 
+/**
+ * GET /api/v1/search/understand - plain-language search text turned into the
+ * filters the search endpoint takes. `source: "keywords"` means the model was
+ * unavailable: search the text as typed.
+ */
+export interface SearchUnderstanding {
+  source: "ai" | "keywords";
+  category_slugs: string[];
+  cities: string[];
+  postal_code: string | null;
+  near_me: boolean;
+  hours: ("open_now" | "weekends" | "evenings")[];
+  rating_bands: ("5" | "4.5" | "4" | "3")[];
+  price_levels: ("$" | "$$" | "$$$" | "$$$$")[];
+  /** Leftover free text worth keyword-matching, else null. */
+  keywords: string | null;
+  /** Asked for but not filterable yet, in the query's language. */
+  unsupported: string[];
+  /** Short description in the query's language. */
+  summary: string;
+}
+
 /** Query parameters accepted by searchBusinesses(). */
 export interface BusinessSearchParams {
   q?: string;

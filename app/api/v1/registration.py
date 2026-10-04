@@ -30,9 +30,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.v1.businesses_owner import _slugify, _unique_slug
 from app.core.audit import log_audit
@@ -61,7 +61,7 @@ from app.schemas.registration import (
     TermsAcceptance,
 )
 from app.schemas.subscription import PlanOut, SubscriptionOut
-from app.services import payment_gateway, sales_tax
+from app.services import embeddings, payment_gateway, sales_tax
 from app.services.mailer import send_email
 
 router = APIRouter(prefix="/registration", tags=["registration"])
@@ -570,6 +570,7 @@ def _selected_plan(db: Session, user: User) -> tuple[Plan, OrderSummary]:
 @router.post("/payment", response_model=RegistrationState)
 def pay_and_complete(
     payload: RegistrationPayment,
+    background: BackgroundTasks,
     user: User = Depends(_registering_owner),
     db: Session = Depends(get_db),
 ) -> RegistrationState:
@@ -612,12 +613,18 @@ def pay_and_complete(
 
     business, _subscription, payment = _complete(db, user, plan, order, charge)
     _send_completion_emails(user, business, plan, order, payment)
+    # Keep the listing findable by meaning (smart search layer 2); a no-op
+    # when semantic search is off.
+    background.add_task(
+        embeddings.sync_in_background, sessionmaker(bind=db.get_bind(), future=True), business.id
+    )
     return _state(db, user)
 
 
 @router.post("/complete", response_model=RegistrationState)
 def complete_free(
     payload: TermsAcceptance,
+    background: BackgroundTasks,
     user: User = Depends(_registering_owner),
     db: Session = Depends(get_db),
 ) -> RegistrationState:
@@ -632,4 +639,9 @@ def complete_free(
 
     business, _subscription, _payment = _complete(db, user, plan, order, None)
     _send_completion_emails(user, business, plan, order, None)
+    # Keep the listing findable by meaning (smart search layer 2); a no-op
+    # when semantic search is off.
+    background.add_task(
+        embeddings.sync_in_background, sessionmaker(bind=db.get_bind(), future=True), business.id
+    )
     return _state(db, user)

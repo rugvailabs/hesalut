@@ -15,9 +15,9 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import get_db
 from app.core.deps import (
@@ -35,6 +35,7 @@ from app.schemas.directory import (
     BusinessOwnerItem,
     BusinessUpdate,
 )
+from app.services import embeddings
 
 router = APIRouter(prefix="/businesses", tags=["directory"])
 
@@ -105,6 +106,7 @@ def get_business_by_slug(slug: str, db: Session = Depends(get_db)) -> BusinessDe
 @router.post("", response_model=BusinessDetail, status_code=status.HTTP_201_CREATED)
 def create_business(
     payload: BusinessCreate,
+    background: BackgroundTasks,
     current_user: User = Depends(require_business_owner),
     db: Session = Depends(get_db),
 ) -> BusinessDetail:
@@ -134,6 +136,11 @@ def create_business(
     db.add(business)
     db.commit()
     db.refresh(business)
+    # Keep the listing findable by meaning (smart search layer 2); a no-op
+    # when semantic search is off.
+    background.add_task(
+        embeddings.sync_in_background, sessionmaker(bind=db.get_bind(), future=True), business.id
+    )
     return _detail(db, business)
 
 
@@ -149,6 +156,7 @@ def get_my_business(
 @router.patch("/{business_id}", response_model=BusinessDetail)
 def update_business(
     payload: BusinessUpdate,
+    background: BackgroundTasks,
     business: Business = Depends(require_owned_business),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -184,4 +192,9 @@ def update_business(
 
     db.commit()
     db.refresh(business)
+    # Keep the listing findable by meaning (smart search layer 2); a no-op
+    # when semantic search is off.
+    background.add_task(
+        embeddings.sync_in_background, sessionmaker(bind=db.get_bind(), future=True), business.id
+    )
     return _detail(db, business)

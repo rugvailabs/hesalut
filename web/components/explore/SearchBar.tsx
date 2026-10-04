@@ -19,14 +19,21 @@
  * visitor pauses, not one per keystroke. With `onLive` (the results page),
  * the words typed also apply to the results after the same kind of pause;
  * otherwise nothing is searched until Enter or the button.
+ *
+ * A submission carries the What text as typed (`text`) as well as the words
+ * with "near me" taken out, so the page can hand it to smart search
+ * (components/explore/useSmartSearch.ts); `understanding` shows that running.
+ * Where the browser supports it, a microphone fills the What box by voice and
+ * submits it the same way (useVoiceSearch).
  */
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Bookmark, Building2, Hash, History, LocateFixed, Loader2, MapPin, Search, Trash2, X } from "lucide-react";
+import { Bookmark, Building2, Hash, History, LocateFixed, Loader2, MapPin, Mic, Search, Trash2, X } from "lucide-react";
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { Button } from "@/components/ds/primitives";
 import { useExploreT } from "@/components/explore/ExploreProviders";
+import { useVoiceSearch } from "@/components/explore/useVoiceSearch";
 import { categoryName, categoryNames, foldAccents } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import { looksLikePostal, normalisePostal } from "@/lib/explore";
@@ -52,9 +59,12 @@ interface Option {
 }
 
 export interface SearchSubmit {
+  /** The words, "near me" taken out. */
   q: string;
   where: string;
   nearMe: boolean;
+  /** The What box as typed or spoken - what smart search reads. */
+  text: string;
 }
 
 export default function SearchBar({
@@ -70,6 +80,7 @@ export default function SearchBar({
   onBusiness,
   onHistory,
   onLive,
+  understanding = false,
   size = "md",
 }: {
   q: string;
@@ -87,6 +98,8 @@ export default function SearchBar({
   onHistory: (query: string) => void;
   /** Apply the What words as they are typed (debounced). */
   onLive?: (q: string) => void;
+  /** Smart search is reading the submitted text. Typing stays open. */
+  understanding?: boolean;
   size?: "md" | "lg";
 }): JSX.Element {
   const { t, locale } = useExploreT();
@@ -156,10 +169,23 @@ export default function SearchBar({
     };
   }, [what]);
 
-  function submit(overrides: Partial<SearchSubmit> = {}): void {
-    const split = splitNearMe(what.trim() || undefined);
-    onSearch({ q: split.query ?? "", where: place.trim(), nearMe: split.nearMe, ...overrides });
+  function submit(overrides: Partial<SearchSubmit> = {}, text = what): void {
+    const split = splitNearMe(text.trim() || undefined);
+    onSearch({ q: split.query ?? "", where: place.trim(), nearMe: split.nearMe, text: text.trim(), ...overrides });
   }
+
+  // ------------------------------------------------------------ voice
+  const voice = useVoiceSearch(locale, (transcript) => {
+    setWhat(transcript);
+    submit({}, transcript);
+  });
+  const status = voice.listening
+    ? { text: t("voice.listening"), tone: "muted" as const }
+    : voice.error !== null
+      ? { text: t(voice.error), tone: "danger" as const }
+      : understanding
+        ? { text: t("search.understanding"), tone: "muted" as const }
+        : null;
 
   const whatOptions = useMemo<Option[]>(() => {
     const text = (splitNearMe(what.trim()).query ?? "").toLowerCase();
@@ -302,6 +328,26 @@ export default function SearchBar({
         onEnter={() => submit()}
         openOnFocus
         size={size}
+        action={
+          voice.supported ? (
+            <button
+              type="button"
+              aria-label={voice.listening ? t("voice.stop") : t("voice.start")}
+              aria-pressed={voice.listening}
+              title={voice.listening ? t("voice.stop") : t("voice.start")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={voice.toggle}
+              className={cn(
+                "flex size-7 items-center justify-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring",
+                voice.listening
+                  ? "bg-brand-50 text-brand-700 motion-safe:animate-pulse"
+                  : "text-ink-subtle hover:bg-surface hover:text-ink",
+              )}
+            >
+              <Mic className="size-4" aria-hidden="true" />
+            </button>
+          ) : undefined
+        }
       />
       <Combo
         label={t("search.where")}
@@ -328,9 +374,24 @@ export default function SearchBar({
         size={size}
       />
       <Button type="submit" size="lg" className={cn("w-full md:w-auto", size === "lg" && "h-12")}>
-        <Search aria-hidden="true" />
+        {understanding ? (
+          <Loader2 className="animate-spin" aria-hidden="true" />
+        ) : (
+          <Search aria-hidden="true" />
+        )}
         {t("search.submit")}
       </Button>
+      {/* Always in the tree, so screen readers hear it change; sr-only (out
+          of the grid's flow) while there is nothing to say. */}
+      <p
+        aria-live="polite"
+        className={cn(
+          "px-1 text-meta md:col-span-3",
+          status === null ? "sr-only" : status.tone === "danger" ? "text-danger" : "text-ink-muted",
+        )}
+      >
+        {status?.text ?? ""}
+      </p>
     </form>
   );
 }
@@ -346,6 +407,7 @@ function Combo({
   onEnter,
   openOnFocus = false,
   size,
+  action,
 }: {
   label: string;
   placeholder: string;
@@ -357,6 +419,8 @@ function Combo({
   onEnter: () => void;
   openOnFocus?: boolean;
   size: "md" | "lg";
+  /** A button beside the clear button, e.g. voice input. */
+  action?: React.ReactNode;
 }): JSX.Element {
   const { t } = useExploreT();
   const id = useId();
@@ -428,25 +492,29 @@ function Combo({
           }
         }}
         className={cn(
-          "w-full rounded-input border border-transparent bg-surface-muted pl-9 pr-9 text-body text-ink placeholder:text-ink-muted",
+          "w-full rounded-input border border-transparent bg-surface-muted pl-9 text-body text-ink placeholder:text-ink-muted",
+          action ? "pr-[4.5rem]" : "pr-9",
           "focus-visible:border-line-strong focus-visible:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           size === "lg" ? "h-12" : "h-11",
         )}
       />
-      {value !== "" ? (
-        <button
-          type="button"
-          aria-label={t("search.clear", { field: label })}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => {
-            onChange("");
-            inputRef.current?.focus();
-          }}
-          className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-pill text-ink-subtle hover:bg-surface hover:text-ink"
-        >
-          <X className="size-3.5" aria-hidden="true" />
-        </button>
-      ) : null}
+      <span className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+        {value !== "" ? (
+          <button
+            type="button"
+            aria-label={t("search.clear", { field: label })}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              onChange("");
+              inputRef.current?.focus();
+            }}
+            className="flex size-7 items-center justify-center rounded-pill text-ink-subtle hover:bg-surface hover:text-ink"
+          >
+            <X className="size-3.5" aria-hidden="true" />
+          </button>
+        ) : null}
+        {action}
+      </span>
 
       <ul
         id={listId}

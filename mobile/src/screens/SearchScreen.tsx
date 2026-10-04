@@ -10,9 +10,15 @@
  * denied once, denied forever, or granted while location services are switched
  * off at the OS level, and each of those needs different words. Falling back
  * silently to an unlocated search would be worse than saying what happened.
+ *
+ * Submitted text goes through /search/understand first, which turns "plumber
+ * in burnaby open now" into filters. The screen says what it understood and
+ * offers the exact words instead, because a guess the person cannot see or
+ * undo is worse than no guess. When the model is unavailable the endpoint
+ * answers `source: "keywords"` and the search runs exactly as typed.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -21,15 +27,25 @@ import Alert from "../components/Alert";
 import BusinessCard from "../components/BusinessCard";
 import Button from "../components/Button";
 import Field from "../components/Field";
+import VoiceSearchButton from "../components/VoiceSearchButton";
 import { Badge } from "../components/Badge";
 import { EmptyState, ErrorState, Loading } from "../components/States";
-import { searchBusinesses } from "../lib/api";
+import { searchBusinesses, understandSearch } from "../lib/api";
+import { deviceLanguage, speechLocale } from "../lib/locale";
 import { useAsync } from "../lib/useAsync";
 import { color, radius, space, type } from "../theme";
 import type { SearchStackParamList } from "../navigation/types";
-import type { BusinessSearchParams, BusinessSort, SearchResponse } from "../lib/types";
+import type {
+  BusinessSearchParams,
+  BusinessSort,
+  SearchResponse,
+  SearchUnderstanding,
+} from "../lib/types";
 
 type Props = NativeStackScreenProps<SearchStackParamList, "Search">;
+
+/** Read once: the device language does not change under a running screen. */
+const LANGUAGE = deviceLanguage();
 
 /** Same radius the web app's Near me uses, so both apps mean the same thing. */
 const NEAR_ME_RADIUS_KM = 25;
@@ -71,11 +87,37 @@ export default function SearchScreen({
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  // What /search/understand made of `submitted`; null means search it as typed.
+  const [understood, setUnderstood] = useState<SearchUnderstanding | null>(null);
+  // Starts true when Home handed over text, so the first search waits for it.
+  const [understanding, setUnderstanding] = useState(
+    (initial.q ?? "").trim() !== "",
+  );
+  const [listening, setListening] = useState(false);
+  const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
+  // Only the newest submission may apply its filters.
+  const understandRun = useRef(0);
+  // Set when "near me" came from the words rather than the button, so taking
+  // the exact words instead also takes the location back off.
+  const locatedFromText = useRef(false);
 
   const load = useCallback(async (): Promise<SearchResponse> => {
+    // Filters are not known yet. Park this run: the one that starts when they
+    // arrive supersedes it, and `loading` stays true in the meantime instead
+    // of flashing the previous results.
+    if (understanding) return new Promise<SearchResponse>(() => {});
+    const smart = understood;
     const params: BusinessSearchParams = {
-      q: submitted || undefined,
-      category_slug: categorySlug,
+      q: smart !== null ? (smart.keywords ?? undefined) : submitted || undefined,
+      category_slug:
+        smart !== null && smart.category_slugs.length > 0
+          ? smart.category_slugs
+          : categorySlug,
+      city: smart?.cities,
+      postal_code: smart?.postal_code ?? undefined,
+      hours: smart?.hours,
+      rating_band: smart?.rating_bands,
+      price: smart?.price_levels,
       min_rating: minRating,
       // The API 422s on sort=distance without a point, so the two move together.
       sort: point !== null ? "distance" : sort,
@@ -86,11 +128,11 @@ export default function SearchScreen({
       page_size: 20,
     };
     return searchBusinesses(params);
-  }, [submitted, categorySlug, minRating, sort, point, page]);
+  }, [understanding, understood, submitted, categorySlug, minRating, sort, point, page]);
 
   const { data, error, loading, refreshing, reload } = useAsync<SearchResponse>(
     load,
-    [submitted, categorySlug, minRating, sort, point, page],
+    [understanding, understood, submitted, categorySlug, minRating, sort, point, page],
   );
 
   /** Any change to the filters starts again at page 1. */
@@ -139,15 +181,79 @@ export default function SearchScreen({
 
   const clearLocation = useCallback(() => {
     setLocationError(null);
+    locatedFromText.current = false;
     resetTo(() => setPoint(null));
   }, [resetTo]);
 
-  // Home's "Near me" button opens this screen already asking for a fix.
+  /**
+   * Typed or spoken text: understand it, then search with what came back.
+   *
+   * Any failure of the understand call - network, a 5xx, a backend without the
+   * endpoint yet - lands in the same place as `source: "keywords"`: the words
+   * are searched as typed, which is what this screen always did.
+   */
+  const submitText = useCallback(
+    async (raw: string): Promise<void> => {
+      const text = raw.trim();
+      const run = ++understandRun.current;
+      setQuery(text);
+      setPage(1);
+      setSubmitted(text);
+      setUnderstood(null);
+      if (text === "") {
+        setUnderstanding(false);
+        return;
+      }
+      setUnderstanding(true);
+
+      let result: SearchUnderstanding | null = null;
+      try {
+        result = await understandSearch(text, LANGUAGE);
+      } catch {
+        result = null;
+      }
+      if (run !== understandRun.current) return;
+
+      const smart = result?.source === "ai" ? result : null;
+      // Get the fix before releasing the search, so "near me" runs once,
+      // located. A declined permission shows its own warning and the search
+      // goes ahead without a point.
+      if (smart?.near_me === true && point === null) {
+        await useMyLocation();
+        if (run !== understandRun.current) return;
+        locatedFromText.current = true;
+      }
+      // The words named a category, so one carried over from Home would only
+      // narrow the result to nothing.
+      if (smart !== null && smart.category_slugs.length > 0) {
+        setCategorySlug(undefined);
+      }
+      setUnderstood(smart);
+      setUnderstanding(false);
+    },
+    [point, useMyLocation],
+  );
+
+  /** Drop what was understood and search the words exactly as entered. */
+  const searchExactly = useCallback(() => {
+    ++understandRun.current;
+    setPage(1);
+    setUnderstood(null);
+    setUnderstanding(false);
+    if (locatedFromText.current) {
+      locatedFromText.current = false;
+      setPoint(null);
+    }
+  }, []);
+
+  // Home's "Near me" button opens this screen already asking for a fix, and
+  // text from Home's search box gets the same understanding as text typed here.
   useEffect(() => {
     if (initial.nearMe === true) void useMyLocation();
+    if ((initial.q ?? "").trim() !== "") void submitText(initial.q ?? "");
     // Only on the params that arrived with the navigation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial.nearMe]);
+  }, [initial.nearMe, initial.q]);
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -155,19 +261,39 @@ export default function SearchScreen({
   return (
     <View style={styles.screen}>
       <View style={styles.controls}>
-        <Field
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Plumbers, dentists, restaurants…"
-          returnKeyType="search"
-          autoCorrect={false}
-          onSubmitEditing={() => resetTo(() => setSubmitted(query.trim()))}
-          accessibilityLabel="Search listings"
-        />
+        <View style={styles.row}>
+          <Field
+            value={query}
+            onChangeText={setQuery}
+            placeholder={
+              listening ? "Listening… say what you need" : "Plumbers open now in Burnaby…"
+            }
+            returnKeyType="search"
+            autoCorrect={false}
+            // The recogniser writes here while listening; typing over it
+            // would be lost when the final transcript lands.
+            editable={!listening}
+            onSubmitEditing={() => void submitText(query)}
+            accessibilityLabel="Search listings"
+            containerStyle={styles.grow}
+          />
+          <VoiceSearchButton
+            lang={speechLocale(LANGUAGE)}
+            onPartial={setQuery}
+            onFinal={(text) => void submitText(text)}
+            onListeningChange={setListening}
+            onMessage={setVoiceMessage}
+          />
+        </View>
+
+        {voiceMessage !== null ? (
+          <Alert tone="warning">{voiceMessage}</Alert>
+        ) : null}
 
         <View style={styles.row}>
           <Button
-            onPress={() => resetTo(() => setSubmitted(query.trim()))}
+            busy={understanding}
+            onPress={() => void submitText(query)}
             style={styles.grow}
           >
             Search
@@ -190,6 +316,29 @@ export default function SearchScreen({
 
         {locationError !== null ? (
           <Alert tone="warning">{locationError}</Alert>
+        ) : null}
+
+        {understood !== null ? (
+          <View style={styles.understood} accessibilityLiveRegion="polite">
+            <Text style={styles.summary}>
+              Showing:{" "}
+              <Text style={styles.summaryStrong}>{understood.summary}</Text>
+            </Text>
+            {understood.unsupported.length > 0 ? (
+              <Text style={styles.unsupported}>
+                {`Can't filter by ${understood.unsupported.join(", ")} yet, so results may not match that part.`}
+              </Text>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={searchExactly}
+              style={styles.exact}
+              accessibilityLabel={`Clear this and search for ${submitted} exactly`}
+            >
+              {`✕ Search "${submitted}" exactly`}
+            </Button>
+          </View>
         ) : null}
 
         {/* Chips rather than the web's selects: a native picker for five
@@ -241,7 +390,9 @@ export default function SearchScreen({
         ) : null}
       </View>
 
-      {loading ? (
+      {understanding ? (
+        <Loading label="Understanding your search…" />
+      ) : loading ? (
         <Loading label="Searching…" />
       ) : error !== null ? (
         <ErrorState
@@ -280,7 +431,9 @@ export default function SearchScreen({
               body={
                 point !== null
                   ? `Nothing within ${NEAR_ME_RADIUS_KM} km. Try clearing the location, or a broader search.`
-                  : "Try a different term, or clear the filters."
+                  : understood !== null
+                    ? "Try searching the exact words instead, or a broader search."
+                    : "Try a different term, or clear the filters."
               }
             />
           }
@@ -347,6 +500,16 @@ const styles = StyleSheet.create({
     borderBottomColor: color.hairline,
   },
   row: { flexDirection: "row", gap: space.sm },
+  understood: {
+    gap: space.xs,
+    padding: space.md,
+    borderRadius: radius.md,
+    backgroundColor: color.wash,
+  },
+  summary: { fontSize: type.small.fontSize, color: color.muted },
+  summaryStrong: { color: color.ink, fontWeight: "600" },
+  unsupported: { fontSize: type.small.fontSize, color: color.subtle },
+  exact: { alignSelf: "flex-start", paddingHorizontal: 0 },
   grow: { flex: 1 },
   chipRow: { gap: space.sm, paddingVertical: 2 },
   chip: { borderRadius: radius.pill },
