@@ -58,11 +58,13 @@ import type {
   AdminEnquiryPage,
   SearchResponse,
   SearchUnderstanding,
+  AdminBookingPage,
   BookableService,
   Booking,
   BookingAction,
   BookingCreate,
   BookingInfo,
+  BookingStatus,
   ServiceInput,
   SupportMessageAccepted,
   SupportMessageCreate,
@@ -1183,4 +1185,20 @@ export function updateService(
 
 export function deleteService(businessId: number, serviceId: number): Promise<void> {
   return apiFetch<void>(`/businesses/${businessId}/services/${serviceId}`, { method: "DELETE" });
+}
+
+/** GET /admin/bookings - admin only; the server audit-logs every read. */
+export function getAdminBookings(options: {
+  status?: BookingStatus;
+  page?: number;
+  page_size?: number;
+} = {}): Promise<AdminBookingPage> {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(options)) {
+    if (value !== undefined) qs.set(key, String(value));
+  }
+  const suffix = qs.toString();
+  return apiFetch<AdminBookingPage>(`/admin/bookings${suffix ? `?${suffix}` : ""}`, {
+    method: "GET",
+  });
 }

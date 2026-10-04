@@ -1013,3 +1013,20 @@ export interface Booking {
 }
 
 export type BookingAction = "accept" | "decline" | "cancel" | "complete" | "no-show";
+
+/**
+ * GET /admin/bookings - one page for the admin. The customer's note and any
+ * cancellation reason the customer typed are removed by the server (`note` is
+ * always null here), so nothing in this shape can show them.
+ */
+export interface AdminBookingPage {
+  items: Booking[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  /** Bookings per status across what the other filters match. */
+  status_counts: Record<BookingStatus, number>;
+  businesses_taking_requests: number;
+  requests_last_30_days: number;
+}

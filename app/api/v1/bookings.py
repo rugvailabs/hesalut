@@ -42,6 +42,7 @@ from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.audit import log_audit
 from app.core.db import get_db
 from app.core.deps import get_current_user, require_admin, require_owned_business
 from app.core.rate_limit import rate_limit
@@ -67,6 +68,8 @@ from app.services import booking_notify, booking_rules, price_level
 router = APIRouter(tags=["bookings"])
 
 NOT_FOUND = "Booking not found"
+#: Most rows one CSV export holds; the audit log says when it was cut short.
+EXPORT_LIMIT = 20000
 
 
 # ---------------------------------------------------------------- helpers
@@ -694,23 +697,85 @@ def _admin_query(status_filter: str | None, business_id: int | None, q: str | No
     return query
 
 
+def _check_status(value: str | None) -> str | None:
+    if value and value not in {s.value for s in BookingStatus}:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown status")
+    return value or None
+
+
+def _admin_view(out: BookingOut) -> BookingOut:
+    """What an admin may read of a booking: no customer note, no customer-typed reason.
+
+    Both are free text the customer wrote to the business, and may mention
+    health or family matters. An admin investigating a complaint needs who,
+    what, when and the outcome, not that.
+    """
+    out.note = None
+    if out.cancelled_by == "customer":
+        out.cancel_reason = None
+    return out
+
+
 @router.get("/admin/bookings", response_model=AdminBookingPage)
 def admin_bookings(
     status_filter: str | None = Query(default=None, alias="status"),
     business_id: int | None = Query(default=None, gt=0),
     q: str | None = Query(default=None, max_length=100),
-    limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
-    _: User = Depends(require_admin),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminBookingPage:
+    """Every booking in the directory, newest first. Admin only; the read is audit-logged."""
+    status_filter = _check_status(status_filter)
     settle(db)
     query = _admin_query(status_filter, business_id, q)
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     rows = db.scalars(
-        query.order_by(Booking.created_at.desc(), Booking.id.desc()).limit(limit).offset(offset)
+        query.order_by(Booking.created_at.desc(), Booking.id.desc())
+        .limit(page_size)
+        .offset((page - 1) * page_size)
     ).all()
-    return AdminBookingPage(total=total, items=_outs(db, list(rows)))
+
+    # Group on the subquery's own column: naming Booking.status here would add
+    # the bookings table a second time and multiply every count.
+    matching = _admin_query(None, business_id, q).subquery()
+    by_status = dict(
+        db.execute(select(matching.c.status, func.count()).group_by(matching.c.status)).all()
+    )
+    status_counts = {s.value: by_status.get(s.value, 0) for s in BookingStatus}
+    taking = db.scalar(
+        select(func.count()).select_from(Business).where(Business.booking_mode == "request")
+    ) or 0
+    recent = db.scalar(
+        select(func.count()).select_from(Booking).where(Booking.created_at >= _now() - timedelta(days=30))
+    ) or 0
+
+    log_audit(
+        db,
+        actor=f"user:{admin.id}",
+        action="admin.bookings.list",
+        target_table="bookings",
+        # A listing is not one row, so there is no id to name.
+        target_id=0,
+        metadata={
+            "status": status_filter,
+            "business_id": business_id,
+            "q": bool(q and q.strip()),  # whether a search was used, not what was typed
+            "page": page,
+            "returned": len(rows),
+        },
+    )
+    return AdminBookingPage(
+        items=[_admin_view(o) for o in _outs(db, list(rows))],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=max(1, -(-total // page_size)),
+        status_counts=status_counts,
+        businesses_taking_requests=taking,
+        requests_last_30_days=recent,
+    )
 
 
 def _csv_cell(value: object) -> str:
@@ -724,14 +789,16 @@ def admin_bookings_csv(
     status_filter: str | None = Query(default=None, alias="status"),
     business_id: int | None = Query(default=None, gt=0),
     q: str | None = Query(default=None, max_length=100),
-    _: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> Response:
+    """The same list as a spreadsheet file. Admin only; the export is audit-logged."""
+    status_filter = _check_status(status_filter)
     settle(db)
     rows = db.scalars(
         _admin_query(status_filter, business_id, q)
         .order_by(Booking.created_at.desc(), Booking.id.desc())
-        .limit(20000)
+        .limit(EXPORT_LIMIT)
     ).all()
     names = {
         b.id: b.name
@@ -762,16 +829,32 @@ def admin_bookings_csv(
                 b.confirmed_start.isoformat() if b.confirmed_start else "",
                 b.confirmed_end.isoformat() if b.confirmed_end else "",
                 b.cancelled_by or "",
-                _csv_cell(b.cancel_reason),
+                # What the customer typed is left out (see _admin_view).
+                "" if b.cancelled_by == "customer" else _csv_cell(b.cancel_reason),
                 _csv_cell(b.decline_message),
             ]
         )
+    log_audit(
+        db,
+        actor=f"user:{admin.id}",
+        action="admin.bookings.export",
+        target_table="bookings",
+        target_id=0,
+        metadata={
+            "rows": len(rows),
+            "status": status_filter,
+            "business_id": business_id,
+            "q": bool(q and q.strip()),
+            "truncated": len(rows) == EXPORT_LIMIT,
+        },
+    )
+    stamp = _now().strftime("%Y%m%d-%H%M")
     return Response(
         # The byte-order mark makes Excel read the file as UTF-8; without it the
         # accents in French names and in customers' names show as garbage.
         content="\ufeff" + buffer.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="bookings.csv"'},
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="bookings-{stamp}.csv"'},
     )
 
 

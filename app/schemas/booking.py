@@ -166,5 +166,20 @@ class CancelIn(BaseModel):
 
 
 class AdminBookingPage(BaseModel):
-    total: int
+    """One page of the admin list, with what the pager and the usage line need.
+
+    The customer's note is never included here (it can hold health details),
+    nor is a cancellation reason the customer typed.
+    """
+
     items: list[BookingOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    # Bookings per status across everything the other filters match, so the
+    # status chips can show how many each would give.
+    status_counts: dict[str, int]
+    # How much booking is actually used.
+    businesses_taking_requests: int
+    requests_last_30_days: int
