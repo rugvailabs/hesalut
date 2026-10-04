@@ -23,6 +23,21 @@ from app.services.mailer import send_email
 logger = logging.getLogger(__name__)
 
 
+def service_label(booking: Booking) -> str:
+    """The service as the emails name it: English, with the French name beside it.
+
+    Accounts do not record a language, so rather than guess, an email carries
+    both - "Cleaning (Nettoyage)" - whenever the service has a French name that
+    differs from the English one, and just the name otherwise. The names are
+    the ones copied onto the booking when it was made.
+    """
+    name = booking.service_name
+    french = (booking.service_name_fr or "").strip()
+    if french and french.casefold() != name.strip().casefold():
+        return f"{name} ({french})"
+    return name
+
+
 def _one_line(value: str) -> str:
     """Header values cannot contain line breaks; names come from user input."""
     return " ".join(value.split())
@@ -75,7 +90,7 @@ def build_ics(booking: Booking, business: Business) -> bytes:
         f"DTSTAMP:{_utc_stamp(datetime.now(timezone.utc))}",
         f"DTSTART:{_utc_stamp(booking.confirmed_start)}",
         f"DTEND:{_utc_stamp(booking.confirmed_end)}",
-        f"SUMMARY:{_ics_escape(booking.service_name + ' - ' + business.name)}",
+        f"SUMMARY:{_ics_escape(service_label(booking) + ' - ' + business.name)}",
         f"LOCATION:{_ics_escape(location)}",
         "STATUS:CONFIRMED",
         "END:VEVENT",
@@ -121,7 +136,7 @@ def request_received(booking: Booking, business: Business) -> None:
         subject=_one_line(f"Booking request sent to {business.name}"),
         body=(
             f"Hi {booking.customer_name},\n\n"
-            f"Your request for {booking.service_name} at {business.name} has been sent. "
+            f"Your request for {service_label(booking)} at {business.name} has been sent. "
             "The business will confirm one of the times you suggested, or suggest another. "
             "If they do not reply within 48 hours the request expires.\n\n"
             f"Times you suggested:\n{_proposed_lines(booking, business)}\n\n"
@@ -133,9 +148,9 @@ def request_received(booking: Booking, business: Business) -> None:
         note = f"\nNote from the customer: {booking.note}\n" if booking.note else ""
         send_email(
             to=owner,
-            subject=_one_line(f"New booking request: {booking.service_name}"),
+            subject=_one_line(f"New booking request: {service_label(booking)}"),
             body=(
-                f"{booking.customer_name} asked to book {booking.service_name} at {business.name}.\n\n"
+                f"{booking.customer_name} asked to book {service_label(booking)} at {business.name}.\n\n"
                 f"Times they suggested:\n{_proposed_lines(booking, business)}\n{note}\n"
                 f"Reply within 48 hours: {_link(f'/dashboard/{business.id}/bookings')}\n"
             ),
@@ -147,10 +162,10 @@ def confirmed(booking: Booking, business: Business) -> None:
     assert booking.confirmed_start is not None
     send_email(
         to=booking.customer_email,
-        subject=_one_line(f"Booking confirmed: {booking.service_name} at {business.name}"),
+        subject=_one_line(f"Booking confirmed: {service_label(booking)} at {business.name}"),
         body=(
             f"Hi {booking.customer_name},\n\n"
-            f"{business.name} confirmed your booking for {booking.service_name}:\n\n"
+            f"{business.name} confirmed your booking for {service_label(booking)}:\n\n"
             f"  {when(booking.confirmed_start, business)}\n\n"
             "A calendar file is attached - open it to add the booking to your calendar.\n"
             + (f"\nCancellation policy: {business.cancellation_policy}\n" if business.cancellation_policy else "")
@@ -167,7 +182,7 @@ def declined(booking: Booking, business: Business) -> None:
         subject=_one_line(f"{business.name} could not take your booking request"),
         body=(
             f"Hi {booking.customer_name},\n\n"
-            f"{business.name} was not able to take your request for {booking.service_name}.\n"
+            f"{business.name} was not able to take your request for {service_label(booking)}.\n"
             + (f"\nTheir message: {booking.decline_message}\n" if booking.decline_message else "")
             + "\nYou can try another time or another business.\n"
         ),
@@ -185,15 +200,15 @@ def cancelled(booking: Booking, business: Business) -> None:
             subject=_one_line(f"Booking cancelled by {business.name}"),
             body=(
                 f"Hi {booking.customer_name},\n\n{business.name} cancelled your booking for "
-                f"{booking.service_name} on {start}.\n{reason}"
+                f"{service_label(booking)} on {start}.\n{reason}"
             ),
             reply_to=_owner_address(business),
         )
     else:
         send_email(
             to=booking.customer_email,
-            subject=_one_line(f"Booking cancelled: {booking.service_name} at {business.name}"),
-            body=f"Hi {booking.customer_name},\n\nYour booking for {booking.service_name} on {start} was cancelled.\n",
+            subject=_one_line(f"Booking cancelled: {service_label(booking)} at {business.name}"),
+            body=f"Hi {booking.customer_name},\n\nYour booking for {service_label(booking)} on {start} was cancelled.\n",
         )
         owner = _owner_address(business)
         if owner:
@@ -201,7 +216,7 @@ def cancelled(booking: Booking, business: Business) -> None:
                 to=owner,
                 subject=_one_line(f"Booking cancelled by {booking.customer_name}"),
                 body=(
-                    f"{booking.customer_name} cancelled their booking for {booking.service_name} "
+                    f"{booking.customer_name} cancelled their booking for {service_label(booking)} "
                     f"on {start}.\n{reason}"
                 ),
                 reply_to=booking.customer_email,
