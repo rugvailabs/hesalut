@@ -118,6 +118,11 @@ class Business(Base):
     # "$", "$$", "$$$", "$$$$" - free text rather than an enum so the scale can
     # change without a migration.
     price_range: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    # Who set price_range: "owner" (chosen, never overwritten) or "services"
+    # (derived from the listing's service prices - app/services/price_level.py).
+    price_range_source: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="services", server_default="services"
+    )
     # JSONB rather than a join table: tags are only ever read as a whole list
     # with the listing, never queried across listings.
     tags: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)

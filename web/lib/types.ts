@@ -343,6 +343,8 @@ export interface BusinessDetail extends BusinessOwnerItem {
   email: string | null;
   website: string | null;
   price_range: string | null;
+  /** "owner": chosen by the owner. "services": derived from service prices. */
+  price_range_source: "owner" | "services";
   tags: string[] | null;
   opening_hours: Record<string, [string, string][]> | null;
   /** "external" means booking_url is the owner's own booking page. */

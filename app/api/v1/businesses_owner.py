@@ -35,7 +35,7 @@ from app.schemas.directory import (
     BusinessOwnerItem,
     BusinessUpdate,
 )
-from app.services import embeddings
+from app.services import embeddings, price_level
 
 router = APIRouter(prefix="/businesses", tags=["directory"])
 
@@ -151,6 +151,10 @@ def create_business(
         )
 
     data = payload.model_dump()
+    # A level the owner typed is theirs; blank leaves it to be derived from
+    # services (there are none yet on a new listing, so it starts empty).
+    data["price_range"] = data.get("price_range") or None
+    data["price_range_source"] = "owner" if data["price_range"] else "services"
     # HttpUrl is not a str as far as SQLAlchemy is concerned.
     website = data.pop("website", None)
 
@@ -247,6 +251,15 @@ def update_business(
 
     for field, value in updates.items():
         setattr(business, field, value)
+
+    if "price_range" in updates:
+        if updates["price_range"]:
+            business.price_range_source = "owner"
+        else:
+            # Cleared: hand the level back to the service prices.
+            business.price_range = None
+            business.price_range_source = "services"
+            price_level.refresh_price_range(db, business)
 
     db.commit()
     db.refresh(business)

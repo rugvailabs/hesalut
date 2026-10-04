@@ -149,6 +149,8 @@ class BusinessDetail(BusinessOwnerItem):
     email: str | None
     website: str | None
     price_range: str | None
+    # "owner" or "services": whether price_range was chosen or derived.
+    price_range_source: str = "owner"
     tags: list[str] | None
     opening_hours: dict[str, Any] | None
     # "none" or "external"; the link is only meaningful in external mode.

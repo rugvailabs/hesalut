@@ -31,7 +31,7 @@ from app.core.db import SessionLocal
 from app.models.booking import BookableService
 from app.models.business import Business
 from app.models.category import Category
-from app.services import booking_rules
+from app.services import booking_rules, price_level
 from scripts.seed_directory import BUSINESSES, SEED_OWNED_SLUG
 
 DEFAULT_POLICY = (
@@ -160,6 +160,11 @@ def seed_booking(db: Session) -> Tuple[int, int, int]:
             switched += 1
 
     _backfill_french_names(db, slugs)
+    db.flush()
+    # Services now exist, so give each listing the level its prices imply
+    # (unless an owner chose one).
+    for business in db.scalars(select(Business).where(Business.slug.in_(slugs))).all():
+        price_level.refresh_price_range(db, business)
     db.flush()
     return services_created, switched, with_services
 

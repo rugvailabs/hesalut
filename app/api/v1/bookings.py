@@ -62,7 +62,7 @@ from app.schemas.booking import (
     ServiceOut,
     ServiceUpdate,
 )
-from app.services import booking_notify, booking_rules
+from app.services import booking_notify, booking_rules, price_level
 
 router = APIRouter(tags=["bookings"])
 
@@ -213,6 +213,8 @@ def create_service(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "A listing can have up to 50 services")
     service = BookableService(business_id=business.id, **payload.model_dump())
     db.add(service)
+    db.flush()
+    price_level.refresh_price_range(db, business)
     db.commit()
     db.refresh(service)
     return service
@@ -233,6 +235,8 @@ def update_service(
         if key in {"name", "duration_minutes", "is_active"} and value is None:
             continue  # required columns: an explicit null means "no change"
         setattr(service, key, value)
+    db.flush()
+    price_level.refresh_price_range(db, business)
     db.commit()
     db.refresh(service)
     return service
@@ -250,6 +254,8 @@ def delete_service(
     service = _service_or_404(db, business, service_id)
     _require_other_service_if_requests(db, business, leaving=service)
     service.is_active = False
+    db.flush()
+    price_level.refresh_price_range(db, business)
     db.commit()
 
 

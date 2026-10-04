@@ -113,6 +113,8 @@ export default function BusinessForm({
   const [province, setProvince] = useState(listing?.province ?? "BC");
   const [postalCode, setPostalCode] = useState(listing?.postal_code ?? "");
   const [priceRange, setPriceRange] = useState(listing?.price_range ?? "");
+  // The shown level came from service prices, not from the owner.
+  const derivedPrice = listing?.price_range_source === "services" && !!listing.price_range;
   const [latitude, setLatitude] = useState<number | null>(listing?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(
     listing?.longitude ?? null,
@@ -178,7 +180,11 @@ export default function BusinessForm({
               : 24,
           }
         : {}),
-      price_range: priceRange || null,
+      // A level that is still the one derived from the service prices is sent
+      // as null, so it keeps following them. Picking a different level, or
+      // one on a listing that never derived, is the owner choosing it.
+      price_range:
+        priceRange && !(derivedPrice && priceRange === listing?.price_range) ? priceRange : null,
       tags: tags.length > 0 ? tags : null,
       opening_hours: Object.keys(hours).length > 0 ? hours : null,
     };
@@ -277,6 +283,11 @@ export default function BusinessForm({
               </option>
             ))}
           </select>
+          {derivedPrice && priceRange === listing?.price_range ? (
+            <span className="mt-1 block text-meta text-ink-subtle">
+              {t("dashboard.form.priceFromServices")}
+            </span>
+          ) : null}
         </label>
       </Card>
 
