@@ -437,3 +437,42 @@ def test_admin_list_and_csv_neutralises_formulas(client, shop, db_factory):
     assert csv_text.headers["content-type"].startswith("text/csv")
     assert "'=HYPERLINK" in csv_text.text and ",=HYPERLINK" not in csv_text.text
     assert client.get("/api/v1/admin/bookings.csv").status_code == 401
+
+
+def test_csv_has_the_french_service_name_and_excel_friendly_encoding(client, shop, db_factory):
+    client.patch(
+        f"/api/v1/businesses/{shop['bid']}/services/{shop['service_id']}",
+        headers=shop["owner"], json={"name_fr": "Nettoyage d\u2019\u00e9t\u00e9"},
+    )
+    cust, _ = _user(client)
+    _book(client, shop, cust)
+    admin, admin_email = _user(client)
+    with db_factory() as db:
+        db.execute(update(User).where(User.email == admin_email).values(is_admin=True))
+        db.commit()
+    response = client.get("/api/v1/admin/bookings.csv", headers=admin)
+    assert response.content.startswith(b"\xef\xbb\xbf")  # UTF-8 byte-order mark, so Excel shows the accents
+    import csv
+    import io
+
+    rows = list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
+    header = rows[0]
+    assert header[header.index("service") + 1] == "service_fr"
+    mine = [r for r in rows[1:] if r[header.index("service")] == "Cleaning"]
+    assert mine and mine[0][header.index("service_fr")] == "Nettoyage d\u2019\u00e9t\u00e9"
+    assert all(len(r) == len(header) for r in rows)  # no row slipped out of line
+
+
+def test_csv_neutralises_formulas_in_the_french_name_too(client, shop, db_factory):
+    client.patch(
+        f"/api/v1/businesses/{shop['bid']}/services/{shop['service_id']}",
+        headers=shop["owner"], json={"name_fr": "=1+1"},
+    )
+    cust, _ = _user(client)
+    _book(client, shop, cust)
+    admin, admin_email = _user(client)
+    with db_factory() as db:
+        db.execute(update(User).where(User.email == admin_email).values(is_admin=True))
+        db.commit()
+    text = client.get("/api/v1/admin/bookings.csv", headers=admin).content.decode("utf-8-sig")
+    assert "'=1+1" in text and ",=1+1" not in text

@@ -740,7 +740,7 @@ def admin_bookings_csv(
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(
-        ["id", "created_at_utc", "status", "business_id", "business", "service", "duration_min",
+        ["id", "created_at_utc", "status", "business_id", "business", "service", "service_fr", "duration_min",
          "price", "customer", "email", "phone", "confirmed_start_utc", "confirmed_end_utc",
          "cancelled_by", "cancel_reason", "decline_message"]
     )
@@ -753,6 +753,7 @@ def admin_bookings_csv(
                 b.business_id,
                 _csv_cell(names.get(b.business_id)),
                 _csv_cell(b.service_name),
+                _csv_cell(b.service_name_fr),
                 b.duration_minutes,
                 "" if b.price_cents is None else f"{b.price_cents / 100:.2f}",
                 _csv_cell(b.customer_name),
@@ -766,7 +767,9 @@ def admin_bookings_csv(
             ]
         )
     return Response(
-        content=buffer.getvalue(),
+        # The byte-order mark makes Excel read the file as UTF-8; without it the
+        # accents in French names and in customers' names show as garbage.
+        content="\ufeff" + buffer.getvalue(),
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="bookings.csv"'},
     )
