@@ -154,12 +154,25 @@ class BusinessDetail(BusinessOwnerItem):
     # "none" or "external"; the link is only meaningful in external mode.
     booking_mode: str = "none"
     booking_url: str | None = None
+    timezone: str | None = None
+    cancellation_policy: str | None = None
+    cancellation_window_hours: int = 24
     owner_id: int | None
     category_slug: str | None = None
     category_name: str | None = None
 
 
-BookingMode = Literal["none", "external"]
+BookingMode = Literal["none", "external", "request"]
+
+
+def _check_timezone(value: str | None) -> str | None:
+    if value is None or not value.strip():
+        return None
+    from app.services.booking_rules import is_valid_zone
+
+    if not is_valid_zone(value.strip()):
+        raise ValueError("Unknown time zone, for example America/Vancouver")
+    return value.strip()
 
 
 def _check_booking_url(value: str | None) -> str | None:
@@ -203,8 +216,12 @@ class BusinessCreate(BaseModel):
     opening_hours: dict[str, Any] | None = None
     booking_mode: BookingMode = "none"
     booking_url: str | None = Field(default=None, max_length=512)
+    timezone: str | None = Field(default=None, max_length=64)
+    cancellation_policy: str | None = Field(default=None, max_length=1000)
+    cancellation_window_hours: int = Field(default=24, ge=0, le=720)
 
     _v_booking_url = field_validator("booking_url")(_check_booking_url)
+    _v_timezone = field_validator("timezone")(_check_timezone)
 
 
 class BusinessUpdate(BaseModel):
@@ -228,10 +245,14 @@ class BusinessUpdate(BaseModel):
     opening_hours: dict[str, Any] | None = None
     booking_mode: BookingMode | None = None
     booking_url: str | None = Field(default=None, max_length=512)
+    timezone: str | None = Field(default=None, max_length=64)
+    cancellation_policy: str | None = Field(default=None, max_length=1000)
+    cancellation_window_hours: int | None = Field(default=None, ge=0, le=720)
     # The owner may pause a listing, but cannot change its moderation status.
     is_active: bool | None = None
 
     _v_booking_url = field_validator("booking_url")(_check_booking_url)
+    _v_timezone = field_validator("timezone")(_check_timezone)
 
 
 class EnquiryCreate(BaseModel):

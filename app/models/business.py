@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     func,
@@ -128,6 +129,14 @@ class Business(Base):
         String(16), nullable=False, default="none", server_default="none"
     )
     booking_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # IANA name, e.g. "America/Vancouver". NULL means "the province's usual
+    # zone" (app/services/booking_rules.py); owners in split-zone provinces set it.
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    cancellation_policy: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    # Cancelling inside this many hours of the start shows the policy first.
+    cancellation_window_hours: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=24, server_default="24"
+    )
     verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

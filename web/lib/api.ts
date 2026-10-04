@@ -58,6 +58,12 @@ import type {
   AdminEnquiryPage,
   SearchResponse,
   SearchUnderstanding,
+  BookableService,
+  Booking,
+  BookingAction,
+  BookingCreate,
+  BookingInfo,
+  ServiceInput,
   SupportMessageAccepted,
   SupportMessageCreate,
   SignupRequest,
@@ -1105,4 +1111,71 @@ export function getBusinessSearchPerformance(
     `/businesses/${businessId}/search-performance?days=${days}`,
     { method: "GET" },
   );
+}
+
+/* ---------------------------------------------------------------- booking */
+
+/** GET /businesses/{id}/booking-info - public; 404 when the business takes no requests. */
+export function getBookingInfo(businessId: number): Promise<BookingInfo> {
+  return apiFetch<BookingInfo>(`/businesses/${businessId}/booking-info`, {
+    method: "GET",
+    auth: false,
+  });
+}
+
+/** POST /bookings - a signed-in customer asks for a service. */
+export function createBooking(body: BookingCreate): Promise<Booking> {
+  return apiFetch<Booking>("/bookings", { method: "POST", body });
+}
+
+/** GET /bookings/mine */
+export function getMyBookings(): Promise<Booking[]> {
+  return apiFetch<Booking[]>("/bookings/mine", { method: "GET" });
+}
+
+/** POST /bookings/{id}/cancel - withdraw a request or cancel a confirmed booking. */
+export function cancelMyBooking(bookingId: number, reason: string | null): Promise<Booking> {
+  return apiFetch<Booking>(`/bookings/${bookingId}/cancel`, { method: "POST", body: { reason } });
+}
+
+/** GET /businesses/{id}/bookings - owner, pending first. */
+export function getOwnerBookings(businessId: number): Promise<Booking[]> {
+  return apiFetch<Booking[]>(`/businesses/${businessId}/bookings`, { method: "GET" });
+}
+
+/** POST /businesses/{id}/bookings/{bid}/{action} - accept, decline, cancel, complete, no-show. */
+export function actOnBooking(
+  businessId: number,
+  bookingId: number,
+  action: BookingAction,
+  body: unknown,
+): Promise<Booking> {
+  return apiFetch<Booking>(`/businesses/${businessId}/bookings/${bookingId}/${action}`, {
+    method: "POST",
+    body: body ?? {},
+  });
+}
+
+/** GET /businesses/{id}/services - owner, including ones no longer offered. */
+export function getServices(businessId: number): Promise<BookableService[]> {
+  return apiFetch<BookableService[]>(`/businesses/${businessId}/services`, { method: "GET" });
+}
+
+export function createService(businessId: number, body: ServiceInput): Promise<BookableService> {
+  return apiFetch<BookableService>(`/businesses/${businessId}/services`, { method: "POST", body });
+}
+
+export function updateService(
+  businessId: number,
+  serviceId: number,
+  body: Partial<ServiceInput> & { is_active?: boolean },
+): Promise<BookableService> {
+  return apiFetch<BookableService>(`/businesses/${businessId}/services/${serviceId}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export function deleteService(businessId: number, serviceId: number): Promise<void> {
+  return apiFetch<void>(`/businesses/${businessId}/services/${serviceId}`, { method: "DELETE" });
 }

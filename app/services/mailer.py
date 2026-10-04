@@ -20,9 +20,18 @@ SMTP_TIMEOUT_SECONDS = 15
 
 
 def send_email(
-    *, to: str, subject: str, body: str, reply_to: str | None = None
+    *,
+    to: str,
+    subject: str,
+    body: str,
+    reply_to: str | None = None,
+    attachments: list[tuple[str, str, bytes]] | None = None,
 ) -> bool:
-    """Send a plain-text email. Returns False, and logs, if it could not."""
+    """Send a plain-text email. Returns False, and logs, if it could not.
+
+    `attachments` are (filename, "type/subtype", content) triples - used for
+    the calendar file on a booking confirmation.
+    """
     settings = get_settings()
 
     message = EmailMessage()
@@ -32,6 +41,9 @@ def send_email(
     if reply_to:
         message["Reply-To"] = reply_to
     message.set_content(body)
+    for filename, content_type, data in attachments or []:
+        maintype, _, subtype = content_type.partition("/")
+        message.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
 
     try:
         with smtplib.SMTP(

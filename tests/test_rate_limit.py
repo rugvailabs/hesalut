@@ -5,7 +5,7 @@ from __future__ import annotations
 
 def _login(client, ip="203.0.113.7"):
     return client.post(
-        "/login",
+        "/api/v1/login",
         json={"email": "nobody@example.com", "password": "wrong-password"},
         headers={"x-forwarded-for": ip},
     )
@@ -48,7 +48,7 @@ def test_trusted_proxy_can_name_the_visitor(client, monkeypatch):
 
     def login_as(visitor, secret="s3cret"):
         return client.post(
-            "/login",
+            "/api/v1/login",
             json={"email": "nobody@example.com", "password": "wrong-password"},
             headers={"x-forwarded-for": "76.76.21.1", "x-client-ip": visitor, "x-proxy-secret": secret},
         )

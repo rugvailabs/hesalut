@@ -111,6 +111,31 @@ def _require_booking_link(mode: str | None, url: str | None) -> None:
         )
 
 
+def _require_request_ready(db: Session, business: Business) -> None:
+    """Booking requests need a category that books and at least one service."""
+    from app.models.booking import BookableService
+    from app.services import booking_rules
+    from sqlalchemy import func
+
+    slug = db.scalar(select(Category.slug).where(Category.id == business.category_id))
+    if booking_rules.style_for(slug) is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Booking requests are not available for this category yet. "
+            "Use a link to your own booking page instead.",
+        )
+    active = db.scalar(
+        select(func.count())
+        .select_from(BookableService)
+        .where(BookableService.business_id == business.id, BookableService.is_active.is_(True))
+    )
+    if not active:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Add at least one service before turning on booking requests",
+        )
+
+
 @router.post("", response_model=BusinessDetail, status_code=status.HTTP_201_CREATED)
 def create_business(
     payload: BusinessCreate,
@@ -129,6 +154,12 @@ def create_business(
     # HttpUrl is not a str as far as SQLAlchemy is concerned.
     website = data.pop("website", None)
 
+    if data.get("booking_mode") == "request":
+        # A brand-new listing has no services yet; add them, then switch on.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Create the listing and add a service before turning on booking requests",
+        )
     _require_booking_link(data.get("booking_mode"), data.get("booking_url"))
     if data.get("booking_mode") != "external":
         data["booking_url"] = None
@@ -193,12 +224,20 @@ def update_business(
         # Leaving "none" clears the link so a stale URL cannot linger.
         url = None if mode == "none" else updates.get("booking_url", business.booking_url)
         _require_booking_link(mode, url)
-        updates["booking_mode"], updates["booking_url"] = mode, url
+        if mode == "request" and business.booking_mode != "request":
+            _require_request_ready(db, business)
+        updates["booking_mode"], updates["booking_url"] = mode, (url if mode == "external" else None)
 
     # Editing a live listing sends it back for re-approval, so an owner cannot
     # get something approved and then swap its content. Admins are exempt.
     is_admin = current_user.is_admin or current_user.role is UserRole.admin
-    content_fields = set(updates) - {"is_active"}
+    # Switching booking on or off, and the time zone and cancellation window,
+    # say nothing a visitor could be misled by, so they do not unlist the
+    # listing. An external link and the public policy text still do.
+    not_content = {"is_active", "timezone", "cancellation_window_hours"}
+    if updates.get("booking_mode") != "external":
+        not_content |= {"booking_mode", "booking_url"}
+    content_fields = set(updates) - not_content
     if (
         content_fields
         and business.status is BusinessStatus.approved

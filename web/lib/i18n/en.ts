@@ -15,6 +15,7 @@ import { pagesEn } from "@/lib/i18n/sections/pages";
 import { discoverEn } from "@/lib/i18n/sections/discover";
 import { dashboardEn } from "@/lib/i18n/sections/dashboard";
 import { adminEn } from "@/lib/i18n/sections/admin";
+import { bookingEn } from "@/lib/i18n/sections/booking";
 import type { Translated } from "@/lib/i18n/types";
 
 export const en = {
@@ -155,6 +156,7 @@ export const en = {
   discover: discoverEn,
   dashboard: dashboardEn,
   admin: adminEn,
+  booking: bookingEn,
 } as const;
 
 export type Dictionary = Translated<typeof en>;

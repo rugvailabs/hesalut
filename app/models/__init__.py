@@ -7,6 +7,7 @@ model file must be added to this module.
 from app.models.audit_log import AuditLog
 from app.models.base import Base
 from app.models.business import Business, BusinessStatus
+from app.models.booking import BookableService, Booking, BookingProposedTime, BookingStatus
 from app.models.booking_link_click import BookingLinkClick
 from app.models.business_review import BusinessReview
 from app.models.category import Category
@@ -41,6 +42,10 @@ __all__ = [
     "Base",
     "Business",
     "BookingLinkClick",
+    "BookableService",
+    "Booking",
+    "BookingProposedTime",
+    "BookingStatus",
     "BusinessStatus",
     "BusinessReview",
     "BusinessVerification",

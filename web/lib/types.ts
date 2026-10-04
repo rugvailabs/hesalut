@@ -348,6 +348,10 @@ export interface BusinessDetail extends BusinessOwnerItem {
   /** "external" means booking_url is the owner's own booking page. */
   booking_mode: BookingMode;
   booking_url: string | null;
+  /** IANA name; null means the usual zone for the province. */
+  timezone: string | null;
+  cancellation_policy: string | null;
+  cancellation_window_hours: number;
   owner_id: number | null;
   category_slug: string | null;
   category_name: string | null;
@@ -378,6 +382,9 @@ export interface BusinessCreate {
   opening_hours?: Record<string, [string, string][]> | null;
   booking_mode?: BookingMode;
   booking_url?: string | null;
+  timezone?: string | null;
+  cancellation_policy?: string | null;
+  cancellation_window_hours?: number;
 }
 
 /** PATCH /businesses/{id} body. Omitted fields are left alone. */
@@ -884,7 +891,7 @@ export interface SearchAnalytics {
 }
 
 /** GET /businesses/{id}/search-performance */
-export type BookingMode = "none" | "external";
+export type BookingMode = "none" | "external" | "request";
 
 export interface BusinessSearchPerformance {
   business_id: number;
@@ -899,3 +906,98 @@ export interface BusinessSearchPerformance {
   impressions_by_tier: Partial<Record<SubscriptionTier, number>>;
   daily: { day: string; impressions: number; clicks: number }[];
 }
+
+/* ---------------------------------------------------------------- booking */
+
+export type BookingStatus =
+  | "requested"
+  | "confirmed"
+  | "declined"
+  | "cancelled"
+  | "expired"
+  | "completed"
+  | "no_show";
+
+export type PartOfDay = "morning" | "afternoon" | "evening";
+
+export interface BookableService {
+  id: number;
+  name: string;
+  description: string | null;
+  duration_minutes: number;
+  /** Whole cents; null means "price on request". */
+  price_cents: number | null;
+  is_active: boolean;
+}
+
+export interface ServiceInput {
+  name: string;
+  description?: string | null;
+  duration_minutes: number;
+  price_cents?: number | null;
+}
+
+export interface BookingInfo {
+  business_id: number;
+  style: "appointment" | "window";
+  timezone: string;
+  cancellation_policy: string | null;
+  cancellation_window_hours: number;
+  opening_hours: Record<string, [string, string][]> | null;
+  max_proposed: number;
+  services: BookableService[];
+}
+
+/** A suggested time in the business's own zone: a date plus a time or a part of the day. */
+export interface ProposedTimeInput {
+  date: string;
+  time?: string | null;
+  part?: PartOfDay | null;
+}
+
+export interface BookingCreate {
+  business_id: number;
+  service_id: number;
+  proposals: ProposedTimeInput[];
+  phone?: string | null;
+  note?: string | null;
+  consent_shared: boolean;
+}
+
+export interface ProposedTime {
+  id: number;
+  starts_at: string;
+  ends_at: string;
+  part_of_day: PartOfDay | null;
+}
+
+export interface Booking {
+  id: number;
+  business_id: number;
+  business_name: string;
+  business_slug: string;
+  timezone: string;
+  service_id: number | null;
+  service_name: string;
+  duration_minutes: number;
+  price_cents: number | null;
+  status: BookingStatus;
+  style: "appointment" | "window";
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  note: string | null;
+  proposed_times: ProposedTime[];
+  confirmed_start: string | null;
+  confirmed_end: string | null;
+  decline_message: string | null;
+  cancelled_by: "customer" | "owner" | null;
+  cancel_reason: string | null;
+  created_at: string;
+  responded_at: string | null;
+  expires_at: string | null;
+  cancellation_policy: string | null;
+  inside_cancellation_window: boolean;
+}
+
+export type BookingAction = "accept" | "decline" | "cancel" | "complete" | "no-show";

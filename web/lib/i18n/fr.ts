@@ -16,6 +16,7 @@ import { pagesFr } from "@/lib/i18n/sections/pages";
 import { discoverFr } from "@/lib/i18n/sections/discover";
 import { dashboardFr } from "@/lib/i18n/sections/dashboard";
 import { adminFr } from "@/lib/i18n/sections/admin";
+import { bookingFr } from "@/lib/i18n/sections/booking";
 import type { Dictionary } from "@/lib/i18n/en";
 
 export const fr: Dictionary = {
@@ -156,4 +157,5 @@ export const fr: Dictionary = {
   discover: discoverFr,
   dashboard: dashboardFr,
   admin: adminFr,
+  booking: bookingFr,
 };

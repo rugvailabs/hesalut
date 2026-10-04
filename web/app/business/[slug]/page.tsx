@@ -33,7 +33,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Globe, MapPin } from "lucide-react";
+import { CalendarCheck, Globe, MapPin } from "lucide-react";
 
 import BookOnlineButton from "@/components/ds/BookOnlineButton";
 import BusinessHours from "@/components/ds/BusinessHours";
@@ -216,6 +216,15 @@ export default async function BusinessPage({
           ) : (
             <span className="text-meta text-ink-subtle">{t("business.noPhone")}</span>
           )}
+
+          {business.booking_mode === "request" ? (
+            <Button asChild>
+              <Link href={`/business/${business.slug}/book`}>
+                <CalendarCheck aria-hidden="true" />
+                {t("booking.listing.request")}
+              </Link>
+            </Button>
+          ) : null}
 
           {business.booking_mode === "external" && business.booking_url ? (
             <BookOnlineButton
