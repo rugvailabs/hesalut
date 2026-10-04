@@ -87,6 +87,36 @@ SERVICES_BY_CATEGORY: Dict[str, List[Tuple[str, int, Optional[int]]]] = {
     ],
 }
 
+# The same services in Canadian French, keyed by the English name above.
+FRENCH_NAMES: Dict[str, str] = {
+    "Check-up and cleaning": "Examen et nettoyage",
+    "Emergency exam": "Examen d'urgence",
+    "Whitening consultation": "Consultation de blanchiment",
+    "Women's cut and style": "Coupe et coiffure pour femmes",
+    "Men's cut": "Coupe pour hommes",
+    "Colour": "Coloration",
+    "Personal training session": "Séance d'entraînement personnel",
+    "Gym tour and trial": "Visite du gym et essai",
+    "Fitness assessment": "Évaluation de la condition physique",
+    "Initial consultation": "Consultation initiale",
+    "Document review": "Révision de documents",
+    "Remote support session": "Séance de soutien à distance",
+    "On-site visit": "Visite sur place",
+    "Network setup": "Configuration de réseau",
+    "Oil change": "Changement d'huile",
+    "Safety inspection": "Inspection de sécurité",
+    "Brake check": "Vérification des freins",
+    "Drain clearing": "Débouchage de drain",
+    "Water heater check": "Vérification du chauffe-eau",
+    "Leak repair": "Réparation de fuite",
+    "Panel inspection": "Inspection du panneau électrique",
+    "Outlet and switch repair": "Réparation de prises et d'interrupteurs",
+    "Lighting installation": "Installation d'éclairage",
+    "Two movers and a truck (3 hours)": "Deux déménageurs et un camion (3 heures)",
+    "Packing help": "Aide à l'emballage",
+    "Quote visit": "Visite pour soumission",
+}
+
 
 def seed_booking(db: Session) -> Tuple[int, int, int]:
     """Returns (services created, listings switched to requests, listings with services)."""
@@ -112,6 +142,7 @@ def seed_booking(db: Session) -> Tuple[int, int, int]:
                     BookableService(
                         business_id=business.id,
                         name=name,
+                        name_fr=FRENCH_NAMES.get(name),
                         duration_minutes=minutes,
                         price_cents=price,
                     )
@@ -128,8 +159,28 @@ def seed_booking(db: Session) -> Tuple[int, int, int]:
                 business.cancellation_policy = DEFAULT_POLICY
             switched += 1
 
+    _backfill_french_names(db, slugs)
     db.flush()
     return services_created, switched, with_services
+
+
+def _backfill_french_names(db: Session, slugs: set) -> int:
+    """Give demo services seeded before French names existed their French name.
+
+    Only a service whose English name is one of ours and which has no French
+    name yet is touched, so a name an owner translated themselves is kept.
+    """
+    filled = 0
+    for service in db.scalars(
+        select(BookableService)
+        .join(Business, Business.id == BookableService.business_id)
+        .where(Business.slug.in_(slugs), BookableService.name_fr.is_(None))
+    ).all():
+        french = FRENCH_NAMES.get(service.name)
+        if french is not None:
+            service.name_fr = french
+            filled += 1
+    return filled
 
 
 def main() -> int:

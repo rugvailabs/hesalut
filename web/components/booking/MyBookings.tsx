@@ -19,6 +19,7 @@ import {
   formatBookingDay,
   formatBookingTime,
   formatPrice,
+  serviceLabel,
 } from "@/lib/booking-format";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { Booking, BookingStatus } from "@/lib/types";
@@ -91,7 +92,7 @@ function BookingCard({
             </Link>
           </h2>
           <p className="text-meta text-ink-muted">
-            {booking.service_name} · {t("booking.form.minutes", { minutes: booking.duration_minutes })}
+            {serviceLabel(booking.service_name, booking.service_name_fr, locale)} · {t("booking.form.minutes", { minutes: booking.duration_minutes })}
             {price ? ` · ${price}` : ""}
           </p>
         </div>

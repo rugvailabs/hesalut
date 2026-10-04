@@ -55,6 +55,11 @@ export function formatBookingClock(iso: string, zone: string, intl: string): str
   }
 }
 
+/** A service's name in the reader's language, falling back to the English one. */
+export function serviceLabel(name: string, nameFr: string | null | undefined, locale: string): string {
+  return locale === "fr" && nameFr ? nameFr : name;
+}
+
 /** "$120.00", or null for "price on request". */
 export function formatPrice(cents: number | null, intl: string): string | null {
   if (cents === null) return null;

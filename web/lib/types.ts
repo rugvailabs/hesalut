@@ -923,6 +923,8 @@ export type PartOfDay = "morning" | "afternoon" | "evening";
 export interface BookableService {
   id: number;
   name: string;
+  /** French name; null means show `name` to everyone. */
+  name_fr: string | null;
   description: string | null;
   duration_minutes: number;
   /** Whole cents; null means "price on request". */
@@ -932,6 +934,7 @@ export interface BookableService {
 
 export interface ServiceInput {
   name: string;
+  name_fr?: string | null;
   description?: string | null;
   duration_minutes: number;
   price_cents?: number | null;
@@ -979,6 +982,7 @@ export interface Booking {
   timezone: string;
   service_id: number | null;
   service_name: string;
+  service_name_fr: string | null;
   duration_minutes: number;
   price_cents: number | null;
   status: BookingStatus;

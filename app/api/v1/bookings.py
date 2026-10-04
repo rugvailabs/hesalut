@@ -231,7 +231,7 @@ def update_service(
         _require_other_service_if_requests(db, business, leaving=service)
     for key, value in updates.items():
         if key in {"name", "duration_minutes", "is_active"} and value is None:
-            continue
+            continue  # required columns: an explicit null means "no change"
         setattr(service, key, value)
     db.commit()
     db.refresh(service)
@@ -413,6 +413,7 @@ def create_booking(
         customer_id=current_user.id,
         style=style,
         service_name=service.name,
+        service_name_fr=service.name_fr,
         duration_minutes=service.duration_minutes,
         price_cents=service.price_cents,
         customer_name=current_user.name,
@@ -681,6 +682,7 @@ def _admin_query(status_filter: str | None, business_id: int | None, q: str | No
                 Booking.customer_name.ilike(like),
                 Booking.customer_email.ilike(like),
                 Booking.service_name.ilike(like),
+                Booking.service_name_fr.ilike(like),
             )
         )
     return query

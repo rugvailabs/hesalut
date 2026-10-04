@@ -22,6 +22,7 @@ import {
   formatBookingDay,
   formatBookingTime,
   formatPrice,
+  serviceLabel,
 } from "@/lib/booking-format";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { BookableService, Booking, BookingAction, BookingStatus } from "@/lib/types";
@@ -108,7 +109,7 @@ function PendingCard({
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-card-title text-ink">{booking.service_name}</h3>
+          <h3 className="text-card-title text-ink">{serviceLabel(booking.service_name, booking.service_name_fr, locale)}</h3>
           <p className="text-meta text-ink-muted">
             {t("booking.form.minutes", { minutes: booking.duration_minutes })}
             {formatPrice(booking.price_cents, intl) ? ` · ${formatPrice(booking.price_cents, intl)}` : ""}
@@ -257,7 +258,7 @@ function OtherCard({
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-card-title text-ink">{booking.service_name}</h3>
+          <h3 className="text-card-title text-ink">{serviceLabel(booking.service_name, booking.service_name_fr, locale)}</h3>
           <p className="text-meta text-ink-muted">
             {booking.customer_name} · {booking.customer_email}
             {booking.customer_phone ? ` · ${booking.customer_phone}` : ""}
@@ -358,6 +359,7 @@ function ServiceRow({
   const intl = INTL_LOCALE[locale];
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(service.name);
+  const [nameFr, setNameFr] = useState(service.name_fr ?? "");
   const [minutes, setMinutes] = useState(String(service.duration_minutes));
   const [price, setPrice] = useState(dollars(service.price_cents));
   const [busy, setBusy] = useState(false);
@@ -397,7 +399,12 @@ function ServiceRow({
       setError(t("booking.mine.failed"));
       return;
     }
-    void patch({ name: name.trim(), duration_minutes: mins, price_cents: cents });
+    void patch({
+      name: name.trim(),
+      name_fr: nameFr.trim() || null,
+      duration_minutes: mins,
+      price_cents: cents,
+    });
   }
 
   if (editing) {
@@ -407,6 +414,10 @@ function ServiceRow({
           <label className="block sm:col-span-3">
             <span className={LABEL}>{t("booking.services.name")}</span>
             <input className={FIELD} maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="block sm:col-span-3">
+            <span className={LABEL}>{t("booking.services.nameFr")}</span>
+            <input className={FIELD} lang="fr" maxLength={120} value={nameFr} onChange={(e) => setNameFr(e.target.value)} />
           </label>
           <label className="block">
             <span className={LABEL}>{t("booking.services.minutes")}</span>
@@ -438,6 +449,11 @@ function ServiceRow({
           {service.name}
           {!service.is_active ? <Badge className="ml-2">{t("booking.services.inactive")}</Badge> : null}
         </p>
+        {service.name_fr ? (
+          <p className="text-meta text-ink-subtle" lang="fr">
+            {service.name_fr}
+          </p>
+        ) : null}
         <p className="text-meta text-ink-muted">
           {t("booking.form.minutes", { minutes: service.duration_minutes })}
           {" · "}
@@ -473,6 +489,7 @@ function ServicesManager({
   const t = tFor(locale);
   const [services, setServices] = useState(initial);
   const [name, setName] = useState("");
+  const [nameFr, setNameFr] = useState("");
   const [minutes, setMinutes] = useState("30");
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -492,7 +509,12 @@ function ServicesManager({
       const res = await fetch(`/api/dashboard/services/${businessId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), duration_minutes: mins, price_cents: cents }),
+        body: JSON.stringify({
+          name: name.trim(),
+          name_fr: nameFr.trim() || null,
+          duration_minutes: mins,
+          price_cents: cents,
+        }),
       });
       const payload: unknown = await res.json().catch(() => null);
       if (!res.ok) {
@@ -505,6 +527,7 @@ function ServicesManager({
       }
       setServices((current) => [...current, payload as BookableService]);
       setName("");
+      setNameFr("");
       setPrice("");
     } catch {
       setError(t("booking.mine.failed"));
@@ -541,6 +564,10 @@ function ServicesManager({
           <label className="block sm:col-span-3">
             <span className={LABEL}>{t("booking.services.name")}</span>
             <input className={FIELD} maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="block sm:col-span-3">
+            <span className={LABEL}>{t("booking.services.nameFr")}</span>
+            <input className={FIELD} lang="fr" maxLength={120} value={nameFr} onChange={(e) => setNameFr(e.target.value)} />
           </label>
           <label className="block">
             <span className={LABEL}>{t("booking.services.minutes")}</span>

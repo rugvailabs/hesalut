@@ -21,7 +21,7 @@ import { CalendarCheck, Plus, X } from "lucide-react";
 import { Alert } from "@/components/ds/feedback";
 import { FIELD, HINT, LABEL, TEXTAREA } from "@/components/ds/form";
 import { Button, Card } from "@/components/ds/primitives";
-import { dayFromToday, formatPrice, isOpenOn, PARTS } from "@/lib/booking-format";
+import { dayFromToday, formatPrice, isOpenOn, PARTS, serviceLabel } from "@/lib/booking-format";
 import { INTL_LOCALE, tFor, type Locale } from "@/lib/i18n";
 import type { BookingInfo, PartOfDay } from "@/lib/types";
 
@@ -187,7 +187,7 @@ export default function BookingRequestForm({
                     className="mt-1"
                   />
                   <span className="min-w-0">
-                    <span className="block font-medium text-ink">{service.name}</span>
+                    <span className="block font-medium text-ink">{serviceLabel(service.name, service.name_fr, locale)}</span>
                     <span className="block text-meta text-ink-muted">
                       {t("booking.form.minutes", { minutes: service.duration_minutes })}
                       {" · "}

@@ -58,6 +58,8 @@ class BookableService(Base):
         ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Optional French name, shown instead of `name` to visitors reading French.
+    name_fr: Mapped[str | None] = mapped_column(String(120), nullable=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     duration_minutes: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     # NULL means "price on request"; zero would mean free, which is different.
@@ -123,6 +125,7 @@ class Booking(Base):
     style: Mapped[str] = mapped_column(String(16), nullable=False)
 
     service_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    service_name_fr: Mapped[str | None] = mapped_column(String(120), nullable=True)
     duration_minutes: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     price_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)

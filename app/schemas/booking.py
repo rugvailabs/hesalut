@@ -22,6 +22,7 @@ def _clean(value: str | None) -> str | None:
 
 class ServiceIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
+    name_fr: str | None = Field(default=None, max_length=120)
     description: str | None = Field(default=None, max_length=500)
     duration_minutes: int = Field(ge=5, le=720)
     # Whole cents. None = "price on request".
@@ -35,13 +36,25 @@ class ServiceIn(BaseModel):
             raise ValueError("Name is required")
         return cleaned
 
+    @field_validator("name_fr")
+    @classmethod
+    def _tidy_name_fr(cls, value: str | None) -> str | None:
+        return _clean(value)
+
 
 class ServiceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    # Send null (or blank) to remove the French name.
+    name_fr: str | None = Field(default=None, max_length=120)
     description: str | None = Field(default=None, max_length=500)
     duration_minutes: int | None = Field(default=None, ge=5, le=720)
     price_cents: int | None = Field(default=None, ge=0, le=10_000_000)
     is_active: bool | None = None
+
+    @field_validator("name_fr")
+    @classmethod
+    def _tidy_name_fr(cls, value: str | None) -> str | None:
+        return _clean(value)
 
 
 class ServiceOut(BaseModel):
@@ -49,6 +62,7 @@ class ServiceOut(BaseModel):
 
     id: int
     name: str
+    name_fr: str | None = None
     description: str | None
     duration_minutes: int
     price_cents: int | None
@@ -113,6 +127,7 @@ class BookingOut(BaseModel):
     timezone: str
     service_id: int | None
     service_name: str
+    service_name_fr: str | None = None
     duration_minutes: int
     price_cents: int | None
     status: str
