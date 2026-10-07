@@ -116,6 +116,16 @@ export default function ExploreHeader({ user }: { user: HeaderUser | null }): JS
             ))}
           </div>
           <ThemeToggle />
+          {user === null ? (
+            // Owner sign-up starts here. Signed-in customers have the same
+            // entry in the account menu, where it converts their account.
+            <Link
+              href="/register"
+              className="hidden rounded-input bg-brand-700 px-3 py-1.5 text-body font-medium text-ink-inverse transition-colors hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:inline-block"
+            >
+              {t("header.listBusiness")}
+            </Link>
+          ) : null}
           {user ? (
             <UserMenu user={user} />
           ) : (
