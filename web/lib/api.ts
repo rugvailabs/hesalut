@@ -369,8 +369,8 @@ export function searchBusinesses(
     }
   }
   const suffix = qs.toString();
-  // Signed-in searches are attributed in search analytics; the token is sent
-  // when there is one, and search stays public when there is not.
+  // The API requires sign-in to search; the cookie's token is sent, and the
+  // search is attributed to that user in analytics.
   return apiFetch<SearchResponse>(
     `/businesses/search${suffix ? `?${suffix}` : ""}`,
     { method: "GET" },
@@ -378,7 +378,7 @@ export function searchBusinesses(
 }
 
 /**
- * GET /businesses/by-slug/{slug} - public listing detail.
+ * GET /businesses/by-slug/{slug} - listing detail (requires sign-in).
  *
  * Approved and active only; anything else 404s, which is what the public
  * detail page turns into notFound(). Returns null instead of throwing on 404
@@ -393,7 +393,7 @@ export async function getBusinessBySlug(
   try {
     return await apiFetch<BusinessDetail>(
       `/businesses/by-slug/${encodeURIComponent(slug)}`,
-      { method: "GET", auth: false },
+      { method: "GET" },
     );
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
@@ -402,7 +402,7 @@ export async function getBusinessBySlug(
 }
 
 /**
- * GET /search/understand - free search text read as filters. Public. The
+ * GET /search/understand - free search text read as filters. Requires sign-in. The
  * backend answers `source: "keywords"` itself when its model fails; transport
  * failures and timeouts still throw, and the caller falls back.
  */
@@ -414,7 +414,6 @@ export function understandSearch(
   const qs = new URLSearchParams({ q, lang });
   return apiFetch<SearchUnderstanding>(`/search/understand?${qs.toString()}`, {
     method: "GET",
-    auth: false,
     signal,
   });
 }
@@ -525,7 +524,7 @@ export function getEnquiries(
 
 /* --------------------------------------------------------- review calls */
 
-/** GET /businesses/{id}/reviews - public, newest first. */
+/** GET /businesses/{id}/reviews - newest first. Requires sign-in. */
 export function getReviews(
   businessId: number,
   options: { limit?: number; offset?: number } = {},
@@ -537,7 +536,7 @@ export function getReviews(
   const suffix = qs.toString();
   return apiFetch<BusinessReview[]>(
     `/businesses/${businessId}/reviews${suffix ? `?${suffix}` : ""}`,
-    { method: "GET", auth: false },
+    { method: "GET" },
   );
 }
 
@@ -547,7 +546,7 @@ export function getReviewSummary(
 ): Promise<BusinessReviewSummary> {
   return apiFetch<BusinessReviewSummary>(
     `/businesses/${businessId}/reviews/summary`,
-    { method: "GET", auth: false },
+    { method: "GET" },
   );
 }
 

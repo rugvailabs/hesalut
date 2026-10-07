@@ -92,8 +92,12 @@ def list_my_businesses(
 
 
 @router.get("/by-slug/{slug}", response_model=BusinessDetail)
-def get_business_by_slug(slug: str, db: Session = Depends(get_db)) -> BusinessDetail:
-    """Public listing detail.
+def get_business_by_slug(
+    slug: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> BusinessDetail:
+    """Listing detail for a signed-in visitor.
 
     The same three gates as search - active, approved, KYC-verified - because
     this is the URL a search result links to. Excluding a listing from every

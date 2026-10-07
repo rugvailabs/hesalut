@@ -26,6 +26,7 @@ import { Button, Input, Label } from "@/components/ds/primitives";
 import { HINT } from "@/components/ds/form";
 import { cn } from "@/lib/cn";
 import { tFor, type Locale } from "@/lib/i18n";
+import { safeNext } from "@/lib/safe-next";
 import type { UserResponse } from "@/lib/types";
 
 type Mode = "login" | "signup";
@@ -95,7 +96,7 @@ export default function LoginForm({
       // owners on /register, which resumes an unfinished registration or - when
       // it is complete - forwards them to their dashboard.
       const target =
-        next ||
+        safeNext(next) ||
         (user?.is_admin
           ? "/admin"
           : user?.role === "business_owner"

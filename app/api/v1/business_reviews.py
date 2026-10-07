@@ -67,8 +67,9 @@ def list_reviews(
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> list[BusinessReviewOut]:
-    """Reviews for a listing, newest first. Public."""
+    """Reviews for a listing, newest first. Requires sign-in."""
     business = _visible_business(db, business_id)
 
     reviews = db.scalars(
@@ -84,9 +85,11 @@ def list_reviews(
 
 @router.get("/{business_id}/reviews/summary", response_model=BusinessReviewSummary)
 def review_summary(
-    business_id: int, db: Session = Depends(get_db)
+    business_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> BusinessReviewSummary:
-    """Average, count and the 5..1 histogram. Public."""
+    """Average, count and the 5..1 histogram. Requires sign-in."""
     business = _visible_business(db, business_id)
 
     rows = db.execute(

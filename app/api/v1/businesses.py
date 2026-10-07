@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.search import run_search
 from app.core.db import get_db
-from app.core.deps import get_current_user_optional
+from app.core.deps import get_current_user
 from app.core.visibility import visible_businesses
 from app.models.business import Business
 from app.models.user import User
@@ -93,9 +93,9 @@ def search_businesses(
         description="Log the results shown for analytics. False for internal lookups nobody sees.",
     ),
     db: Session = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
+    user: User = Depends(get_current_user),
 ) -> SearchResponse:
-    """Search active listings. Public - no authentication required."""
+    """Search active listings. Requires sign-in."""
     has_point = lat is not None and lng is not None
     slugs = _distinct(category_slug)
     cities = _distinct(city)

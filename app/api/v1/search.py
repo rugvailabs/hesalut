@@ -20,7 +20,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, s
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import get_db
-from app.core.deps import get_current_user_optional, require_admin, require_owned_business
+from app.core.deps import get_current_user, require_admin, require_owned_business
 from app.core.rate_limit import rate_limit
 from app.core.visibility import require_visible_business
 from app.models.booking_link_click import BookingLinkClick
@@ -94,9 +94,9 @@ def search_nearby(
     page_size: int = Query(default=20, ge=1, le=50),
     track: bool = Query(default=True, description="Log the results shown for analytics"),
     db: Session = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
+    user: User = Depends(get_current_user),
 ) -> SearchResponse:
-    """Businesses near a point, Featured and Promoted first. Public."""
+    """Businesses near a point, Featured and Promoted first. Requires sign-in."""
     return run_search(
         db=db,
         filters=SearchFilters(
@@ -125,8 +125,9 @@ def understand_query(
     q: str = Query(min_length=1, max_length=300),
     lang: Literal["en", "fr"] = Query(default="en"),
     db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> UnderstandResponse:
-    """Turn a plain-language search into filters for /businesses/search. Public.
+    """Turn a plain-language search into filters for /businesses/search. Requires sign-in.
 
     Never fails for a normal query: when the AI step is unavailable, slow or
     unsure, the answer is source "keywords" and the client searches the text
