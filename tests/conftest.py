@@ -6,6 +6,7 @@ app's get_db dependency overridden to point at it. Dev data is never touched.
 
 from __future__ import annotations
 
+import re
 import uuid
 from pathlib import Path
 from typing import Iterator
@@ -78,8 +79,37 @@ def client(test_engine) -> Iterator[TestClient]:
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:
+        _sign_in_for_search(c)
         yield c
     app.dependency_overrides.clear()
+
+
+# Search and listing pages need a signed-in visitor. Most tests are about what
+# the search returns, not about signing in, so the client carries a token for
+# those routes unless the request opts out with this header.
+ANONYMOUS_HEADER = "X-Test-Anonymous"
+_SIGNED_IN_ONLY = re.compile(
+    r"^/api/v1/(businesses/search|search/(nearby|understand)"
+    r"|businesses/by-slug/[^/]+|businesses/\d+/reviews(/summary)?)$"
+)
+
+
+def _sign_in_for_search(c: TestClient) -> None:
+    email = f"searcher-{uuid.uuid4().hex[:10]}@example.ca"
+    r = c.post(
+        "/api/v1/signup",
+        json={"name": "Test Searcher", "email": email, "password": "password123"},
+    )
+    token = r.json()["access_token"]
+
+    def add_token(request) -> None:
+        if request.headers.get(ANONYMOUS_HEADER):
+            del request.headers[ANONYMOUS_HEADER]
+            return
+        if "authorization" not in request.headers and _SIGNED_IN_ONLY.match(request.url.path):
+            request.headers["Authorization"] = f"Bearer {token}"
+
+    c.event_hooks["request"].append(add_token)
 
 
 @pytest.fixture(autouse=True)

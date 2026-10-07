@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Step 3: the order summary, and payment.
+ * The order summary, and payment - the billing page's second step.
  *
  * Every amount on this page comes from the server's order summary - the same
  * computation that decides what is charged - so the total shown is the total
@@ -11,7 +11,7 @@
  *
  * TEST MODE: no payment processor is connected. The card form accepts only
  * the published test numbers and nothing is charged; the page says so before
- * anyone types. A free plan skips the card entirely and completes on the
+ * anyone types. A free plan skips the card entirely and activates on the
  * terms alone.
  */
 
@@ -49,10 +49,15 @@ function formatExpiry(value: string): string {
 }
 
 export default function PaymentStep({
+  businessId,
   order,
+  onBack,
   locale,
 }: {
+  businessId: number;
   order: OrderSummary;
+  /** Back to the plan cards. */
+  onBack: () => void;
   locale: Locale;
 }): JSX.Element {
   const router = useRouter();
@@ -84,7 +89,7 @@ export default function PaymentStep({
       return;
     }
 
-    let body: Record<string, unknown> = { accept_terms: true };
+    let body: Record<string, unknown> = { plan_id: plan.id, accept_terms: true };
     if (paid) {
       const expiryDigits = expiry.replace(/\D/g, "");
       if (expiryDigits.length !== 4) {
@@ -103,7 +108,7 @@ export default function PaymentStep({
 
     setSubmitting(true);
     try {
-      const res = await fetch(paid ? "/api/register/payment" : "/api/register/complete", {
+      const res = await fetch(`/api/billing/${businessId}/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -113,13 +118,13 @@ export default function PaymentStep({
         setError(
           payload && typeof payload === "object" && "detail" in payload
             ? String((payload as { detail: unknown }).detail)
-            : t("register.payment.completeFailed", { status: res.status }),
+            : t("dashboard.billing.payFailed", { status: res.status }),
         );
-        // 409: already complete, or no plan - the page knows which.
+        // 409: not verified yet, or already on a plan - the page knows which.
         if (res.status === 409) router.refresh();
         return;
       }
-      router.push("/register?step=4");
+      // The billing page now shows the active plan and the receipt.
       router.refresh();
     } catch {
       setError(t("register.payment.unreachable"));
@@ -202,9 +207,13 @@ export default function PaymentStep({
             </ul>
           </div>
 
-          <Link href="/register?step=2" className="inline-block text-meta text-brand-700 underline underline-offset-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-block text-meta text-brand-700 underline underline-offset-4"
+          >
             {t("register.payment.changePlan")}
-          </Link>
+          </button>
         </Card>
       </div>
 
@@ -293,7 +302,7 @@ export default function PaymentStep({
           <Card className="space-y-2 p-5">
             <h2 className="text-card-title text-ink">{t("register.payment.noPaymentTitle")}</h2>
             <p className="text-body text-ink-muted">
-              {t("register.payment.noPaymentBody", { plan: plan.name })}
+              {t("dashboard.billing.freeBody", { plan: plan.name })}
             </p>
           </Card>
         )}
@@ -337,11 +346,9 @@ export default function PaymentStep({
         {error !== null ? <Alert locale={locale} tone="error">{error}</Alert> : null}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button asChild variant="ghost">
-            <Link href="/register?step=2">
-              <ArrowLeft aria-hidden="true" />
-              {t("register.payment.back")}
-            </Link>
+          <Button type="button" variant="ghost" onClick={onBack}>
+            <ArrowLeft aria-hidden="true" />
+            {t("register.payment.back")}
           </Button>
           <Button type="submit" size="lg" disabled={submitting}>
             {paid ? <Lock aria-hidden="true" /> : null}
@@ -351,7 +358,7 @@ export default function PaymentStep({
                 : t("register.payment.completing")
               : paid
                 ? t("register.payment.pay", { amount: money(order.total, order.currency, locale) })
-                : t("register.payment.complete")}
+                : t("dashboard.billing.activate")}
           </Button>
         </div>
       </div>

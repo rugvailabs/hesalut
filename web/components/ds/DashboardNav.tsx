@@ -18,7 +18,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { tFor, type Locale } from "@/lib/i18n";
 
-export type DashboardSection = "edit" | "leads" | "bookings" | "reviews" | "verification";
+export type DashboardSection = "edit" | "leads" | "bookings" | "reviews" | "verification" | "billing";
 
 /** Each tab's label is dashboard.nav.<key>. */
 const TABS: { key: DashboardSection; segment: string }[] = [
@@ -27,6 +27,7 @@ const TABS: { key: DashboardSection; segment: string }[] = [
   { key: "bookings", segment: "bookings" },
   { key: "reviews", segment: "reviews" },
   { key: "verification", segment: "verification" },
+  { key: "billing", segment: "billing" },
 ];
 
 export default function DashboardNav({

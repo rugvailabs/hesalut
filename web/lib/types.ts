@@ -792,7 +792,7 @@ export interface TaxLine {
   amount: string;
 }
 
-/** Priced server-side; what step 3 shows is what is charged. */
+/** Priced server-side; what the plan page shows is what is charged. */
 export interface OrderSummary {
   plan: Plan;
   currency: string;
@@ -828,16 +828,12 @@ export interface Receipt {
 
 /** GET /registration - everything needed to render or resume any step. */
 export interface RegistrationState {
-  /** The furthest step reached, 1-4. */
+  /** The furthest step reached, 1-3: details, confirm, done. */
   step: number;
   completed: boolean;
   account: { name: string; email: string; phone: string | null };
   details: RegistrationDetails | null;
-  selected_plan: Plan | null;
-  order: OrderSummary | null;
   business: { id: number; name: string; slug: string; status: BusinessStatus } | null;
-  subscription: Subscription | null;
-  receipt: Receipt | null;
 }
 
 export interface RegistrationStarted {
@@ -846,14 +842,30 @@ export interface RegistrationStarted {
   state: RegistrationState;
 }
 
-/** POST /registration/payment - test mode card. */
-export interface RegistrationPaymentRequest {
-  card_number: string;
-  exp_month: number;
-  exp_year: number;
-  cvc: string;
-  cardholder_name?: string | null;
+/* ------------------------------------------- plan and payment, after verification */
+
+/** GET /businesses/{id}/billing */
+export interface BillingState {
+  business_id: number;
+  /** null when no documents have been submitted yet. */
+  verification_status: VerificationStatus | null;
+  /** True once verified and not already on a plan. */
+  can_subscribe: boolean;
+  /** Why not, in words for the owner. */
+  blocked_reason: string | null;
+  subscription: Subscription | null;
+  receipt: Receipt | null;
+}
+
+/** POST /businesses/{id}/billing/subscribe - card fields only for a paid plan (test mode). */
+export interface BillingSubscribeRequest {
+  plan_id: number;
   accept_terms: boolean;
+  card_number?: string;
+  exp_month?: number;
+  exp_year?: number;
+  cvc?: string;
+  cardholder_name?: string | null;
 }
 
 /* ------------------------------------------------------ search analytics */

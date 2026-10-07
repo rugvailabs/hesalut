@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.audit import log_audit
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.api.v1.billing import require_verified
 from app.core.deps import require_business_owner, require_owned_business
 from app.models.business import Business
 from app.models.subscription import Plan, Subscription, SubscriptionStatus
@@ -137,6 +138,9 @@ def start_checkout(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this listing",
         )
+
+    # Pay only after verification - the same rule as /businesses/{id}/billing.
+    require_verified(db, business)
 
     plan = db.get(Plan, payload.plan_id)
     if plan is None or not plan.is_active:

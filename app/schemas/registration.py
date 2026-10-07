@@ -1,4 +1,4 @@
-"""Wire shapes for the four-step business registration."""
+"""Wire shapes for business registration, and the order and receipt shapes billing shares."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.schemas.subscription import PlanOut, SubscriptionOut
+from app.schemas.subscription import PlanOut
 from app.services.sales_tax import PROVINCE_CODES
 
 
@@ -56,10 +56,6 @@ class RegistrationDetailsUpdate(BusinessDetailsIn):
     phone: str = Field(min_length=1, max_length=32)
 
 
-class PlanChoice(BaseModel):
-    plan_id: int = Field(gt=0)
-
-
 class TermsAcceptance(BaseModel):
     # Must be true: a recurring charge rests on the customer's express consent
     # to it, and a free plan still accepts the terms of use.
@@ -73,16 +69,6 @@ class TermsAcceptance(BaseModel):
         return value
 
 
-class RegistrationPayment(TermsAcceptance):
-    """A card from the test checkout form. Stub mode only."""
-
-    card_number: str = Field(min_length=1, max_length=32)
-    exp_month: int = Field(ge=0, le=99)
-    exp_year: int = Field(ge=0, le=9999)
-    cvc: str = Field(min_length=1, max_length=8)
-    cardholder_name: str | None = Field(default=None, max_length=255)
-
-
 class TaxLineOut(BaseModel):
     name: str
     rate: Decimal
@@ -90,7 +76,7 @@ class TaxLineOut(BaseModel):
 
 
 class OrderSummary(BaseModel):
-    """What step 3 shows and what the charge will be, computed server-side."""
+    """What the plan page shows and what the charge will be, computed server-side."""
 
     plan: PlanOut
     currency: str
@@ -140,17 +126,13 @@ class AccountOut(BaseModel):
 class RegistrationState(BaseModel):
     """Everything /register needs to render any step and resume."""
 
-    # The furthest step reached (1-4). The page may show an earlier one.
+    # The furthest step reached (1-3). The page may show an earlier one.
     step: int
     completed: bool
     account: AccountOut
     details: BusinessDetailsIn | None
-    selected_plan: PlanOut | None
-    order: OrderSummary | None
     # Set once registration is complete.
     business: RegisteredBusiness | None = None
-    subscription: SubscriptionOut | None = None
-    receipt: ReceiptOut | None = None
 
 
 class RegistrationStarted(BaseModel):

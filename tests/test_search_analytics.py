@@ -71,12 +71,13 @@ def test_every_result_shown_is_logged_with_position_tier_and_rounded_location(
     assert rows[0].category_slug == world["slug"] and rows[0].sort == "relevance"
 
 
-def test_anonymous_searches_are_logged_without_a_user(client, world, db_factory):
+def test_searches_are_logged_against_the_signed_in_user(client, world, db_factory):
+    # Search needs sign-in, so there is no anonymous search to log any more.
     world["add"]("Only")
 
     body = client.get("/api/v1/businesses/search", params={"category_slug": world["slug"]}).json()
 
-    assert [r.user_id for r in _impressions(db_factory, body["search_id"])] == [None]
+    assert [r.user_id is not None for r in _impressions(db_factory, body["search_id"])] == [True]
 
 
 def test_internal_lookups_and_empty_results_are_not_logged(client, world):

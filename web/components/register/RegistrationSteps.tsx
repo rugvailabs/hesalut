@@ -2,7 +2,7 @@
  * The progress bar across the top of /register, and its back/next navigation.
  *
  * Every step the owner has already reached is a link, so they can go back to
- * change their details or their plan and come forward again without losing
+ * change their details and come forward again without losing
  * anything - it is all saved server-side as they go. Steps not reached yet are
  * plain text: the page decides how far someone may go from what they have
  * actually saved, never from a click here. Once registration is complete the
@@ -16,7 +16,7 @@ import { cn } from "@/lib/cn";
 import { tFor, type Locale } from "@/lib/i18n";
 
 /** Dictionary keys under register.steps, in step order. */
-export const STEP_LABELS = ["details", "plan", "payment", "done"] as const;
+export const STEP_LABELS = ["details", "confirm", "done"] as const;
 
 export default function RegistrationSteps({
   current,
@@ -24,15 +24,15 @@ export default function RegistrationSteps({
   completed,
   locale,
 }: {
-  /** The step on screen, 1-4. */
+  /** The step on screen, 1-3. */
   current: number;
-  /** The furthest step reached, 1-4. */
+  /** The furthest step reached, 1-3. */
   furthest: number;
   completed: boolean;
   locale: Locale;
 }): JSX.Element {
   const t = tFor(locale);
-  const percent = Math.round(((completed ? 4 : current) - 1) / 3 * 100);
+  const percent = Math.round(((completed ? 3 : current) - 1) / 2 * 100);
 
   return (
     <nav aria-label={t("register.steps.progress")}>
@@ -40,9 +40,9 @@ export default function RegistrationSteps({
         className="h-1.5 overflow-hidden rounded-pill bg-line"
         role="progressbar"
         aria-valuemin={1}
-        aria-valuemax={4}
-        aria-valuenow={completed ? 4 : current}
-        aria-valuetext={t("register.stepOf", { step: completed ? 4 : current })}
+        aria-valuemax={3}
+        aria-valuenow={completed ? 3 : current}
+        aria-valuetext={t("register.stepOf", { step: completed ? 3 : current })}
       >
         <div
           className="h-full rounded-pill bg-brand-700 transition-[width] duration-300"
@@ -50,7 +50,7 @@ export default function RegistrationSteps({
         />
       </div>
 
-      <ol className="mt-3 grid grid-cols-4 gap-2">
+      <ol className="mt-3 grid grid-cols-3 gap-2">
         {STEP_LABELS.map((key, index) => {
           const step = index + 1;
           const label = t(`register.steps.${key}`);

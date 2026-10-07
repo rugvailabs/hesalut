@@ -47,7 +47,9 @@ import type {
   PendingVerificationItem,
   Plan,
   RegistrationDetailsUpdate,
-  RegistrationPaymentRequest,
+  BillingState,
+  BillingSubscribeRequest,
+  OrderSummary,
   RegistrationStarted,
   RegistrationStartRequest,
   RegistrationState,
@@ -1045,33 +1047,46 @@ export function updateRegistrationDetails(
   });
 }
 
-/** PUT /registration/plan - save the chosen plan (replacing any earlier one). */
-export function chooseRegistrationPlan(planId: number): Promise<RegistrationState> {
-  return apiFetch<RegistrationState>("/registration/plan", {
-    method: "PUT",
-    body: { plan_id: planId },
+/** POST /registration/complete - accept the terms; creates the listing. Nothing is charged. */
+export function completeRegistration(acceptTerms: boolean): Promise<RegistrationState> {
+  return apiFetch<RegistrationState>("/registration/complete", {
+    method: "POST",
+    body: { accept_terms: acceptTerms },
+  });
+}
+
+/* ------------------------------------------- plan and payment, after verification */
+
+/** GET /businesses/{id}/billing - where billing stands, and whether a plan can be chosen yet. */
+export function getBilling(businessId: number): Promise<BillingState> {
+  return apiFetch<BillingState>(`/businesses/${businessId}/billing`, { method: "GET" });
+}
+
+/**
+ * GET /businesses/{id}/billing/order - what a plan would cost, taxed for the
+ * business's province.
+ *
+ * @throws {ApiError} 409 until the business is verified.
+ */
+export function getBillingOrder(businessId: number, planId: number): Promise<OrderSummary> {
+  return apiFetch<OrderSummary>(`/businesses/${businessId}/billing/order?plan_id=${planId}`, {
+    method: "GET",
   });
 }
 
 /**
- * POST /registration/payment - pay for the chosen plan and complete.
+ * POST /businesses/{id}/billing/subscribe - choose a plan and pay (test mode).
  *
- * @throws {ApiError} 402 with a customer-facing message when declined.
+ * @throws {ApiError} 409 until verified, 402 with a customer-facing message
+ * when the card is declined.
  */
-export function payForRegistration(
-  payment: RegistrationPaymentRequest,
-): Promise<RegistrationState> {
-  return apiFetch<RegistrationState>("/registration/payment", {
+export function subscribeBilling(
+  businessId: number,
+  payload: BillingSubscribeRequest,
+): Promise<BillingState> {
+  return apiFetch<BillingState>(`/businesses/${businessId}/billing/subscribe`, {
     method: "POST",
-    body: payment,
-  });
-}
-
-/** POST /registration/complete - complete on a free plan (terms still apply). */
-export function completeFreeRegistration(acceptTerms: boolean): Promise<RegistrationState> {
-  return apiFetch<RegistrationState>("/registration/complete", {
-    method: "POST",
-    body: { accept_terms: acceptTerms },
+    body: payload,
   });
 }
 
