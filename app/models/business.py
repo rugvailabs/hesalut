@@ -151,6 +151,11 @@ class Business(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    # When the owner last opened their leads. A lead that arrived after this is
+    # new to them - the dashboard badge and the "new" tag on the leads page.
+    leads_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
     # Moderation trail, mirroring review_queue's decided_by/reviewer_note.
     # The note is shown to the owner: a rejection they cannot understand is

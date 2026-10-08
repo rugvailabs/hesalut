@@ -28,7 +28,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { Bookmark, Check, LayoutDashboard, LogOut, MapPin, Moon, MoreVertical, Shield, Store, Sun } from "lucide-react";
+import { Bell, Bookmark, Check, LayoutDashboard, LogOut, MapPin, Moon, MoreVertical, Shield, Store, Sun } from "lucide-react";
 
 import { useExploreT, useLanguage } from "@/components/explore/ExploreProviders";
 import { cn } from "@/lib/cn";
@@ -43,7 +43,19 @@ export interface HeaderUser {
   isAdmin: boolean;
 }
 
-export default function ExploreHeader({ user }: { user: HeaderUser | null }): JSX.Element {
+/** New leads for an owner: how many, and where clicking the bell goes. */
+export interface HeaderLeads {
+  count: number;
+  href: string;
+}
+
+export default function ExploreHeader({
+  user,
+  newLeads = null,
+}: {
+  user: HeaderUser | null;
+  newLeads?: HeaderLeads | null;
+}): JSX.Element {
   const { t } = useExploreT();
   const [lang, setLang] = useLanguage();
   const pathname = usePathname();
@@ -124,6 +136,32 @@ export default function ExploreHeader({ user }: { user: HeaderUser | null }): JS
               className="hidden rounded-input bg-brand-700 px-3 py-1.5 text-body font-medium text-ink-inverse transition-colors hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:inline-block"
             >
               {t("header.listBusiness")}
+            </Link>
+          ) : null}
+          {user?.isOwner && newLeads !== null ? (
+            <Link
+              href={newLeads.href}
+              aria-label={
+                newLeads.count > 0
+                  ? t("header.newLeads", { count: newLeads.count })
+                  : t("header.noNewLeads")
+              }
+              title={
+                newLeads.count > 0
+                  ? t("header.newLeads", { count: newLeads.count })
+                  : t("header.noNewLeads")
+              }
+              className="relative inline-flex size-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <Bell className="size-5" aria-hidden="true" />
+              {newLeads.count > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[0.625rem] font-semibold leading-4 text-ink-inverse tabular"
+                >
+                  {newLeads.count > 99 ? "99+" : newLeads.count}
+                </span>
+              ) : null}
             </Link>
           ) : null}
           {user ? (

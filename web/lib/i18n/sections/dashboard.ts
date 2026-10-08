@@ -69,6 +69,8 @@ export const dashboardEn = {
   index: {
     title: "Your listings",
     subtitle: "Manage the businesses you have listed.",
+    newLeadsOne: "You have 1 new lead. Open its listing’s Leads tab to see it.",
+    newLeadsMany: "You have {count} new leads. The Leads button on each listing shows how many are waiting.",
     addListing: "Add a listing",
     forbidden: "That listing belongs to another account, so it cannot be opened here.",
     loadErrorTitle: "Could not load listings",
@@ -137,6 +139,7 @@ export const dashboardEn = {
   },
   leads: {
     title: "Leads for {name}",
+    newTag: "New",
     noneYet: "No enquiries yet.",
     countOne: "1 enquiry",
     countMany: "{count} enquiries",
@@ -356,6 +359,8 @@ export const dashboardFr: Translated<typeof dashboardEn> = {
   index: {
     title: "Vos fiches",
     subtitle: "Gérez les entreprises que vous avez inscrites.",
+    newLeadsOne: "Vous avez 1 nouveau prospect. Ouvrez l’onglet Prospects de sa fiche pour le voir.",
+    newLeadsMany: "Vous avez {count} nouveaux prospects. Le bouton Prospects de chaque fiche indique combien attendent.",
     addListing: "Ajouter une fiche",
     forbidden: "Cette fiche appartient à un autre compte ; elle ne peut donc pas être ouverte ici.",
     loadErrorTitle: "Impossible de charger les fiches",
@@ -424,6 +429,7 @@ export const dashboardFr: Translated<typeof dashboardEn> = {
   },
   leads: {
     title: "Prospects pour {name}",
+    newTag: "Nouveau",
     noneYet: "Aucune demande pour l’instant.",
     countOne: "1 demande",
     countMany: "{count} demandes",

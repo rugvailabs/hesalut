@@ -23,6 +23,7 @@ import { KycBadge, ListingStatusBadge, visibilityBlocker } from "@/components/ds
 import { ApiError, getMyBusinesses, getVerification } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
 import { formatAddress } from "@/lib/format";
+import { getNewLeads } from "@/lib/lead-notifications";
 import { tFor } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
 import type { BusinessOwnerItem, VerificationStatus } from "@/lib/types";
@@ -53,6 +54,12 @@ export default async function DashboardPage({
           : cause.message
         : t("dashboard.index.loadErrorFallback");
   }
+
+  // What has arrived since the owner last looked; unknown is shown as nothing.
+  const leadNotes = await getNewLeads();
+  const newLeadsFor = (id: number): number =>
+    leadNotes?.businesses.find((b) => b.business_id === id)?.new_leads ?? 0;
+  const totalNew = leadNotes?.total_new ?? 0;
 
   // One request per listing: there is no bulk endpoint, and an owner has a
   // handful rather than hundreds. They go out together, and a failure leaves
@@ -90,6 +97,14 @@ export default async function DashboardPage({
             </Button>
           ) : null}
         </div>
+
+        {totalNew > 0 ? (
+          <Alert locale={locale} tone="info" className="mt-4">
+            {totalNew === 1
+              ? t("dashboard.index.newLeadsOne")
+              : t("dashboard.index.newLeadsMany", { count: totalNew })}
+          </Alert>
+        ) : null}
 
         {forbidden ? (
           <Alert locale={locale} tone="warning" className="mt-4">
@@ -181,6 +196,11 @@ export default async function DashboardPage({
                         <Button key={segment} asChild variant="secondary" size="sm">
                           <Link href={`/dashboard/${listing.id}/${segment}`}>
                             {t(`dashboard.nav.${segment}`)}
+                            {segment === "leads" && newLeadsFor(listing.id) > 0 ? (
+                              <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-pill bg-warning-bg px-1.5 text-micro tabular text-warning">
+                                {newLeadsFor(listing.id)}
+                              </span>
+                            ) : null}
                           </Link>
                         </Button>
                       ))}

@@ -842,6 +842,23 @@ export interface RegistrationStarted {
   state: RegistrationState;
 }
 
+/* ------------------------------------------------------- lead notifications */
+
+/** New leads on one listing: those that arrived since the owner last looked. */
+export interface LeadNotification {
+  business_id: number;
+  business_name: string;
+  new_leads: number;
+  /** What "new" is measured against. */
+  leads_seen_at: string;
+}
+
+/** GET /notifications/leads - every listing the caller owns, and the total. */
+export interface LeadNotifications {
+  total_new: number;
+  businesses: LeadNotification[];
+}
+
 /* ------------------------------------------- plan and payment, after verification */
 
 /** GET /businesses/{id}/billing */
