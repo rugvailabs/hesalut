@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     func,
@@ -117,11 +118,30 @@ class Business(Base):
     # "$", "$$", "$$$", "$$$$" - free text rather than an enum so the scale can
     # change without a migration.
     price_range: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    # Who set price_range: "owner" (chosen, never overwritten) or "services"
+    # (derived from the listing's service prices - app/services/price_level.py).
+    price_range_source: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="services", server_default="services"
+    )
     # JSONB rather than a join table: tags are only ever read as a whole list
     # with the listing, never queried across listings.
     tags: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     # {"mon": [["09:00","17:00"]], ...}; a day absent or [] means closed.
     opening_hours: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Booking, phase 0: "none", or "external" with booking_url pointing at the
+    # owner's own tool (Square, Fresha...). Enforced together by a CHECK.
+    booking_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="none", server_default="none"
+    )
+    booking_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # IANA name, e.g. "America/Vancouver". NULL means "the province's usual
+    # zone" (app/services/booking_rules.py); owners in split-zone provinces set it.
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    cancellation_policy: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    # Cancelling inside this many hours of the start shows the policy first.
+    cancellation_window_hours: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=24, server_default="24"
+    )
     verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

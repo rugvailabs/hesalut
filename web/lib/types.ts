@@ -183,6 +183,10 @@ export interface BusinessListItem {
   price_range?: string | null;
   /** Same shape as BusinessDetail.opening_hours; null when not listed. */
   opening_hours?: Record<string, [string, string][]> | null;
+  /** What the owner offers: "none", "external" (their own page) or "request". */
+  booking_mode?: BookingMode;
+  /** Whether a visitor can actually book; drives the "Bookable" badge. */
+  bookable?: boolean;
   /** ISO timestamp the listing went up. */
   created_at?: string | null;
   /** Only present when the request supplied lat/lng. */
@@ -248,6 +252,30 @@ export interface Favorite {
   saved_at: string;
 }
 
+/**
+ * GET /api/v1/search/understand - plain-language search text turned into the
+ * filters the search endpoint takes. `source: "keywords"` means the model was
+ * unavailable: search the text as typed.
+ */
+export interface SearchUnderstanding {
+  source: "ai" | "keywords";
+  category_slugs: string[];
+  cities: string[];
+  postal_code: string | null;
+  near_me: boolean;
+  hours: ("open_now" | "weekends" | "evenings")[];
+  rating_bands: ("5" | "4.5" | "4" | "3")[];
+  price_levels: ("$" | "$$" | "$$$" | "$$$$")[];
+  /** They asked for businesses they can book online. Absent from an older API. */
+  bookable?: boolean;
+  /** Leftover free text worth keyword-matching, else null. */
+  keywords: string | null;
+  /** Asked for but not filterable yet, in the query's language. */
+  unsupported: string[];
+  /** Short description in the query's language. */
+  summary: string;
+}
+
 /** Query parameters accepted by searchBusinesses(). */
 export interface BusinessSearchParams {
   q?: string;
@@ -260,6 +288,8 @@ export interface BusinessSearchParams {
   hours?: string[];
   /** "$" to "$$$$". Any of them. */
   price?: string[];
+  /** true: only listings that can be booked (requests here, or the owner's link). */
+  bookable?: boolean;
   /** A postal code or its start ("V6B"); spaces are ignored. */
   postal_code?: string;
   /** lat and lng must be supplied together; the API 422s otherwise. */
@@ -321,8 +351,17 @@ export interface BusinessDetail extends BusinessOwnerItem {
   email: string | null;
   website: string | null;
   price_range: string | null;
+  /** "owner": chosen by the owner. "services": derived from service prices. */
+  price_range_source: "owner" | "services";
   tags: string[] | null;
   opening_hours: Record<string, [string, string][]> | null;
+  /** "external" means booking_url is the owner's own booking page. */
+  booking_mode: BookingMode;
+  booking_url: string | null;
+  /** IANA name; null means the usual zone for the province. */
+  timezone: string | null;
+  cancellation_policy: string | null;
+  cancellation_window_hours: number;
   owner_id: number | null;
   category_slug: string | null;
   category_name: string | null;
@@ -351,6 +390,11 @@ export interface BusinessCreate {
   price_range?: string | null;
   tags?: string[] | null;
   opening_hours?: Record<string, [string, string][]> | null;
+  booking_mode?: BookingMode;
+  booking_url?: string | null;
+  timezone?: string | null;
+  cancellation_policy?: string | null;
+  cancellation_window_hours?: number;
 }
 
 /** PATCH /businesses/{id} body. Omitted fields are left alone. */
@@ -748,7 +792,7 @@ export interface TaxLine {
   amount: string;
 }
 
-/** Priced server-side; what step 3 shows is what is charged. */
+/** Priced server-side; what the plan page shows is what is charged. */
 export interface OrderSummary {
   plan: Plan;
   currency: string;
@@ -784,16 +828,12 @@ export interface Receipt {
 
 /** GET /registration - everything needed to render or resume any step. */
 export interface RegistrationState {
-  /** The furthest step reached, 1-4. */
+  /** The furthest step reached, 1-3: details, confirm, done. */
   step: number;
   completed: boolean;
   account: { name: string; email: string; phone: string | null };
   details: RegistrationDetails | null;
-  selected_plan: Plan | null;
-  order: OrderSummary | null;
   business: { id: number; name: string; slug: string; status: BusinessStatus } | null;
-  subscription: Subscription | null;
-  receipt: Receipt | null;
 }
 
 export interface RegistrationStarted {
@@ -802,14 +842,30 @@ export interface RegistrationStarted {
   state: RegistrationState;
 }
 
-/** POST /registration/payment - test mode card. */
-export interface RegistrationPaymentRequest {
-  card_number: string;
-  exp_month: number;
-  exp_year: number;
-  cvc: string;
-  cardholder_name?: string | null;
+/* ------------------------------------------- plan and payment, after verification */
+
+/** GET /businesses/{id}/billing */
+export interface BillingState {
+  business_id: number;
+  /** null when no documents have been submitted yet. */
+  verification_status: VerificationStatus | null;
+  /** True once verified and not already on a plan. */
+  can_subscribe: boolean;
+  /** Why not, in words for the owner. */
+  blocked_reason: string | null;
+  subscription: Subscription | null;
+  receipt: Receipt | null;
+}
+
+/** POST /businesses/{id}/billing/subscribe - card fields only for a paid plan (test mode). */
+export interface BillingSubscribeRequest {
+  plan_id: number;
   accept_terms: boolean;
+  card_number?: string;
+  exp_month?: number;
+  exp_year?: number;
+  cvc?: string;
+  cardholder_name?: string | null;
 }
 
 /* ------------------------------------------------------ search analytics */
@@ -857,6 +913,8 @@ export interface SearchAnalytics {
 }
 
 /** GET /businesses/{id}/search-performance */
+export type BookingMode = "none" | "external" | "request";
+
 export interface BusinessSearchPerformance {
   business_id: number;
   days: number;
@@ -865,6 +923,124 @@ export interface BusinessSearchPerformance {
   ctr: number;
   avg_position: number | null;
   clicks_by_action: Record<ClickAction, number>;
+  /** Presses of the external "Book online" button, from any page. */
+  booking_clicks: number;
   impressions_by_tier: Partial<Record<SubscriptionTier, number>>;
   daily: { day: string; impressions: number; clicks: number }[];
+}
+
+/* ---------------------------------------------------------------- booking */
+
+export type BookingStatus =
+  | "requested"
+  | "confirmed"
+  | "declined"
+  | "cancelled"
+  | "expired"
+  | "completed"
+  | "no_show";
+
+export type PartOfDay = "morning" | "afternoon" | "evening";
+
+export interface BookableService {
+  id: number;
+  name: string;
+  /** French name; null means show `name` to everyone. */
+  name_fr: string | null;
+  description: string | null;
+  duration_minutes: number;
+  /** Whole cents; null means "price on request". */
+  price_cents: number | null;
+  is_active: boolean;
+}
+
+export interface ServiceInput {
+  name: string;
+  name_fr?: string | null;
+  description?: string | null;
+  duration_minutes: number;
+  price_cents?: number | null;
+}
+
+export interface BookingInfo {
+  business_id: number;
+  style: "appointment" | "window";
+  timezone: string;
+  cancellation_policy: string | null;
+  cancellation_window_hours: number;
+  opening_hours: Record<string, [string, string][]> | null;
+  max_proposed: number;
+  services: BookableService[];
+}
+
+/** A suggested time in the business's own zone: a date plus a time or a part of the day. */
+export interface ProposedTimeInput {
+  date: string;
+  time?: string | null;
+  part?: PartOfDay | null;
+}
+
+export interface BookingCreate {
+  business_id: number;
+  service_id: number;
+  proposals: ProposedTimeInput[];
+  phone?: string | null;
+  note?: string | null;
+  consent_shared: boolean;
+}
+
+export interface ProposedTime {
+  id: number;
+  starts_at: string;
+  ends_at: string;
+  part_of_day: PartOfDay | null;
+}
+
+export interface Booking {
+  id: number;
+  business_id: number;
+  business_name: string;
+  business_slug: string;
+  timezone: string;
+  service_id: number | null;
+  service_name: string;
+  service_name_fr: string | null;
+  duration_minutes: number;
+  price_cents: number | null;
+  status: BookingStatus;
+  style: "appointment" | "window";
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  note: string | null;
+  proposed_times: ProposedTime[];
+  confirmed_start: string | null;
+  confirmed_end: string | null;
+  decline_message: string | null;
+  cancelled_by: "customer" | "owner" | null;
+  cancel_reason: string | null;
+  created_at: string;
+  responded_at: string | null;
+  expires_at: string | null;
+  cancellation_policy: string | null;
+  inside_cancellation_window: boolean;
+}
+
+export type BookingAction = "accept" | "decline" | "cancel" | "complete" | "no-show";
+
+/**
+ * GET /admin/bookings - one page for the admin. The customer's note and any
+ * cancellation reason the customer typed are removed by the server (`note` is
+ * always null here), so nothing in this shape can show them.
+ */
+export interface AdminBookingPage {
+  items: Booking[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  /** Bookings per status across what the other filters match. */
+  status_counts: Record<BookingStatus, number>;
+  businesses_taking_requests: number;
+  requests_last_30_days: number;
 }

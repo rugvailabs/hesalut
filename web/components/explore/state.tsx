@@ -17,6 +17,12 @@
  *
  * Children must not act on the selection until `hydrated` is true; before
  * that it is the empty default, not the visitor's.
+ *
+ * Beside the selection sits `smart`: when the current search was read from
+ * free text by the backend (lib/understand.ts), what it understood - the
+ * results page's "Showing: ..." line. Kept in sessionStorage too, so it
+ * survives Back from a business profile; the results page drops it once the
+ * selection no longer matches what was understood.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
@@ -31,6 +37,19 @@ import {
 } from "@/lib/explore";
 
 const STORAGE_KEY = "jfy.explore.selection.v1";
+const SMART_KEY = "jfy.explore.smart.v1";
+
+/** A search the backend read from free text, as the results page shows it. */
+export interface SmartNote {
+  /** The words as typed (or spoken), for "Search the exact words instead". */
+  text: string;
+  /** The Where box as it was, for the same. */
+  where: string;
+  summary: string;
+  unsupported: string[];
+  /** smartKey() of the selection it produced. */
+  key: string;
+}
 
 type ListField = "categories" | "cities" | "ratings" | "hours" | "prices";
 
@@ -95,9 +114,39 @@ function save(selection: ExploreSelection): void {
   }
 }
 
+function loadSmart(): SmartNote | null {
+  try {
+    const raw = window.sessionStorage.getItem(SMART_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SmartNote>;
+    return typeof parsed.key === "string" && typeof parsed.text === "string"
+      ? {
+          text: parsed.text,
+          where: parsed.where ?? "",
+          summary: parsed.summary ?? "",
+          unsupported: Array.isArray(parsed.unsupported) ? parsed.unsupported : [],
+          key: parsed.key,
+        }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSmart(note: SmartNote | null): void {
+  try {
+    if (note) window.sessionStorage.setItem(SMART_KEY, JSON.stringify(note));
+    else window.sessionStorage.removeItem(SMART_KEY);
+  } catch {
+    // As save().
+  }
+}
+
 interface ExploreStore {
   selection: ExploreSelection;
   hydrated: boolean;
+  smart: SmartNote | null;
+  setSmart: (note: SmartNote | null) => void;
   toggle: (field: ListField, value: string) => void;
   setList: (field: ListField, values: string[]) => void;
   set: (changes: Partial<ExploreSelection>) => void;
@@ -111,6 +160,7 @@ const ExploreContext = createContext<ExploreStore | null>(null);
 export function ExploreStateProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [selection, dispatch] = useReducer(reducer, EMPTY_SELECTION);
   const [hydrated, setHydrated] = useState(false);
+  const [smart, setSmart] = useState<SmartNote | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -120,12 +170,17 @@ export function ExploreStateProvider({ children }: { children: React.ReactNode }
         : null;
     const initial = fromUrl ?? load();
     if (initial) dispatch({ type: "replace", selection: initial });
+    setSmart(loadSmart());
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (hydrated) save(selection);
   }, [hydrated, selection]);
+
+  useEffect(() => {
+    if (hydrated) saveSmart(smart);
+  }, [hydrated, smart]);
 
   const toggle = useCallback((field: ListField, value: string) => dispatch({ type: "toggle", field, value }), []);
   const setList = useCallback((field: ListField, values: string[]) => dispatch({ type: "setList", field, values }), []);
@@ -135,8 +190,8 @@ export function ExploreStateProvider({ children }: { children: React.ReactNode }
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
 
   const value = useMemo<ExploreStore>(
-    () => ({ selection, hydrated, toggle, setList, set, setNear, replace, reset }),
-    [selection, hydrated, toggle, setList, set, setNear, replace, reset],
+    () => ({ selection, hydrated, smart, setSmart, toggle, setList, set, setNear, replace, reset }),
+    [selection, hydrated, smart, toggle, setList, set, setNear, replace, reset],
   );
 
   return <ExploreContext.Provider value={value}>{children}</ExploreContext.Provider>;

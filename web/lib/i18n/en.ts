@@ -15,6 +15,7 @@ import { pagesEn } from "@/lib/i18n/sections/pages";
 import { discoverEn } from "@/lib/i18n/sections/discover";
 import { dashboardEn } from "@/lib/i18n/sections/dashboard";
 import { adminEn } from "@/lib/i18n/sections/admin";
+import { bookingEn } from "@/lib/i18n/sections/booking";
 import type { Translated } from "@/lib/i18n/types";
 
 export const en = {
@@ -46,6 +47,8 @@ export const en = {
     call: "Call",
     directions: "Directions",
     website: "Website",
+    bookOnline: "Book online",
+    bookOnlineHint: "Opens the business’s own booking page in a new tab",
     verified: "Verified",
     verifiedHint: "Identity checked by our team",
     featured: "Featured",
@@ -153,6 +156,7 @@ export const en = {
   discover: discoverEn,
   dashboard: dashboardEn,
   admin: adminEn,
+  booking: bookingEn,
 } as const;
 
 export type Dictionary = Translated<typeof en>;

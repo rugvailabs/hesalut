@@ -43,8 +43,16 @@ export default function SearchPerformanceCard({
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   });
-  const { impressions, clicks, ctr, avg_position, clicks_by_action, impressions_by_tier, days } =
-    performance;
+  const {
+    impressions,
+    clicks,
+    ctr,
+    avg_position,
+    clicks_by_action,
+    booking_clicks,
+    impressions_by_tier,
+    days,
+  } = performance;
   const tiers = Object.entries(impressions_by_tier).filter(([, n]) => (n ?? 0) > 0);
 
   return (
@@ -96,6 +104,12 @@ export default function SearchPerformanceCard({
           ) : null}
         </>
       )}
+      {booking_clicks > 0 ? (
+        <p className="mt-4 text-meta text-ink-muted">
+          {t("dashboard.performance.bookingClicks")}:{" "}
+          <span className="tabular font-medium text-ink">{formatCount(booking_clicks, intl)}</span>
+        </p>
+      ) : null}
     </Card>
   );
 }

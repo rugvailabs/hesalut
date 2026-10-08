@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.deps import get_current_user
+from app.core.rate_limit import rate_limit
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserResponse
@@ -20,7 +21,12 @@ def _token_for(user: User) -> TokenResponse:
     return TokenResponse(access_token=create_access_token({"sub": str(user.id)}))
 
 
-@router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("signup", 10, 3600))],
+)
 def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing is not None:
@@ -43,7 +49,11 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> TokenRespon
     return _token_for(user)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("login", 10, 300))],
+)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     user = db.scalar(select(User).where(User.email == payload.email))
     # Same message either way so the endpoint does not reveal which emails exist.

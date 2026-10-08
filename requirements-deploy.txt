@@ -18,3 +18,9 @@ python-jose[cryptography]
 email-validator
 boto3
 python-multipart
+
+# Smart search (app/services/query_understanding.py); unused without a key.
+anthropic
+
+# Booking (app/services/booking_rules.py): IANA time zones on slim images and Windows.
+tzdata

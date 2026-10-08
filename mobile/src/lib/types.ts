@@ -174,6 +174,10 @@ export interface BusinessListItem {
   rating: number | null;
   review_count: number;
   verified: boolean;
+  /** "none", "external" (the owner's own booking page) or "request" (requests on the site). */
+  booking_mode?: "none" | "external" | "request";
+  /** Whether a visitor can book this business; drives the "Bookable" badge. */
+  bookable?: boolean;
   /** Only present when the request supplied lat/lng. */
   distance_km: number | null;
 }
@@ -189,11 +193,47 @@ export interface SearchResponse {
   has_prev: boolean;
 }
 
+/**
+ * GET /api/v1/search/understand - plain-language text turned into filters.
+ *
+ * `source: "keywords"` means the model was unavailable and nothing was
+ * extracted: search the text exactly as typed and ignore the other fields.
+ */
+export interface SearchUnderstanding {
+  source: "ai" | "keywords";
+  category_slugs: string[];
+  cities: string[];
+  postal_code: string | null;
+  near_me: boolean;
+  hours: ("open_now" | "weekends" | "evenings")[];
+  rating_bands: ("5" | "4.5" | "4" | "3")[];
+  price_levels: ("$" | "$$" | "$$$" | "$$$$")[];
+  /** They asked for businesses they can book online. Absent from an older API. */
+  bookable?: boolean;
+  /** What is left once the filters are taken out; becomes `q`. */
+  keywords: string | null;
+  /** Asked-for things that cannot be filtered on yet, in the query's language. */
+  unsupported: string[];
+  /** Short description of the filters, e.g. "Plumbers in Burnaby, open now". */
+  summary: string;
+}
+
 /** Query parameters accepted by searchBusinesses(). */
 export interface BusinessSearchParams {
   q?: string;
-  category_slug?: string;
-  city?: string;
+  /** Several values mean any of them. */
+  category_slug?: string | string[];
+  city?: string | string[];
+  /** Rating bands: "5", "4.5" (4.5-4.99), "4" (4-4.49), "3" (3-3.99). Any of them. */
+  rating_band?: string[];
+  /** open_now, weekends, evenings. Every one given must hold. */
+  hours?: string[];
+  /** "$" to "$$$$". Any of them. */
+  price?: string[];
+  /** true: only businesses that can be booked (requests on the site, or the owner's own link). */
+  bookable?: boolean;
+  /** A postal code or its start ("V6B"); spaces are ignored. */
+  postal_code?: string;
   /** lat and lng must be supplied together; the API 422s otherwise. */
   lat?: number;
   lng?: number;

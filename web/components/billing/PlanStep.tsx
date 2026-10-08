@@ -1,17 +1,16 @@
 "use client";
 
 /**
- * Step 2: choose a plan. Mandatory - there is no way past this step without one.
+ * Choose a plan, on the dashboard's billing page - reached only once the
+ * business is verified (the API refuses a plan before that).
  *
  * Three cards, in the order the API gives (Annual, Monthly, Basic): name,
  * badge, price, the first three features, "Learn more" and "Select". Select
- * saves the choice immediately, so it survives a refresh, a closed browser or a
- * trip back to step 1. Continuing without a choice shows an error; the
- * payment step is also refused server-side without one.
+ * only marks the card; nothing is saved or charged until the next step, where
+ * the order is priced and paid.
  */
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Check, Clock } from "lucide-react";
 
@@ -27,61 +26,30 @@ import { isFree, monthlyCost, priceLabel } from "./planDisplay";
 
 export default function PlanStep({
   plans,
-  selectedPlanId: savedPlanId,
+  selectedPlanId,
+  onSelect,
+  onContinue,
+  continuing,
+  error,
+  backHref,
   locale,
 }: {
   plans: Plan[];
-  /** The plan saved earlier, if any. */
+  /** The plan marked so far, if any. */
   selectedPlanId: number | null;
+  onSelect: (plan: Plan) => void;
+  /** Called with nothing selected too, so the page can say a plan is needed. */
+  onContinue: () => void;
+  /** True while the next step is loading. */
+  continuing: boolean;
+  /** A problem with the choice, from the page that owns the next step. */
+  error: string | null;
+  backHref: string;
   locale: Locale;
 }): JSX.Element {
-  const router = useRouter();
   const t = tFor(locale);
-  const [selected, setSelected] = useState<number | null>(savedPlanId);
-  const [selecting, setSelecting] = useState<number | null>(null);
+  const selected = selectedPlanId;
   const [details, setDetails] = useState<Plan | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function select(plan: Plan): Promise<boolean> {
-    setError(null);
-    setSelecting(plan.id);
-    try {
-      const res = await fetch("/api/register/plan", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_id: plan.id }),
-      });
-      if (!res.ok) {
-        const payload: unknown = await res.json().catch(() => null);
-        setError(
-          payload && typeof payload === "object" && "detail" in payload
-            ? String((payload as { detail: unknown }).detail)
-            : t("register.plan.selectFailed", { plan: plan.name, status: res.status }),
-        );
-        return false;
-      }
-      setSelected(plan.id);
-      // Pin the URL to step 2 before re-rendering: without ?step=2 (arriving
-      // from sign-in, say) the page shows the furthest step, which choosing a
-      // plan has just made step 3 - and would jump straight to payment.
-      router.replace("/register?step=2", { scroll: false });
-      router.refresh();
-      return true;
-    } catch {
-      setError(t("register.plan.unreachable"));
-      return false;
-    } finally {
-      setSelecting(null);
-    }
-  }
-
-  function onContinue(): void {
-    if (selected === null) {
-      setError(t("register.plan.required"));
-      return;
-    }
-    router.push("/register?step=3");
-  }
 
   if (plans.length === 0) {
     return (
@@ -163,8 +131,8 @@ export default function PlanStep({
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => void select(plan)}
-                  disabled={active || selecting !== null}
+                  onClick={() => onSelect(plan)}
+                  disabled={active}
                   aria-pressed={active}
                   className="flex-1"
                 >
@@ -173,8 +141,6 @@ export default function PlanStep({
                       <Check aria-hidden="true" />
                       {t("register.plan.selected")}
                     </>
-                  ) : selecting === plan.id ? (
-                    t("register.plan.selecting")
                   ) : (
                     t("register.plan.select")
                   )}
@@ -189,12 +155,12 @@ export default function PlanStep({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button asChild variant="ghost">
-          <Link href="/register?step=1">
+          <Link href={backHref}>
             <ArrowLeft aria-hidden="true" />
-            {t("register.plan.back")}
+            {t("dashboard.billing.backToPlans")}
           </Link>
         </Button>
-        <Button size="lg" onClick={onContinue} disabled={selecting !== null}>
+        <Button size="lg" onClick={onContinue} disabled={continuing}>
           {t("register.plan.continue")}
         </Button>
       </div>
@@ -204,11 +170,11 @@ export default function PlanStep({
           plan={details}
           plans={plans}
           selectedPlanId={selected}
-          selecting={selecting === details.id}
+          selecting={false}
           locale={locale}
-          onSelect={async (plan) => {
-            // The modal closes on selection - but only once it has been saved.
-            if (await select(plan)) setDetails(null);
+          onSelect={(plan) => {
+            onSelect(plan);
+            setDetails(null);
           }}
           onClose={() => setDetails(null)}
         />

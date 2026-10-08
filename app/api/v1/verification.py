@@ -29,6 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.audit import log_audit
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.deps import require_admin, require_owned_business
 from app.models.business import Business
@@ -43,6 +44,7 @@ from app.schemas.verification import (
     VerificationSubmit,
 )
 from app.services import storage
+from app.services.mailer import send_email
 
 router = APIRouter(tags=["verification"])
 
@@ -230,16 +232,16 @@ def list_pending_verifications(
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[PendingVerificationItem]:
-    """The KYC queue: oldest submission first.
+    """The KYC queue: newest submission first.
 
-    Oldest first, like the listing moderation queue and unlike every other
-    list in this API - the person who has been waiting longest should be seen
-    first.
+    Newest first, like every other list in this API. The admin page tags each
+    row with how long it has been waiting, so the oldest ones stay visible even
+    though they sit at the bottom.
     """
     rows = db.execute(
         _queue_query()
         .where(BusinessVerification.status == VerificationStatus.pending)
-        .order_by(BusinessVerification.submitted_at.asc())
+        .order_by(BusinessVerification.submitted_at.desc(), BusinessVerification.id.desc())
         .offset(offset)
         .limit(limit)
     ).all()
@@ -358,6 +360,36 @@ def _decide(
     return record
 
 
+def _tell_owner_to_choose_a_plan(db: Session, record: BusinessVerification) -> None:
+    """Email the owner that they are verified and can now choose a plan.
+
+    Payment comes after verification (app/api/v1/billing.py), so this is the
+    moment they learn it is open. After the commit and best effort: the
+    approval stands whether or not the mail server is up.
+    """
+    business = db.get(Business, record.business_id)
+    owner = db.get(User, business.owner_id) if business and business.owner_id else None
+    if business is None or owner is None:
+        return
+    link = f"{get_settings().web_base_url}/dashboard/{business.id}/billing"
+    send_email(
+        to=owner.email,
+        subject=f"{business.name} is verified - choose your plan",
+        body="\n".join(
+            [
+                f"Hi {owner.name},",
+                "",
+                f"Good news: {business.name} has been verified.",
+                "You can now choose a plan. You are not charged until you do.",
+                "",
+                f"Choose your plan: {link}",
+                "",
+                "The justforyou team",
+            ]
+        ),
+    )
+
+
 @router.post(
     "/admin/verifications/{verification_id}/approve", response_model=VerificationOut
 )
@@ -374,7 +406,7 @@ def approve_verification(
     no other step and no subscription required.
     """
     record = _load_verification(db, verification_id)
-    return _decide(
+    decided = _decide(
         db,
         record,
         moderator,
@@ -382,6 +414,8 @@ def approve_verification(
         payload.note if payload is not None else None,
         "verification.approved",
     )
+    _tell_owner_to_choose_a_plan(db, decided)
+    return decided
 
 
 @router.post(

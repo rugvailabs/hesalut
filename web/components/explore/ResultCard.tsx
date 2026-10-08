@@ -17,7 +17,7 @@
  */
 
 import Link from "next/link";
-import { ArrowRight, Eye, Globe, MapPin, Navigation, Phone, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarCheck, Eye, Globe, MapPin, Navigation, Phone, Sparkles } from "lucide-react";
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { useExploreT } from "@/components/explore/ExploreProviders";
@@ -144,6 +144,12 @@ export default function ResultCard({
           />
           <PlacementBadge tier={business.subscription_tier} locale={locale} />
           <VerifiedBadge implied locale={locale} />
+          {business.bookable ? (
+            <Badge tone="success" title={t("card.bookableHint")}>
+              <CalendarCheck className="size-3" aria-hidden="true" />
+              {t("card.bookable")}
+            </Badge>
+          ) : null}
           {recent ? (
             <Badge tone="brand">
               <Sparkles className="size-3" aria-hidden="true" />

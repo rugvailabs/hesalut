@@ -47,6 +47,7 @@ import type {
   ProfileUpdate,
   LoginRequest,
   SearchResponse,
+  SearchUnderstanding,
   SignupRequest,
   TokenResponse,
   UserResponse,
@@ -320,12 +321,32 @@ export function searchBusinesses(
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
-    if (typeof value === "string" && value.trim() === "") continue;
-    qs.set(key, String(value));
+    // Multi-select filters repeat the parameter: ?city=Burnaby&city=Richmond.
+    for (const one of Array.isArray(value) ? value : [value]) {
+      if (typeof one === "string" && one.trim() === "") continue;
+      qs.append(key, String(one));
+    }
   }
   const suffix = qs.toString();
   return apiFetch<SearchResponse>(
     `/businesses/search${suffix ? `?${suffix}` : ""}`,
+    { method: "GET", auth: false },
+  );
+}
+
+/**
+ * GET /api/v1/search/understand - turn "plumber in burnaby open now" into
+ * filters for searchBusinesses(). Public, so no token is attached.
+ *
+ * A `source: "keywords"` answer is not an error: it means the model was not
+ * available and the caller should search the text as typed.
+ */
+export function understandSearch(
+  q: string,
+  lang: "en" | "fr",
+): Promise<SearchUnderstanding> {
+  return apiFetch<SearchUnderstanding>(
+    `/search/understand?q=${encodeURIComponent(q)}&lang=${lang}`,
     { method: "GET", auth: false },
   );
 }

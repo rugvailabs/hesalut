@@ -27,6 +27,7 @@ from scripts.seed_directory import (
     seed_reviews,
     seed_verifications,
 )
+from scripts.seed_booking import seed_booking
 from app.services import storage
 from app.models import (
     Consent,
@@ -229,6 +230,8 @@ def main() -> int:
             verifications_promoted,
             verifications_total,
         ) = seed_verifications(db)
+        # Booking last: it needs the listings, and only touches demo ones.
+        booking_services, booking_switched, booking_total = seed_booking(db)
         db.commit()
         # commit() expires attributes and close() detaches the instances, so
         # read everything the summary needs while the session is still open.
@@ -304,6 +307,11 @@ def main() -> int:
         f"{verifications_total} listings total"
     )
     print("             approved listings are marked verified so search sees them")
+    print(
+        f"  Booking  : {booking_services} services created, "
+        f"{booking_switched} listings switched to booking requests "
+        f"({booking_total} bookable demo listings)"
+    )
     print("  Plans    : managed by migrations (alembic upgrade head), not seeded")
     return 0
 

@@ -47,7 +47,9 @@ import type {
   PendingVerificationItem,
   Plan,
   RegistrationDetailsUpdate,
-  RegistrationPaymentRequest,
+  BillingState,
+  BillingSubscribeRequest,
+  OrderSummary,
   RegistrationStarted,
   RegistrationStartRequest,
   RegistrationState,
@@ -57,6 +59,15 @@ import type {
   LoginRequest,
   AdminEnquiryPage,
   SearchResponse,
+  SearchUnderstanding,
+  AdminBookingPage,
+  BookableService,
+  Booking,
+  BookingAction,
+  BookingCreate,
+  BookingInfo,
+  BookingStatus,
+  ServiceInput,
   SupportMessageAccepted,
   SupportMessageCreate,
   SignupRequest,
@@ -175,6 +186,31 @@ async function tokenFromCookie(): Promise<string | undefined> {
 }
 
 /**
+ * Tell the API who the visitor is. The browser reaches the API through this
+ * server, so without this every visitor shares the server's address and the
+ * API's per-IP rate limits would throttle everyone together. The secret proves
+ * the header comes from us (see app/core/rate_limit.py). Only attached to
+ * calls that are rate limited - reading headers() opts a page out of static
+ * rendering, which ordinary GETs must keep.
+ */
+async function forwardClientIp(headers: Headers, method: string, path: string): Promise<void> {
+  const secret = process.env.INTERNAL_PROXY_SECRET;
+  if (!secret) return;
+  if (method === "GET" && !path.startsWith("/search/understand")) return;
+  try {
+    const { headers: requestHeaders } = await import("next/headers");
+    const h = requestHeaders();
+    const ip = h.get("x-real-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (ip) {
+      headers.set("X-Client-IP", ip);
+      headers.set("X-Proxy-Secret", secret);
+    }
+  } catch {
+    // Outside a request scope (build, scripts): no visitor to forward.
+  }
+}
+
+/**
  * Fetch `path` (e.g. "/login") against the API base URL.
  *
  * Resolves with the parsed JSON body on 2xx; throws {@link ApiError} on
@@ -196,6 +232,8 @@ export async function apiFetch<T>(
     const bearer = token ?? (await tokenFromCookie());
     if (bearer) finalHeaders.set("Authorization", `Bearer ${bearer}`);
   }
+
+  await forwardClientIp(finalHeaders, (rest.method ?? "GET").toUpperCase(), path);
 
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
@@ -333,8 +371,8 @@ export function searchBusinesses(
     }
   }
   const suffix = qs.toString();
-  // Signed-in searches are attributed in search analytics; the token is sent
-  // when there is one, and search stays public when there is not.
+  // The API requires sign-in to search; the cookie's token is sent, and the
+  // search is attributed to that user in analytics.
   return apiFetch<SearchResponse>(
     `/businesses/search${suffix ? `?${suffix}` : ""}`,
     { method: "GET" },
@@ -342,7 +380,7 @@ export function searchBusinesses(
 }
 
 /**
- * GET /businesses/by-slug/{slug} - public listing detail.
+ * GET /businesses/by-slug/{slug} - listing detail (requires sign-in).
  *
  * Approved and active only; anything else 404s, which is what the public
  * detail page turns into notFound(). Returns null instead of throwing on 404
@@ -357,12 +395,29 @@ export async function getBusinessBySlug(
   try {
     return await apiFetch<BusinessDetail>(
       `/businesses/by-slug/${encodeURIComponent(slug)}`,
-      { method: "GET", auth: false },
+      { method: "GET" },
     );
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+/**
+ * GET /search/understand - free search text read as filters. Requires sign-in. The
+ * backend answers `source: "keywords"` itself when its model fails; transport
+ * failures and timeouts still throw, and the caller falls back.
+ */
+export function understandSearch(
+  q: string,
+  lang: "en" | "fr",
+  signal?: AbortSignal,
+): Promise<SearchUnderstanding> {
+  const qs = new URLSearchParams({ q, lang });
+  return apiFetch<SearchUnderstanding>(`/search/understand?${qs.toString()}`, {
+    method: "GET",
+    signal,
+  });
 }
 
 /** GET /businesses/cities - cities with public listings, busiest first. */
@@ -471,7 +526,7 @@ export function getEnquiries(
 
 /* --------------------------------------------------------- review calls */
 
-/** GET /businesses/{id}/reviews - public, newest first. */
+/** GET /businesses/{id}/reviews - newest first. Requires sign-in. */
 export function getReviews(
   businessId: number,
   options: { limit?: number; offset?: number } = {},
@@ -483,7 +538,7 @@ export function getReviews(
   const suffix = qs.toString();
   return apiFetch<BusinessReview[]>(
     `/businesses/${businessId}/reviews${suffix ? `?${suffix}` : ""}`,
-    { method: "GET", auth: false },
+    { method: "GET" },
   );
 }
 
@@ -493,7 +548,7 @@ export function getReviewSummary(
 ): Promise<BusinessReviewSummary> {
   return apiFetch<BusinessReviewSummary>(
     `/businesses/${businessId}/reviews/summary`,
-    { method: "GET", auth: false },
+    { method: "GET" },
   );
 }
 
@@ -537,8 +592,8 @@ export function replyToReview(
 /**
  * GET /api/v1/admin/businesses - the moderation queue. Admin only.
  *
- * Defaults to pending, oldest first, so the longest-waiting owner surfaces
- * first - the opposite of every other list in this API.
+ * Defaults to pending, newest first, like every other list in this API. The
+ * page tags each row with its wait, so the longest-waiting owner still stands out.
  */
 export function getModerationQueue(
   status?: BusinessStatus,
@@ -841,10 +896,9 @@ export function presignDocument(params: {
 /* ---------------------------------------------- verification moderation */
 
 /**
- * GET /admin/verifications/pending - the KYC queue, oldest first.
+ * GET /admin/verifications/pending - the KYC queue, newest first.
  *
- * Oldest first like the listing queue: the person who has been waiting
- * longest should be seen first.
+ * Newest first like every other list; the page tags each row with its wait.
  */
 export function getPendingVerifications(
   options: { limit?: number; offset?: number } = {},
@@ -992,33 +1046,46 @@ export function updateRegistrationDetails(
   });
 }
 
-/** PUT /registration/plan - save the chosen plan (replacing any earlier one). */
-export function chooseRegistrationPlan(planId: number): Promise<RegistrationState> {
-  return apiFetch<RegistrationState>("/registration/plan", {
-    method: "PUT",
-    body: { plan_id: planId },
+/** POST /registration/complete - accept the terms; creates the listing. Nothing is charged. */
+export function completeRegistration(acceptTerms: boolean): Promise<RegistrationState> {
+  return apiFetch<RegistrationState>("/registration/complete", {
+    method: "POST",
+    body: { accept_terms: acceptTerms },
+  });
+}
+
+/* ------------------------------------------- plan and payment, after verification */
+
+/** GET /businesses/{id}/billing - where billing stands, and whether a plan can be chosen yet. */
+export function getBilling(businessId: number): Promise<BillingState> {
+  return apiFetch<BillingState>(`/businesses/${businessId}/billing`, { method: "GET" });
+}
+
+/**
+ * GET /businesses/{id}/billing/order - what a plan would cost, taxed for the
+ * business's province.
+ *
+ * @throws {ApiError} 409 until the business is verified.
+ */
+export function getBillingOrder(businessId: number, planId: number): Promise<OrderSummary> {
+  return apiFetch<OrderSummary>(`/businesses/${businessId}/billing/order?plan_id=${planId}`, {
+    method: "GET",
   });
 }
 
 /**
- * POST /registration/payment - pay for the chosen plan and complete.
+ * POST /businesses/{id}/billing/subscribe - choose a plan and pay (test mode).
  *
- * @throws {ApiError} 402 with a customer-facing message when declined.
+ * @throws {ApiError} 409 until verified, 402 with a customer-facing message
+ * when the card is declined.
  */
-export function payForRegistration(
-  payment: RegistrationPaymentRequest,
-): Promise<RegistrationState> {
-  return apiFetch<RegistrationState>("/registration/payment", {
+export function subscribeBilling(
+  businessId: number,
+  payload: BillingSubscribeRequest,
+): Promise<BillingState> {
+  return apiFetch<BillingState>(`/businesses/${businessId}/billing/subscribe`, {
     method: "POST",
-    body: payment,
-  });
-}
-
-/** POST /registration/complete - complete on a free plan (terms still apply). */
-export function completeFreeRegistration(acceptTerms: boolean): Promise<RegistrationState> {
-  return apiFetch<RegistrationState>("/registration/complete", {
-    method: "POST",
-    body: { accept_terms: acceptTerms },
+    body: payload,
   });
 }
 
@@ -1037,6 +1104,14 @@ export function recordSearchClick(payload: {
   });
 }
 
+/** POST /businesses/{id}/booking-clicks - the "Book online" button was pressed. */
+export function recordBookingClick(businessId: number): Promise<void> {
+  return apiFetch<void>(`/businesses/${businessId}/booking-clicks`, {
+    method: "POST",
+    auth: false,
+  });
+}
+
 /** GET /admin/search-analytics - CTR per tier, rotation fairness, top performers. */
 export function getSearchAnalytics(days = 30): Promise<SearchAnalytics> {
   return apiFetch<SearchAnalytics>(`/admin/search-analytics?days=${days}`, { method: "GET" });
@@ -1051,4 +1126,92 @@ export function getBusinessSearchPerformance(
     `/businesses/${businessId}/search-performance?days=${days}`,
     { method: "GET" },
   );
+}
+
+/* ---------------------------------------------------------------- booking */
+
+/** GET /businesses/{id}/booking-info - public; 404 when the business takes no requests. */
+export function getBookingInfo(businessId: number): Promise<BookingInfo> {
+  return apiFetch<BookingInfo>(`/businesses/${businessId}/booking-info`, {
+    method: "GET",
+    auth: false,
+  });
+}
+
+/** POST /bookings - a signed-in customer asks for a service. */
+export function createBooking(body: BookingCreate, idempotencyKey?: string): Promise<Booking> {
+  return apiFetch<Booking>("/bookings", {
+    method: "POST",
+    body,
+    // A retry with the same key returns the first booking instead of a second.
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+  });
+}
+
+/** GET /bookings/mine */
+export function getMyBookings(): Promise<Booking[]> {
+  return apiFetch<Booking[]>("/bookings/mine", { method: "GET" });
+}
+
+/** POST /bookings/{id}/cancel - withdraw a request or cancel a confirmed booking. */
+export function cancelMyBooking(bookingId: number, reason: string | null): Promise<Booking> {
+  return apiFetch<Booking>(`/bookings/${bookingId}/cancel`, { method: "POST", body: { reason } });
+}
+
+/** GET /businesses/{id}/bookings - owner, pending first. */
+export function getOwnerBookings(businessId: number): Promise<Booking[]> {
+  return apiFetch<Booking[]>(`/businesses/${businessId}/bookings`, { method: "GET" });
+}
+
+/** POST /businesses/{id}/bookings/{bid}/{action} - accept, decline, cancel, complete, no-show. */
+export function actOnBooking(
+  businessId: number,
+  bookingId: number,
+  action: BookingAction,
+  body: unknown,
+): Promise<Booking> {
+  return apiFetch<Booking>(`/businesses/${businessId}/bookings/${bookingId}/${action}`, {
+    method: "POST",
+    body: body ?? {},
+  });
+}
+
+/** GET /businesses/{id}/services - owner, including ones no longer offered. */
+export function getServices(businessId: number): Promise<BookableService[]> {
+  return apiFetch<BookableService[]>(`/businesses/${businessId}/services`, { method: "GET" });
+}
+
+export function createService(businessId: number, body: ServiceInput): Promise<BookableService> {
+  return apiFetch<BookableService>(`/businesses/${businessId}/services`, { method: "POST", body });
+}
+
+export function updateService(
+  businessId: number,
+  serviceId: number,
+  body: Partial<ServiceInput> & { is_active?: boolean },
+): Promise<BookableService> {
+  return apiFetch<BookableService>(`/businesses/${businessId}/services/${serviceId}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export function deleteService(businessId: number, serviceId: number): Promise<void> {
+  return apiFetch<void>(`/businesses/${businessId}/services/${serviceId}`, { method: "DELETE" });
+}
+
+/** GET /admin/bookings - admin only; the server audit-logs every read. */
+export function getAdminBookings(options: {
+  status?: BookingStatus;
+  page?: number;
+  page_size?: number;
+} = {}): Promise<AdminBookingPage> {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(options)) {
+    if (value !== undefined) qs.set(key, String(value));
+  }
+  const suffix = qs.toString();
+  return apiFetch<AdminBookingPage>(`/admin/bookings${suffix ? `?${suffix}` : ""}`, {
+    method: "GET",
+  });
 }

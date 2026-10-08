@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.deps import get_current_user_optional, require_owned_business
+from app.core.rate_limit import rate_limit
 from app.core.visibility import require_visible_business
 from app.models.business import Business
 from app.models.enquiry import Enquiry, EnquiryType
@@ -33,6 +34,7 @@ MAX_PAGE_SIZE = 100
     "/{business_id}/enquiries",
     response_model=EnquiryAck,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("enquiry", 10, 3600))],
 )
 def create_enquiry(
     business_id: int,

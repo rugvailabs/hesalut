@@ -30,28 +30,9 @@ from app.schemas.directory import (
     BusinessReviewSummary,
     OwnerReplyCreate,
 )
+from app.services.ratings import recalculate_rating
 
 router = APIRouter(prefix="/businesses", tags=["directory"])
-
-
-def _recalculate_rating(db: Session, business: Business) -> None:
-    """Refresh the denormalised rating/review_count on the listing.
-
-    The aggregate lives on businesses because search sorts and filters on it;
-    a correlated subquery per row would not survive a real catalogue. It is
-    recomputed here rather than incremented so it cannot drift.
-
-    A listing with no reviews goes back to NULL, not 0.0 - "unrated" and "rated
-    zero" are different, and ?min_rating must not match the former.
-    """
-    row = db.execute(
-        select(func.avg(BusinessReview.rating), func.count(BusinessReview.id)).where(
-            BusinessReview.business_id == business.id
-        )
-    ).one()
-    average, count = row[0], row[1] or 0
-    business.rating = round(float(average), 2) if average is not None else None
-    business.review_count = count
 
 
 def _to_out(review: BusinessReview) -> BusinessReviewOut:
@@ -86,8 +67,9 @@ def list_reviews(
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> list[BusinessReviewOut]:
-    """Reviews for a listing, newest first. Public."""
+    """Reviews for a listing, newest first. Requires sign-in."""
     business = _visible_business(db, business_id)
 
     reviews = db.scalars(
@@ -103,9 +85,11 @@ def list_reviews(
 
 @router.get("/{business_id}/reviews/summary", response_model=BusinessReviewSummary)
 def review_summary(
-    business_id: int, db: Session = Depends(get_db)
+    business_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> BusinessReviewSummary:
-    """Average, count and the 5..1 histogram. Public."""
+    """Average, count and the 5..1 histogram. Requires sign-in."""
     business = _visible_business(db, business_id)
 
     rows = db.execute(
@@ -169,7 +153,7 @@ def create_review(
             detail="You have already reviewed this listing",
         )
 
-    _recalculate_rating(db, business)
+    recalculate_rating(db, business)
     db.commit()
     db.refresh(review)
     return _to_out(review)

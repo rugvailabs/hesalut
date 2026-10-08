@@ -19,6 +19,7 @@ type AdminSection =
   | "verifications"
   | "reviews"
   | "leads"
+  | "bookings"
   | "search";
 
 // Labels are admin.nav.<key>.
@@ -28,6 +29,7 @@ const TABS: { key: AdminSection; href: string }[] = [
   { key: "verifications", href: "/admin/verifications" },
   { key: "reviews", href: "/admin/reviews" },
   { key: "leads", href: "/admin/leads" },
+  { key: "bookings", href: "/admin/bookings" },
   { key: "search", href: "/admin/search-analytics" },
 ];
 

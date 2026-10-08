@@ -59,7 +59,7 @@ class BusinessVerification(Base):
 
     __tablename__ = "business_verifications"
     __table_args__ = (
-        # The moderator queue reads pending, oldest first.
+        # The moderator queue reads pending, newest first.
         Index("ix_business_verifications_status", "status"),
     )
 

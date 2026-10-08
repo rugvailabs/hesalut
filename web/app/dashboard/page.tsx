@@ -175,6 +175,7 @@ export default async function DashboardPage({
                           "leads",
                           "reviews",
                           "verification",
+                          "billing",
                         ] as const
                       ).map((segment) => (
                         <Button key={segment} asChild variant="secondary" size="sm">

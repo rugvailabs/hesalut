@@ -77,5 +77,7 @@ class BusinessSearchPerformance(BaseModel):
     ctr: float
     avg_position: float | None
     clicks_by_action: dict[str, int]
+    # Clicks on the external "Book online" button, from any page.
+    booking_clicks: int = 0
     impressions_by_tier: dict[str, int]
     daily: list[DailyPerformance]

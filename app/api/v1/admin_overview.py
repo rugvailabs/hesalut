@@ -24,23 +24,9 @@ from app.models.enquiry import Enquiry
 from app.models.user import User
 from app.models.verification import BusinessVerification, VerificationStatus
 from app.schemas.directory import AdminReviewItem, AdminStats
+from app.services.ratings import recalculate_rating
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-def _recalculate_rating(db: Session, business: Business) -> None:
-    """Refresh the denormalised aggregate after a review is removed.
-
-    Deleting the last review returns the listing to NULL, not 0.0: "unrated"
-    and "rated zero" are different, and ?min_rating must not match the former.
-    """
-    average, count = db.execute(
-        select(func.avg(BusinessReview.rating), func.count(BusinessReview.id)).where(
-            BusinessReview.business_id == business.id
-        )
-    ).one()
-    business.rating = round(float(average), 2) if average is not None else None
-    business.review_count = count or 0
 
 
 @router.get("/stats", response_model=AdminStats)
@@ -160,7 +146,7 @@ def delete_review(
     db.delete(review)
     db.flush()
     if business is not None:
-        _recalculate_rating(db, business)
+        recalculate_rating(db, business)
     db.commit()
 
     log_audit(

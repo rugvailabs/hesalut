@@ -9,6 +9,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { Badge } from "./Badge";
 import Card from "./Card";
 import RatingStars from "./RatingStars";
 import { color, space, type } from "../theme";
@@ -29,7 +30,9 @@ export default function BusinessCard({
   return (
     <Card
       onPress={onPress}
-      accessibilityLabel={`${business.name}, ${business.category_name} in ${business.city}`}
+      accessibilityLabel={`${business.name}, ${business.category_name} in ${business.city}${
+        business.bookable === true ? ", bookable" : ""
+      }`}
       style={styles.card}
     >
       <View style={styles.headline}>
@@ -42,6 +45,12 @@ export default function BusinessCard({
       <Text style={styles.meta} numberOfLines={1}>
         {business.category_name} · {business.city}, {business.province}
       </Text>
+
+      {business.bookable === true ? (
+        <View style={styles.badges}>
+          <Badge tone="good">Bookable</Badge>
+        </View>
+      ) : null}
 
       <RatingStars
         rating={business.rating}
@@ -64,6 +73,7 @@ export default function BusinessCard({
 
 const styles = StyleSheet.create({
   card: { gap: space.xs },
+  badges: { flexDirection: "row", gap: space.xs },
   headline: {
     flexDirection: "row",
     alignItems: "flex-start",

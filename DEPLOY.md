@@ -108,6 +108,7 @@ Keep `ENVIRONMENT` as `staging`: the test checkout (fake cards) refuses to run i
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional. Blank uses OpenStreetMap |
 | `NEXT_PUBLIC_GOOGLE_MAP_ID` | Optional |
 | `ALLOW_INDEXING` | **Leave unset.** The site stays out of search engines |
+| `INTERNAL_PROXY_SECRET` | A long random string, the same value as `TRUSTED_PROXY_SECRET` on the API. Without it every visitor shares Vercel's address and the API's per-IP rate limits (login, signup, enquiries) throttle everyone together |
 
 4. Deploy.
 
@@ -157,6 +158,31 @@ UPDATE users SET is_admin = true, role = 'admin' WHERE email = 'you@example.com'
 - [ ] Welcome and receipt emails arrive in the Mailtrap inbox
 - [ ] Upload a verification document under 4 MB from the owner dashboard
 - [ ] `/robots.txt` says `Disallow: /`
+
+## Releasing a change that adds a table or column
+
+**Order matters: database, then API, then web.** The web pages call API routes that
+read the new tables; if they go live first, every call to them fails. That is how the
+Favorites button broke once - the pages shipped before the `favorites` table existed.
+
+1. **Migrate the live database first**, from the project root against the live
+   `DATABASE_URL`: `alembic upgrade head`. Do not assume the deploy does it: only
+   `Dockerfile.deploy` (via `scripts/start-api.sh`) runs migrations on start, and a
+   Render service still built from `./Dockerfile` does not. Check with
+   `alembic current` that it reports the new head.
+2. **Deploy the API** (Render), and check `/health`.
+3. **Deploy the web app** (`vercel deploy --prod --yes` from `web/`).
+
+Each migration is additive, so the API that is still running keeps working between
+steps 1 and 2. Booking adds three things to know about:
+
+- `CREATE EXTENSION btree_gist` is part of the booking migration. Neon and Render
+  Postgres allow it; if yours does not, the migration stops with a clear error and
+  nothing is half-applied.
+- The meaning-based search migration skips itself when `pgvector` is missing, and
+  search stays on keywords.
+- Set `TRUSTED_PROXY_SECRET` on the API and the same value as `INTERNAL_PROXY_SECRET`
+  on Vercel, or every visitor shares one rate-limit bucket.
 
 ## Known limits of this setup
 

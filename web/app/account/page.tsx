@@ -6,6 +6,8 @@
  * themselves and which are the system's to set.
  */
 
+import Link from "next/link";
+
 import ProfileForm from "@/components/ProfileForm";
 import Card from "@/components/ui/Card";
 import { getProfile } from "@/lib/api";
@@ -35,8 +37,13 @@ export default async function AccountPage(): Promise<JSX.Element> {
       <h1 className="text-2xl font-bold tracking-tight text-ink">
         {t("dashboard.account.title")}
       </h1>
-      <p className="mt-1 mb-6 text-sm text-ink-muted">
+      <p className="mt-1 mb-2 text-sm text-ink-muted">
         {t("dashboard.account.subtitle")}
+      </p>
+      <p className="mb-6 text-sm">
+        <Link href="/account/bookings" className="text-brand-700 underline underline-offset-4">
+          {t("booking.mine.title")}
+        </Link>
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">

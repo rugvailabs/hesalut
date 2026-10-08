@@ -85,7 +85,7 @@ def main() -> int:
         for old_slug, spec in zip(OLD_SLUGS, BUSINESSES):
             (
                 slug, name, _category_slug, city, address, postal,
-                lat, lng, phone, website, _rating, _reviews, _verified, description,
+                lat, lng, phone, website, _verified, description,
             ) = spec
             fixture_slugs.add(slug)
 

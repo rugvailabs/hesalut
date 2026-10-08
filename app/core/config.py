@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     #: skips its startup work, which is what lets the API run on a small host
     #: with no ClamAV, no workers, no Redis and no Whisper model.
     voice_pipeline_enabled: bool = True
+    #: Per-IP request limits on login, signup, enquiries, support and search.
+    rate_limit_enabled: bool = True
+    #: Shared with the web server (INTERNAL_PROXY_SECRET there). A request that
+    #: presents it may name the real visitor in X-Client-IP; without this the
+    #: API only ever sees the web server's address. Empty disables the header.
+    trusted_proxy_secret: str = ""
 
     # Malware scanning (ClamAV daemon).
     clamav_host: str = "clamav"
@@ -123,6 +129,34 @@ class Settings(BaseSettings):
     #: raw_json, and Phase 7's confidence gate must treat it as low trust.
     #: Set false in any deployment that faces real customers.
     llm_fallback_to_keywords: bool = True
+
+    # --- smart search: plain-language queries (app/services/query_understanding.py)
+    #: Off switch. With no Anthropic key configured it is effectively off anyway:
+    #: every query falls back to plain keyword search.
+    smart_search_enabled: bool = True
+    search_llm_model: str = "claude-opus-5-5"
+    #: Mapping a query onto a fixed list of filters is classification, not deep
+    #: reasoning - low effort keeps each search fast and cheap.
+    search_llm_effort: str = "low"
+    search_llm_max_tokens: int = 4096
+    #: A search that waits longer than this falls back to keywords instead.
+    search_llm_timeout_seconds: float = 12.0
+    smart_search_cache_ttl_seconds: int = 24 * 3600
+    #: Hard ceiling on AI calls across the whole service, per minute. The
+    #: endpoint is public, so this bounds what a flood of unique queries can
+    #: cost; past it, queries fall back to keywords until the minute rolls over.
+    smart_search_max_ai_calls_per_minute: int = 60
+
+    # --- semantic search: meaning-based matching (app/services/embeddings.py)
+    #: Voyage AI embeddings. Empty key = semantic matching off; search is then
+    #: exactly the keyword search it was before.
+    voyage_api_key: str = ""
+    embedding_model: str = "voyage-3.5"
+    #: Must match the vector(...) width in migration b3d8f2a6c9e1.
+    embedding_dimensions: int = 1024
+    #: Cosine similarity a listing needs to count as a meaning match.
+    semantic_min_similarity: float = 0.45
+    semantic_max_matches: int = 30
 
     # --- confidence gate --------------------------------------------------
     #: Below this, an answer is held for human review. Start high and lower it

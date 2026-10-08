@@ -25,6 +25,7 @@ import { Button, Card } from "@/components/ds/primitives";
 import { getSession } from "@/lib/auth";
 import { tFor } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
+import { safeNext } from "@/lib/safe-next";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +38,7 @@ export default function LoginPage({
   const locale = getLocale();
   const t = tFor(locale);
   // Only accept internal paths - an open redirect otherwise.
-  const raw = searchParams.next ?? "";
-  const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "";
+  const next = safeNext(searchParams.next);
   const forbidden = searchParams.forbidden === "1";
   // /dashboard is refused to customers; /admin to everyone but staff. They need
   // different ways out.

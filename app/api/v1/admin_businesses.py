@@ -121,9 +121,9 @@ def list_for_moderation(
 ) -> list[ModerationQueueItem]:
     """Listings awaiting or having had a decision.
 
-    Defaults to pending - the queue is the point - and orders oldest first so
-    the longest-waiting owner is dealt with first, unlike every other list in
-    this API.
+    Defaults to pending - the queue is the point - and orders newest first,
+    like every other list in this API. The admin page tags each row with how
+    long it has been waiting, so the oldest ones stay visible at the bottom.
     """
     wanted = BusinessStatus.pending if status_filter is None else status_filter
 
@@ -132,7 +132,7 @@ def list_for_moderation(
         .join(Category, Category.id == Business.category_id)
         .outerjoin(User, User.id == Business.owner_id)
         .where(Business.status == wanted)
-        .order_by(Business.created_at.asc(), Business.id.asc())
+        .order_by(Business.created_at.desc(), Business.id.desc())
         .offset(offset)
         .limit(limit)
     ).all()

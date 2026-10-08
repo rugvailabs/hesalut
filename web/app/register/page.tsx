@@ -1,16 +1,19 @@
 /**
- * /register - business registration in four steps.
+ * /register - business registration in three steps: details, confirm, done.
  *
- *   1. Your details  - account, business, category, location
- *   2. Choose a plan - mandatory; saved the moment "Select" is clicked
- *   3. Payment       - order summary with GST/HST, terms, card (free: terms only)
- *   4. Done          - account activated, listing + subscription + receipt created
+ *   1. Your details - account, business, category, location
+ *   2. Confirm      - accept the terms; the account is activated and the
+ *                     listing is created, pending review. Nothing is charged.
+ *   3. Done         - what happens next: verify, then choose a plan and pay.
+ *
+ * Payment is not part of registration. It comes after the business is verified,
+ * from the dashboard's billing page.
  *
  * Progress is saved server-side at every step (GET /registration), so a
  * refresh, a closed browser or another device resumes where the owner left
  * off. `?step=` moves between steps already reached - back to change details
- * or the plan, forward again - but never past the furthest one saved, so a
- * hand-typed ?step=3 cannot skip choosing a plan and nothing can skip payment.
+ * forward again - but never past the furthest one saved, so a
+ * hand-typed ?step=3 cannot skip the terms.
  *
  * Customers keep the one-step sign-up on /login. A customer who is already
  * signed in registers their business on that same account (step 1 converts it)
@@ -23,13 +26,12 @@ import { redirect } from "next/navigation";
 
 import CompleteStep from "@/components/register/CompleteStep";
 import DetailsStep from "@/components/register/DetailsStep";
-import PaymentStep from "@/components/register/PaymentStep";
-import PlanStep from "@/components/register/PlanStep";
+import ConfirmStep from "@/components/register/ConfirmStep";
 import RegistrationSteps from "@/components/register/RegistrationSteps";
 import LogoutButton from "@/components/LogoutButton";
 import SiteFooter from "@/components/ds/SiteFooter";
 import { Button, Card } from "@/components/ds/primitives";
-import { getCategories, getPlans, getRegistration } from "@/lib/api";
+import { getCategories, getRegistration } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { tFor } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
@@ -47,9 +49,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The dictionary key under register.headings for each step. */
 const HEADINGS: Record<number, string> = {
   1: "details",
-  2: "plan",
-  3: "payment",
-  4: "done",
+  2: "confirm",
+  3: "done",
 };
 
 export default async function RegisterPage({
@@ -114,12 +115,12 @@ export default async function RegisterPage({
 
   if (state.completed) {
     if (searchParams.resume === "1") redirect("/dashboard");
-    // Only the moment of finishing shows the summary (?step=4). Otherwise an
+    // Only the moment of finishing shows the summary (?step=3). Otherwise an
     // owner who is already registered and clicks "List your business" wants to
     // add a listing, not to reread their registration.
-    if (searchParams.step !== "4") redirect("/dashboard/new-listing");
+    if (searchParams.step !== "3") redirect("/dashboard/new-listing");
     return (
-      <Layout current={4} furthest={4} completed>
+      <Layout current={3} furthest={3} completed>
         <CompleteStep state={state} locale={locale} />
       </Layout>
     );
@@ -129,8 +130,6 @@ export default async function RegisterPage({
   const requested = Number(searchParams.step);
   let current =
     Number.isInteger(requested) && requested >= 1 && requested <= furthest ? requested : furthest;
-  // The order summary needs a plan; without one, step 3 is step 2.
-  if (current === 3 && state.order === null) current = 2;
 
   let body: JSX.Element;
   if (current === 1) {
@@ -142,13 +141,8 @@ export default async function RegisterPage({
         locale={locale}
       />
     );
-  } else if (current === 2 || state.order === null) {
-    const plans = await getPlans();
-    body = (
-      <PlanStep plans={plans} selectedPlanId={state.selected_plan?.id ?? null} locale={locale} />
-    );
   } else {
-    body = <PaymentStep order={state.order} locale={locale} />;
+    body = <ConfirmStep state={state} locale={locale} />;
   }
 
   return (

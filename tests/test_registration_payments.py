@@ -1,4 +1,4 @@
-"""Plan selection and payment, as the business registration flow drives them.
+"""Plan selection and payment through /subscriptions/checkout, for verified listings.
 
 Covers the free plan (active at once, no gateway) and the test-mode card
 payment that stands in for Stripe Checkout while no gateway is configured.
@@ -16,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.category import Category
 from app.models.subscription import BillingCycle, Plan
+from app.models.verification import BusinessVerification, VerificationStatus
 from app.services import payment_gateway
 
 
@@ -56,6 +57,32 @@ def category_id(session_factory) -> int:
         return category.id
 
 
+_SESSION_FACTORY = None
+
+
+@pytest.fixture(autouse=True)
+def _remember_session_factory(session_factory):
+    """Lets the helper below verify a listing straight in the database."""
+    global _SESSION_FACTORY
+    _SESSION_FACTORY = session_factory
+    yield
+    _SESSION_FACTORY = None
+
+
+def _verify(business_id: int) -> None:
+    """Payment follows verification, so these listings are verified up front."""
+    with _SESSION_FACTORY() as db:
+        db.add(
+            BusinessVerification(
+                business_id=business_id,
+                email="kyc@example.ca",
+                mobile_number="604 555 0100",
+                status=VerificationStatus.verified,
+            )
+        )
+        db.commit()
+
+
 def _owner_with_listing(client: TestClient, email: str, category_id: int) -> tuple[dict, int]:
     r = client.post(
         "/api/v1/signup",
@@ -75,6 +102,7 @@ def _owner_with_listing(client: TestClient, email: str, category_id: int) -> tup
         headers=headers,
     )
     assert r.status_code == 201, r.text
+    _verify(r.json()["id"])
     return headers, r.json()["id"]
 
 
