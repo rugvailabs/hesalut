@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import StatusBadge from "@/components/StatusBadge";
+import WaitingTag from "@/components/WaitingTag";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -34,13 +35,6 @@ function formatWhen(iso: string, locale: Locale): string {
         month: "short",
         day: "numeric",
       });
-}
-
-/** Whole days a listing has been waiting, for the queue-age hint. */
-function daysWaiting(iso: string): number {
-  const created = new Date(iso).getTime();
-  if (Number.isNaN(created)) return 0;
-  return Math.max(0, Math.floor((Date.now() - created) / 86_400_000));
 }
 
 export default function ModerationQueue({
@@ -118,7 +112,6 @@ export default function ModerationQueue({
       <ul className="space-y-3">
         {items.map((item) => {
           const busy = pendingId === item.id;
-          const waiting = daysWaiting(item.created_at);
           return (
             <li key={item.id}>
               <Card className="flex flex-col gap-3">
@@ -140,15 +133,18 @@ export default function ModerationQueue({
                       {t("admin.queue.submitted", {
                         date: formatWhen(item.created_at, locale),
                       })}
-                      {waiting > 0
-                        ? ` · ${t("admin.queue.waiting", { days: waiting })}`
-                        : ""}
                       {item.owner_email !== null
                         ? ` · ${item.owner_email}`
                         : ` · ${t("admin.queue.noOwner")}`}
                     </p>
                   </div>
-                  <StatusBadge status={item.status} locale={locale} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Newest first puts the longest-waiting last; this keeps it in view. */}
+                    {item.status === "pending" ? (
+                      <WaitingTag since={item.created_at} locale={locale} />
+                    ) : null}
+                    <StatusBadge status={item.status} locale={locale} />
+                  </div>
                 </div>
 
                 {item.description !== null ? (

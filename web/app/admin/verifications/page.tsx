@@ -1,8 +1,9 @@
 /**
  * The KYC review queue.
  *
- * Oldest first, which the API decides - the owner who has been waiting longest
- * is the one to see first, and it is the opposite of every other list here.
+ * Newest first, which the API decides, like every other list here. Each row
+ * carries a waiting tag so the owner who has waited longest stays easy to spot
+ * even though they sit at the bottom.
  *
  * Each row carries enough to make the easy calls without opening anything: the
  * business, what was submitted, and whether its listing is already approved -
@@ -14,6 +15,7 @@ import Link from "next/link";
 
 import AdminNav from "@/components/AdminNav";
 import StatusBadge from "@/components/StatusBadge";
+import WaitingTag from "@/components/WaitingTag";
 import VerificationDecision from "@/components/VerificationDecision";
 import Alert from "@/components/ui/Alert";
 import Card from "@/components/ui/Card";
@@ -136,10 +138,13 @@ export default async function AdminVerificationsPage(): Promise<JSX.Element> {
                     </div>
                     {/* The listing's own moderation state, so a reviewer knows
                         whether this decision is the last one standing. */}
-                    <StatusBadge
-                      status={item.business_status as BusinessStatus}
-                      locale={locale}
-                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <WaitingTag since={item.submitted_at} locale={locale} />
+                      <StatusBadge
+                        status={item.business_status as BusinessStatus}
+                        locale={locale}
+                      />
+                    </div>
                   </div>
 
                   <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">

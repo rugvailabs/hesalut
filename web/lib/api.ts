@@ -592,8 +592,8 @@ export function replyToReview(
 /**
  * GET /api/v1/admin/businesses - the moderation queue. Admin only.
  *
- * Defaults to pending, oldest first, so the longest-waiting owner surfaces
- * first - the opposite of every other list in this API.
+ * Defaults to pending, newest first, like every other list in this API. The
+ * page tags each row with its wait, so the longest-waiting owner still stands out.
  */
 export function getModerationQueue(
   status?: BusinessStatus,
@@ -896,10 +896,9 @@ export function presignDocument(params: {
 /* ---------------------------------------------- verification moderation */
 
 /**
- * GET /admin/verifications/pending - the KYC queue, oldest first.
+ * GET /admin/verifications/pending - the KYC queue, newest first.
  *
- * Oldest first like the listing queue: the person who has been waiting
- * longest should be seen first.
+ * Newest first like every other list; the page tags each row with its wait.
  */
 export function getPendingVerifications(
   options: { limit?: number; offset?: number } = {},

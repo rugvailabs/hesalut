@@ -232,16 +232,16 @@ def list_pending_verifications(
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[PendingVerificationItem]:
-    """The KYC queue: oldest submission first.
+    """The KYC queue: newest submission first.
 
-    Oldest first, like the listing moderation queue and unlike every other
-    list in this API - the person who has been waiting longest should be seen
-    first.
+    Newest first, like every other list in this API. The admin page tags each
+    row with how long it has been waiting, so the oldest ones stay visible even
+    though they sit at the bottom.
     """
     rows = db.execute(
         _queue_query()
         .where(BusinessVerification.status == VerificationStatus.pending)
-        .order_by(BusinessVerification.submitted_at.asc())
+        .order_by(BusinessVerification.submitted_at.desc(), BusinessVerification.id.desc())
         .offset(offset)
         .limit(limit)
     ).all()

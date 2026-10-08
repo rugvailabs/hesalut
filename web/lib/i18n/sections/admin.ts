@@ -122,13 +122,18 @@ export const adminEn = {
       sun: "Sunday",
     },
   },
+  /** The "waiting" tag on the review queues (WaitingTag). */
+  waitingTag: {
+    justIn: "Just in",
+    hours: "Waiting {count}h",
+    days: "Waiting {count}d",
+  },
   /** The shared approve/reject/suspend list (ModerationQueue). */
   queue: {
     emptyTitle: "Nothing to review",
     emptyBody: "No listings in this state right now.",
     decisionError: "Could not apply that decision (HTTP {status}).",
     submitted: "Submitted {date}",
-    waiting: "waiting {days}d",
     noOwner: "no owner",
     previousNote: "Previous decision note",
     reasonReject: "Reason for rejecting",
@@ -288,8 +293,8 @@ export const adminEn = {
     emptyTitle: "No pending verifications",
     emptyBody:
       "Nothing is waiting on a reviewer. Submissions land here as owners send them from their dashboard.",
-    countOne: "{count} submission waiting, oldest first.",
-    countMany: "{count} submissions waiting, oldest first.",
+    countOne: "{count} submission waiting, newest first.",
+    countMany: "{count} submissions waiting, newest first.",
     submitted: "{city} · submitted {date} ({ago})",
     dayAgo: "1 day ago",
     daysAgo: "{count} days ago",
@@ -490,12 +495,16 @@ export const adminFr: Translated<typeof adminEn> = {
       sun: "Dimanche",
     },
   },
+  waitingTag: {
+    justIn: "À l’instant",
+    hours: "En attente depuis {count} h",
+    days: "En attente depuis {count} j",
+  },
   queue: {
     emptyTitle: "Rien à examiner",
     emptyBody: "Aucune fiche dans cet état pour l’instant.",
     decisionError: "Impossible d’appliquer cette décision (HTTP {status}).",
     submitted: "Soumise le {date}",
-    waiting: "en attente depuis {days} j",
     noOwner: "aucun propriétaire",
     previousNote: "Note de la décision précédente",
     reasonReject: "Motif du refus",
@@ -658,8 +667,8 @@ export const adminFr: Translated<typeof adminEn> = {
     emptyTitle: "Aucune vérification en attente",
     emptyBody:
       "Rien n’attend d’examen. Les soumissions arrivent ici quand les propriétaires les envoient depuis leur tableau de bord.",
-    countOne: "{count} soumission en attente, de la plus ancienne à la plus récente.",
-    countMany: "{count} soumissions en attente, de la plus ancienne à la plus récente.",
+    countOne: "{count} soumission en attente, de la plus récente à la plus ancienne.",
+    countMany: "{count} soumissions en attente, de la plus récente à la plus ancienne.",
     submitted: "{city} · soumise le {date} ({ago})",
     dayAgo: "il y a 1 jour",
     daysAgo: "il y a {count} jours",
