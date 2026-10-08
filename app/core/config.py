@@ -1,6 +1,28 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+#: The driver this app installs (psycopg2-binary). A URL that names no driver
+#: gets whichever one the installed SQLAlchemy defaults to, and 2.1 changed that
+#: default from psycopg2 to psycopg (v3), which is not installed - the API then
+#: dies on start with "No module named psycopg".
+POSTGRES_DRIVER = "postgresql+psycopg2"
+
+
+def normalize_database_url(url: str) -> str:
+    """Name the driver explicitly when the URL does not.
+
+    Hosts hand out bare `postgresql://` (or the older `postgres://`) strings, and
+    DEPLOY.md tells people to paste one in as is. A URL that already names a
+    driver - `postgresql+psycopg2://`, `postgresql+psycopg://` - is left alone,
+    so choosing another driver on purpose still works.
+    """
+    url = url.strip()
+    for bare in ("postgresql://", "postgres://"):
+        if url.startswith(bare):
+            return f"{POSTGRES_DRIVER}://" + url[len(bare) :]
+    return url
 
 
 class Settings(BaseSettings):
@@ -14,6 +36,12 @@ class Settings(BaseSettings):
     )
 
     database_url: str
+
+    @field_validator("database_url")
+    @classmethod
+    def _name_the_postgres_driver(cls, value: str) -> str:
+        return normalize_database_url(value)
+
     #: Celery's broker. Only the voice pipeline uses it, so a directory-only
     #: deployment (VOICE_PIPELINE_ENABLED=false) needs no Redis at all.
     redis_url: str = "redis://redis:6379/0"
