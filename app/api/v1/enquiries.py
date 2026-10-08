@@ -12,10 +12,11 @@ one business's customer list to another.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.deps import get_current_user_optional, require_owned_business
 from app.core.rate_limit import rate_limit
@@ -24,6 +25,7 @@ from app.models.business import Business
 from app.models.enquiry import Enquiry, EnquiryType
 from app.models.user import User
 from app.schemas.directory import EnquiryAck, EnquiryCreate, EnquiryOut
+from app.services.mailer import send_email
 
 router = APIRouter(prefix="/businesses", tags=["directory"])
 
@@ -39,6 +41,7 @@ MAX_PAGE_SIZE = 100
 def create_enquiry(
     business_id: int,
     payload: EnquiryCreate,
+    background: BackgroundTasks,
     current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ) -> Enquiry:
@@ -66,7 +69,52 @@ def create_enquiry(
     db.add(enquiry)
     db.commit()
     db.refresh(enquiry)
+    # A call-click carries no message and no contact, and one fires every time
+    # a number is revealed, so it counts on the dashboard but is not emailed.
+    if enquiry.enquiry_type is not EnquiryType.call_click:
+        background.add_task(
+            _email_owner, enquiry.id, sessionmaker(bind=db.get_bind(), future=True)
+        )
     return enquiry
+
+
+_KIND = {"callback": "a call back", "quote": "a quote", "chat": "a message"}
+
+
+def _email_owner(enquiry_id: int, session_factory) -> None:
+    """Tell the owner a lead has arrived. Best effort: the lead is already saved."""
+    with session_factory() as db:
+        enquiry = db.get(Enquiry, enquiry_id)
+        business = db.get(Business, enquiry.business_id) if enquiry else None
+        if enquiry is None or business is None:
+            return
+        owner = db.get(User, business.owner_id) if business.owner_id else None
+        to = owner.email if owner is not None else business.email
+        if not to:
+            return
+
+        who = enquiry.contact_name or "A customer"
+        kind = _KIND.get(enquiry.enquiry_type.value, "a message")
+        lines = [f"{who} asked {business.name} for {kind}.", ""]
+        if enquiry.message:
+            lines += [f'"{enquiry.message}"', ""]
+        if enquiry.contact_phone:
+            lines.append(f"Phone: {enquiry.contact_phone}")
+        if enquiry.contact_email:
+            lines.append(f"Email: {enquiry.contact_email}")
+        lines += [
+            "",
+            f"See it in your leads: {get_settings().web_base_url}/dashboard/{business.id}/leads",
+            "",
+            "The justforyou team",
+        ]
+        send_email(
+            to=to,
+            subject=f"New lead for {business.name}: {who} asked for {kind}",
+            body="\n".join(lines),
+            # Replying goes to the customer, not back to us.
+            reply_to=enquiry.contact_email or None,
+        )
 
 
 @router.get("/{business_id}/enquiries", response_model=list[EnquiryOut])

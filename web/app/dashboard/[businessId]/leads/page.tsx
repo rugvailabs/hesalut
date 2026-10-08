@@ -18,6 +18,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Inbox } from "lucide-react";
 
 import DashboardNav from "@/components/ds/DashboardNav";
+import MarkLeadsSeen from "@/components/MarkLeadsSeen";
 import SearchPerformanceCard from "@/components/ds/SearchPerformanceCard";
 import SiteFooter from "@/components/ds/SiteFooter";
 import { EmptyState } from "@/components/ds/feedback";
@@ -30,6 +31,7 @@ import {
 } from "@/lib/api";
 import { requireBusinessOwner } from "@/lib/auth";
 import { formatPhone, telHref } from "@/lib/format";
+import { getNewLeads } from "@/lib/lead-notifications";
 import { INTL_LOCALE, tFor } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
 import type {
@@ -100,6 +102,14 @@ export default async function LeadsPage({
     throw error;
   }
 
+  // "New" is what arrived after the owner last looked. Read before the page
+  // clears it, so these tags show what was new when they opened it.
+  const seenAt = (await getNewLeads())?.businesses.find((b) => b.business_id === businessId)
+    ?.leads_seen_at;
+  const isNew = (iso: string): boolean =>
+    seenAt !== undefined && new Date(iso).getTime() > new Date(seenAt).getTime();
+  const newCount = leads.filter((l) => isNew(l.created_at)).length;
+
   const callClicks = leads.filter((l) => l.enquiry_type === "call_click").length;
   // Secondary to the leads themselves: if it cannot load, the page still works.
   const performance: BusinessSearchPerformance | null = await getBusinessSearchPerformance(
@@ -139,9 +149,9 @@ export default async function LeadsPage({
           businessId={businessId}
           current="leads"
           className="mt-4"
-          newLeads={leads.length}
           locale={locale}
         />
+        <MarkLeadsSeen businessId={businessId} hasNew={newCount > 0} />
 
         {performance !== null ? (
           <div className="mt-4">
@@ -193,9 +203,14 @@ export default async function LeadsPage({
                       className="border-b border-line align-top last:border-b-0"
                     >
                       <td className="px-4 py-3">
-                        <Badge tone={TYPES[lead.enquiry_type]}>
-                          {t(`dashboard.leads.types.${lead.enquiry_type}`)}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge tone={TYPES[lead.enquiry_type]}>
+                            {t(`dashboard.leads.types.${lead.enquiry_type}`)}
+                          </Badge>
+                          {isNew(lead.created_at) ? (
+                            <Badge tone="danger">{t("dashboard.leads.newTag")}</Badge>
+                          ) : null}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3 text-ink-muted">

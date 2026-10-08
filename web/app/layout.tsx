@@ -20,6 +20,7 @@ import ExploreHeader from "@/components/explore/ExploreHeader";
 import { SiteProviders } from "@/components/explore/ExploreProviders";
 import { getCurrentUser } from "@/lib/auth";
 import { LANG_COOKIE } from "@/lib/explore-i18n/constants";
+import { getNewLeads } from "@/lib/lead-notifications";
 import { isLocale } from "@/lib/i18n";
 import { indexingAllowed } from "@/lib/indexing";
 import { THEME_SCRIPT } from "@/lib/theme";
@@ -47,6 +48,19 @@ export default async function RootLayout({
   const saved = cookies().get(LANG_COOKIE)?.value;
   const lang = isLocale(saved) ? saved : "en";
   const user = await getCurrentUser().catch(() => null);
+  // The bell is for owners; everyone else skips the extra request.
+  const isOwner = user !== null && (user.is_admin || user.role === "admin" || user.role === "business_owner");
+  const leads = isOwner ? await getNewLeads() : null;
+  // One listing with something new: go straight to its leads. Several: the
+  // dashboard, which says which.
+  const withNew = leads?.businesses.filter((b) => b.new_leads > 0) ?? [];
+  const newLeads =
+    leads === null
+      ? null
+      : {
+          count: leads.total_new,
+          href: withNew.length === 1 ? `/dashboard/${withNew[0].business_id}/leads` : "/dashboard",
+        };
 
   return (
     // suppressHydrationWarning: THEME_SCRIPT adds the `dark` class before
@@ -69,6 +83,7 @@ export default async function RootLayout({
                   }
                 : null
             }
+            newLeads={newLeads}
           />
           {children}
         </SiteProviders>

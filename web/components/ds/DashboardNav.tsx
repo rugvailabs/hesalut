@@ -17,6 +17,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/cn";
 import { tFor, type Locale } from "@/lib/i18n";
+import { getNewLeads } from "@/lib/lead-notifications";
 
 export type DashboardSection = "edit" | "leads" | "bookings" | "reviews" | "verification" | "billing";
 
@@ -30,7 +31,7 @@ const TABS: { key: DashboardSection; segment: string }[] = [
   { key: "billing", segment: "billing" },
 ];
 
-export default function DashboardNav({
+export default async function DashboardNav({
   businessId,
   current,
   unansweredReviews,
@@ -45,8 +46,14 @@ export default function DashboardNav({
   newLeads?: number;
   className?: string;
   locale: Locale;
-}): JSX.Element {
+}): Promise<JSX.Element> {
   const t = tFor(locale);
+  // The Leads tab counts the leads this owner has not looked at yet, on every
+  // dashboard page. A caller that already knows can still pass it.
+  if (newLeads === undefined) {
+    const notes = await getNewLeads();
+    newLeads = notes?.businesses.find((b) => b.business_id === businessId)?.new_leads;
+  }
   const counts: Partial<Record<DashboardSection, number | undefined>> = {
     reviews: unansweredReviews,
     leads: newLeads,

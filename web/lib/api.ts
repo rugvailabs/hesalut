@@ -49,6 +49,7 @@ import type {
   RegistrationDetailsUpdate,
   BillingState,
   BillingSubscribeRequest,
+  LeadNotifications,
   OrderSummary,
   RegistrationStarted,
   RegistrationStartRequest,
@@ -1051,6 +1052,20 @@ export function completeRegistration(acceptTerms: boolean): Promise<Registration
   return apiFetch<RegistrationState>("/registration/complete", {
     method: "POST",
     body: { accept_terms: acceptTerms },
+  });
+}
+
+/* ------------------------------------------------------- lead notifications */
+
+/** GET /notifications/leads - new leads per listing, and in total. Owners only. */
+export function getLeadNotifications(): Promise<LeadNotifications> {
+  return apiFetch<LeadNotifications>("/notifications/leads", { method: "GET" });
+}
+
+/** POST /notifications/leads/{id}/seen - the owner has looked at that listing's leads. */
+export function markLeadsSeen(businessId: number): Promise<LeadNotifications> {
+  return apiFetch<LeadNotifications>(`/notifications/leads/${businessId}/seen`, {
+    method: "POST",
   });
 }
 

@@ -17,6 +17,7 @@ from app.api.v1 import (
     categories,
     enquiries,
     favorites,
+    notifications,
     payments,
     profile,
     registration,
@@ -41,6 +42,7 @@ api_router.include_router(favorites.router)
 api_router.include_router(business_reviews.router)
 api_router.include_router(categories.router)
 api_router.include_router(chat.router)
+api_router.include_router(notifications.router)
 api_router.include_router(payments.router)
 api_router.include_router(profile.router)
 api_router.include_router(registration.router)
