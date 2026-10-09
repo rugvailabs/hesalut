@@ -28,7 +28,7 @@ function AboutBodyEn(): JSX.Element {
   return (
     <>
       <p>
-        justforyou lists local businesses so somebody looking for a plumber at
+        hesalut lists local businesses so somebody looking for a plumber at
         nine on a Sunday evening can find one, see whether they are open, and
         get through to them. That is the whole product. The listing is not the
         end of the journey - the phone call is.
@@ -100,7 +100,7 @@ function AboutBodyFr(): JSX.Element {
   return (
     <>
       <p>
-        justforyou répertorie des entreprises locales pour qu’une personne qui
+        hesalut répertorie des entreprises locales pour qu’une personne qui
         cherche un plombier à 21 h un dimanche soir puisse en trouver un, voir
         s’il est ouvert et le joindre. C’est tout le produit. La fiche n’est pas
         la fin du parcours - l’appel, oui.

@@ -13,7 +13,7 @@
 
 const en = {
   header: {
-    home: "justforyou home",
+    home: "hesalut home",
     tabs: "Main",
     homeTab: "Home",
     more: "More",
@@ -253,7 +253,7 @@ export type ExploreResources = Shape<typeof en>;
 
 const fr: ExploreResources & { results: { found_many: string; filtered_many: string } } = {
   header: {
-    home: "Accueil justforyou",
+    home: "Accueil hesalut",
     tabs: "Principal",
     homeTab: "Accueil",
     more: "Plus",

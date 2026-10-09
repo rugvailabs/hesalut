@@ -4,10 +4,10 @@ Builds a separate `<db>_bench` database (never the dev one), migrates it,
 fills it with synthetic listings around Metro Vancouver with a realistic mix of
 subscriptions, then times representative searches through the real endpoint.
 
-    docker exec justforyou_backend python -m scripts.bench_search --build 50000
-    docker exec justforyou_backend python -m scripts.bench_search            # time only
-    docker exec justforyou_backend python -m scripts.bench_search --explain  # query plan
-    docker exec justforyou_backend python -m scripts.bench_search --drop
+    docker exec hesalut_backend python -m scripts.bench_search --build 50000
+    docker exec hesalut_backend python -m scripts.bench_search            # time only
+    docker exec hesalut_backend python -m scripts.bench_search --explain  # query plan
+    docker exec hesalut_backend python -m scripts.bench_search --drop
 
 Nothing here runs in the app; it exists to measure the search query.
 """

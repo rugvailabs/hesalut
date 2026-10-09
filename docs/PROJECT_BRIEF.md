@@ -1,4 +1,4 @@
-# justforyou — project brief for feature suggestions
+# hesalut — project brief for feature suggestions
 
 *Written 2026-09-29 against commit `3d97bdb`. If you are an AI agent or a new
 developer asked to suggest features, read this first, then check the code — the
@@ -6,7 +6,7 @@ code wins wherever the two disagree.*
 
 ## What it is
 
-**justforyou** is a local business directory in the style of JustDial, built for
+**hesalut** is a local business directory in the style of JustDial, built for
 **Canada** and currently seeded for **Metro Vancouver**. People search for a
 business (a plumber, a dentist, a hotel), compare listings, read reviews and send
 an enquiry. Business owners register, pick a plan, verify their identity and

@@ -1,4 +1,4 @@
-# justforyou — mobile
+# hesalut — mobile
 
 Expo (SDK 57) + TypeScript app against the same FastAPI backend as `web/`.
 

@@ -222,7 +222,7 @@ def _send_subscription_email(
         lines += ["", "TEST MODE: no real payment was taken."] if payment.gateway == "stub" else []
         subject = f"Receipt {payment.receipt_number} - {plan.name} plan"
 
-    send_email(to=user.email, subject=subject, body="\n".join(lines + ["", "The justforyou team"]))
+    send_email(to=user.email, subject=subject, body="\n".join(lines + ["", "The hesalut team"]))
 
 
 def _active_plan(db: Session, plan_id: int) -> Plan:

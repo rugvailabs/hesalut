@@ -19,7 +19,7 @@ import urllib.request
 from pathlib import Path
 
 OUT = Path("/tmp/corpus")
-UA = {"User-Agent": "justforyou-eval/1.0 (transcription accuracy evaluation)"}
+UA = {"User-Agent": "hesalut-eval/1.0 (transcription accuracy evaluation)"}
 
 API = "https://tatoeba.org/en/api_v0/search"
 AUDIO = "https://audio.tatoeba.org/sentences/{lang}/{sid}.mp3"

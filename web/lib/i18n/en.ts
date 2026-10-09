@@ -20,7 +20,7 @@ import type { Translated } from "@/lib/i18n/types";
 
 export const en = {
   common: {
-    brand: "justforyou",
+    brand: "hesalut",
     tagline: "Find local businesses across Canada",
     search: "Search",
     searchPlaceholderWhat: "Plumbers, dentists, restaurants…",

@@ -25,7 +25,7 @@ def main() -> int:
         name = url.rsplit("/", 1)[-1]
         try:
             req = urllib.request.Request(
-                url, headers={"User-Agent": "justforyou-test/1.0"}
+                url, headers={"User-Agent": "hesalut-test/1.0"}
             )
             with urllib.request.urlopen(req, timeout=45) as resp:
                 data = resp.read()

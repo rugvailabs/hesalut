@@ -82,11 +82,11 @@ def build_ics(booking: Booking, business: Business) -> bytes:
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//justforyou//bookings//EN",
+        "PRODID:-//hesalut//bookings//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         "BEGIN:VEVENT",
-        f"UID:booking-{booking.id}@justforyou.ca",
+        f"UID:booking-{booking.id}@hesalut.ca",
         f"DTSTAMP:{_utc_stamp(datetime.now(timezone.utc))}",
         f"DTSTART:{_utc_stamp(booking.confirmed_start)}",
         f"DTEND:{_utc_stamp(booking.confirmed_end)}",

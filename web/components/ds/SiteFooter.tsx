@@ -94,7 +94,7 @@ export default function SiteFooter({
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-6 text-meta text-ink-subtle">
           <p>
-            &copy; {year} justforyou. {t("footer.rights")}
+            &copy; {year} hesalut. {t("footer.rights")}
           </p>
           <p>{t("footer.madeIn")}</p>
         </div>

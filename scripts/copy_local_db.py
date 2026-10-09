@@ -31,8 +31,8 @@ import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
-CONTAINER = "justforyou_postgres"
-BACKEND_CONTAINER = "justforyou_backend"
+CONTAINER = "hesalut_postgres"
+BACKEND_CONTAINER = "hesalut_backend"
 REMOTE_URL_PATH = "/tmp/copy-target-url"
 DUMP_PATH = "/tmp/copy-local-db.sql"
 
