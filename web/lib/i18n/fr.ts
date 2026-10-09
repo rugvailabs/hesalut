@@ -21,7 +21,7 @@ import type { Dictionary } from "@/lib/i18n/en";
 
 export const fr: Dictionary = {
   common: {
-    brand: "justforyou",
+    brand: "hesalut",
     tagline: "Trouvez des entreprises locales partout au Canada",
     search: "Rechercher",
     searchPlaceholderWhat: "Plombiers, dentistes, restaurants…",

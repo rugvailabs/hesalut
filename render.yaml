@@ -1,4 +1,4 @@
-# Render Blueprint for the justforyou API (the FastAPI backend).
+# Render Blueprint for the hesalut API (the FastAPI backend).
 #
 # Directory-only: the legacy voice pipeline (Whisper, ClamAV, Celery) is off, so
 # this needs no workers, no Redis and no ClamAV. The database, object storage and
@@ -9,7 +9,7 @@
 # The web app is deployed separately on Vercel.
 services:
   - type: web
-    name: justforyou-api
+    name: hesalut-api
     runtime: docker
     plan: free
     # Closest free region to a Neon database in AWS us-west-2 (Oregon).
@@ -59,9 +59,9 @@ services:
       - key: SMTP_USE_TLS
         value: "true"
       - key: MAIL_FROM
-        value: "justforyou <no-reply@justforyou.test>"
+        value: "hesalut <no-reply@hesalut.test>"
       - key: SUPPORT_EMAIL
-        value: support@justforyou.test
+        value: support@hesalut.test
 
       # --- the web app's public address (the Vercel URL) -----------------
       - key: WEB_BASE_URL

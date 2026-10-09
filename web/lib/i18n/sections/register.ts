@@ -172,7 +172,7 @@ export const registerEn = {
     terms: "Terms of Use",
     and: "and",
     privacy: "Privacy Policy",
-    authorizeBefore: ", and I authorize justforyou to charge",
+    authorizeBefore: ", and I authorize hesalut to charge",
     authorizeAfter:
       "today and the {plan} price plus applicable taxes {every} after that. The plan renews automatically{renews} until I cancel.",
     everyYear: "every year",
@@ -384,7 +384,7 @@ export const registerFr: Translated<typeof registerEn> = {
     terms: "Conditions d’utilisation",
     and: "et la",
     privacy: "Politique de confidentialité",
-    authorizeBefore: ", et j’autorise justforyou à débiter",
+    authorizeBefore: ", et j’autorise hesalut à débiter",
     authorizeAfter:
       "aujourd’hui, puis le prix du forfait {plan} plus les taxes applicables {every}. Le forfait se renouvelle automatiquement{renews} jusqu’à ce que je l’annule.",
     everyYear: "chaque année",

@@ -1,4 +1,4 @@
-"""Idempotent development seed data for justforyou.
+"""Idempotent development seed data for hesalut.
 
 Run from the project root (or inside the backend container):
 

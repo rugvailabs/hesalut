@@ -2,7 +2,7 @@
  * TypeScript mirrors of the backend's Pydantic schemas.
  *
  * Source of truth is http://localhost:8000/openapi.json (FastAPI, title
- * "justforyou"). Names here match the backend's schema names exactly so the
+ * "hesalut"). Names here match the backend's schema names exactly so the
  * two can be diffed by eye when the API changes.
  */
 

@@ -34,7 +34,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "justforyou",
+  title: "hesalut",
   description: "Find local businesses across Canada.",
   // Test deployments are kept out of search engines; see lib/indexing.ts.
   ...(indexingAllowed ? {} : { robots: { index: false, follow: false } }),

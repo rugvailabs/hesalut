@@ -18,7 +18,7 @@ export default function SiteHeader() {
     <header className="border-b border-gray-200 bg-white">
       <nav className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 text-sm">
         <Link href="/" className="font-semibold">
-          justforyou
+          hesalut
         </Link>
         <div className="flex items-center gap-4">
           {isLoading ? null : user ? (

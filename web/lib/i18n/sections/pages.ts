@@ -23,7 +23,7 @@ export const pagesEn = {
     title: "About",
     lede: "A directory of Canadian businesses that people can actually reach.",
     metaDescription:
-      "What justforyou is, how listings get in, and what the verified badge means.",
+      "What hesalut is, how listings get in, and what the verified badge means.",
   },
   contact: {
     title: "Contact us",
@@ -35,13 +35,13 @@ export const pagesEn = {
     title: "Privacy policy",
     lede: "What we collect, why we have it, and how to make us delete it.",
     metaDescription:
-      "What justforyou collects, why, how long it is kept, and how to get it deleted.",
+      "What hesalut collects, why, how long it is kept, and how to get it deleted.",
   },
   terms: {
     title: "Terms of use",
     lede: "What you can expect from this directory, and what we expect from you.",
     metaDescription:
-      "The rules for using justforyou, for visitors and for business owners.",
+      "The rules for using hesalut, for visitors and for business owners.",
   },
   support: {
     kinds: {
@@ -95,7 +95,7 @@ export const pagesFr: Translated<typeof pagesEn> = {
     title: "À propos",
     lede: "Un annuaire d’entreprises canadiennes qu’on peut réellement joindre.",
     metaDescription:
-      "Ce qu’est justforyou, comment les fiches y sont inscrites et ce que signifie le badge vérifié.",
+      "Ce qu’est hesalut, comment les fiches y sont inscrites et ce que signifie le badge vérifié.",
   },
   contact: {
     title: "Nous joindre",
@@ -107,13 +107,13 @@ export const pagesFr: Translated<typeof pagesEn> = {
     title: "Politique de confidentialité",
     lede: "Ce que nous recueillons, pourquoi nous le détenons et comment nous obliger à le supprimer.",
     metaDescription:
-      "Ce que justforyou recueille, pourquoi, combien de temps c’est conservé et comment le faire supprimer.",
+      "Ce que hesalut recueille, pourquoi, combien de temps c’est conservé et comment le faire supprimer.",
   },
   terms: {
     title: "Conditions d’utilisation",
     lede: "Ce que vous pouvez attendre de cet annuaire, et ce que nous attendons de vous.",
     metaDescription:
-      "Les règles d’utilisation de justforyou, pour les visiteurs et pour les propriétaires d’entreprise.",
+      "Les règles d’utilisation de hesalut, pour les visiteurs et pour les propriétaires d’entreprise.",
   },
   support: {
     kinds: {

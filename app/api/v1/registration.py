@@ -200,12 +200,12 @@ def _send_welcome_email(user: User, business: Business) -> None:
 
     send_email(
         to=user.email,
-        subject=f"Welcome to justforyou, {user.name}",
+        subject=f"Welcome to hesalut, {user.name}",
         body="\n".join(
             [
                 f"Hi {user.name},",
                 "",
-                f"Thanks for registering {business.name} on justforyou.",
+                f"Thanks for registering {business.name} on hesalut.",
                 "",
                 "What happens next:",
                 "  1. Verify your business - upload your business licence from the dashboard.",
@@ -215,7 +215,7 @@ def _send_welcome_email(user: User, business: Business) -> None:
                 "",
                 f"Your dashboard: {dashboard}",
                 "",
-                "The justforyou team",
+                "The hesalut team",
             ]
         ),
     )

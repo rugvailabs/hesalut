@@ -384,7 +384,7 @@ def _tell_owner_to_choose_a_plan(db: Session, record: BusinessVerification) -> N
                 "",
                 f"Choose your plan: {link}",
                 "",
-                "The justforyou team",
+                "The hesalut team",
             ]
         ),
     )

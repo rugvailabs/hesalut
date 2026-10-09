@@ -5,8 +5,8 @@ plan" tier and search looks unchanged. This puts some Vancouver plumbers and
 electricians on Annual, Monthly and Basic plans. Local demo data only: the
 rows are marked `demo_placement_*` and --undo removes exactly those.
 
-    docker exec justforyou_backend python -m scripts.demo_placement
-    docker exec justforyou_backend python -m scripts.demo_placement --undo
+    docker exec hesalut_backend python -m scripts.demo_placement
+    docker exec hesalut_backend python -m scripts.demo_placement --undo
 """
 
 from __future__ import annotations

@@ -114,7 +114,7 @@ Keep `ENVIRONMENT` as `staging`: the test checkout (fake cards) refuses to run i
 
 ## 7. Connect them
 
-1. On Render, set `WEB_BASE_URL` to the Vercel URL (e.g. `https://justforyou.vercel.app`)
+1. On Render, set `WEB_BASE_URL` to the Vercel URL (e.g. `https://hesalut.vercel.app`)
    and update `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` to match. Render redeploys.
 2. If a Google Maps key is used, add the Vercel URL to the key's allowed referrers.
 
@@ -124,13 +124,13 @@ The database starts with plans and nothing else. To load the fictional Metro
 Vancouver listings, reviews and owner, run the seed against Neon from this machine:
 
 ```sh
-docker build -f Dockerfile.deploy -t justforyou-api:deploy .
+docker build -f Dockerfile.deploy -t hesalut-api:deploy .
 docker run --rm \
   -e DATABASE_URL="<Neon connection string>" \
   -e SECRET_KEY=seed-only \
   -e SMTP_HOST=unused -e SMTP_PORT=25 \
   -e MINIO_ENDPOINT=http://unused -e MINIO_ACCESS_KEY=unused -e MINIO_SECRET_KEY=unused \
-  justforyou-api:deploy sh -c "alembic upgrade head && python -m scripts.seed"
+  hesalut-api:deploy sh -c "alembic upgrade head && python -m scripts.seed"
 ```
 
 It warns `could not seed the video object` - that sample belongs to the voice app,

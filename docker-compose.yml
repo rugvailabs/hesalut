@@ -1,11 +1,11 @@
 # Project name pinned so it does not track the directory name.
-name: justforyou
+name: hesalut
 
 x-app-base: &app-base
   build:
     context: .
     dockerfile: Dockerfile
-  image: justforyou-backend:latest
+  image: hesalut-backend:latest
   restart: unless-stopped
   depends_on:
     postgres:
@@ -40,7 +40,7 @@ x-app-base: &app-base
     SMTP_PORT: "1025"
     SMTP_USER: ""
     SMTP_PASSWORD: ""
-    MAIL_FROM: "justforyou <no-reply@justforyou.ca>"
+    MAIL_FROM: "hesalut <no-reply@hesalut.ca>"
   volumes:
     - .:/app
     # Whisper model weights, downloaded once and shared by backend and workers.
@@ -51,7 +51,7 @@ services:
     # The pgvector build of the same Postgres 16 - same data format, so the
     # existing volume carries over. Smart search layer 2 stores embeddings in it.
     image: pgvector/pgvector:pg16
-    container_name: justforyou_postgres
+    container_name: hesalut_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: justforyou
@@ -69,7 +69,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: justforyou_redis
+    container_name: hesalut_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -81,7 +81,7 @@ services:
 
   clamav:
     image: clamav/clamav:1.4
-    container_name: justforyou_clamav
+    container_name: hesalut_clamav
     restart: unless-stopped
     ports:
       - "3310:3310"
@@ -107,7 +107,7 @@ services:
 
   mailhog:
     image: mailhog/mailhog
-    container_name: justforyou_mailhog
+    container_name: hesalut_mailhog
     restart: unless-stopped
     ports:
       - "1025:1025"   # SMTP sink
@@ -120,7 +120,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: justforyou_minio
+    container_name: hesalut_minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -142,13 +142,13 @@ services:
 
   backend:
     <<: *app-base
-    container_name: justforyou_backend
+    container_name: hesalut_backend
     ports:
       - "8000:8000"
 
   celery_worker:
     <<: *app-base
-    container_name: justforyou_celery_worker
+    container_name: hesalut_celery_worker
     # concurrency is capped deliberately: each prefork child loads its own
     # copy of the Whisper weights, so an unbounded default would multiply
     # model memory by the host's CPU count.
@@ -156,7 +156,7 @@ services:
 
   celery_beat:
     <<: *app-base
-    container_name: justforyou_celery_beat
+    container_name: hesalut_celery_beat
     # --schedule points at /tmp so the shelve file is not written into the
     # bind-mounted project directory. No periodic tasks are registered yet.
     command: >

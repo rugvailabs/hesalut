@@ -106,7 +106,7 @@ def _email_owner(enquiry_id: int, session_factory) -> None:
             "",
             f"See it in your leads: {get_settings().web_base_url}/dashboard/{business.id}/leads",
             "",
-            "The justforyou team",
+            "The hesalut team",
         ]
         send_email(
             to=to,

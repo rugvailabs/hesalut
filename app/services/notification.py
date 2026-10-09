@@ -65,7 +65,7 @@ def channel_for(user: User) -> Literal["email", "sms"]:
 def _render_email(user: User, payload: SolutionPayload) -> EmailMessage:
     settings = get_settings()
     msg = EmailMessage()
-    msg["Subject"] = "Your justforyou request - we found a match"
+    msg["Subject"] = "Your hesalut request - we found a match"
     msg["From"] = settings.mail_from
     msg["To"] = user.email
 
@@ -85,7 +85,7 @@ def _render_email(user: User, payload: SolutionPayload) -> EmailMessage:
         # CASL requires sender identification and a working unsubscribe in
         # every commercial message.
         "---",
-        "justforyou, Toronto, Ontario, Canada",
+        "hesalut, Toronto, Ontario, Canada",
         "You are receiving this because you asked us to contact you.",
         "To stop receiving these, withdraw your consent in your profile:",
         "http://localhost:3000/profile",
