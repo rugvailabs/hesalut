@@ -25,8 +25,8 @@ Sign up for each (all free), signing in with GitHub where offered:
 
 | Service | Used for | Notes |
 |---|---|---|
-| [Render](https://render.com) | API | Grant access to `rugvailabs/justforyou` |
-| [Vercel](https://vercel.com) | Web app | Grant access to `rugvailabs/justforyou` |
+| [Render](https://render.com) | API | Grant access to `rugvailabs/hesalut` |
+| [Vercel](https://vercel.com) | Web app | Grant access to `rugvailabs/hesalut` |
 | [Neon](https://neon.tech) | Postgres | No card needed |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) or [Backblaze B2](https://www.backblaze.com/cloud-storage) | Documents | R2 may ask for a payment method to enable the free tier |
 | [Mailtrap](https://mailtrap.io) | Email | Use **Email Testing** (sandbox), not Email Sending |
@@ -68,7 +68,7 @@ port `2525`, username and password. Every email the site sends lands in that inb
 
 ## 5. API - Render
 
-1. **New → Blueprint**, pick `rugvailabs/justforyou`. Render reads `render.yaml`.
+1. **New → Blueprint**, pick `rugvailabs/hesalut`. Render reads `render.yaml`.
 2. Fill in the values it asks for:
 
 | Variable | Value |
@@ -96,7 +96,7 @@ Keep `ENVIRONMENT` as `staging`: the test checkout (fake cards) refuses to run i
 
 ## 6. Web app - Vercel
 
-1. **Add New → Project**, import `rugvailabs/justforyou`.
+1. **Add New → Project**, import `rugvailabs/hesalut`.
 2. **Root Directory: `web`**. Framework is detected as Next.js; leave build settings.
 3. Environment variables - **set them before the first deploy**. `NEXT_PUBLIC_*`
    values are built into the app, so changing one later needs a redeploy:
