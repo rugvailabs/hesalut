@@ -28,7 +28,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { Bell, Bookmark, Check, LayoutDashboard, LogOut, MapPin, Moon, MoreVertical, Shield, Store, Sun } from "lucide-react";
+import { Bell, Bookmark, Check, LayoutDashboard, LogOut, Moon, MoreVertical, Shield, Store, Sun } from "lucide-react";
 
 import { useExploreT, useLanguage } from "@/components/explore/ExploreProviders";
 import { cn } from "@/lib/cn";
@@ -77,9 +77,9 @@ export default function ExploreHeader({
           aria-label={t("header.home")}
           className="flex items-center gap-1.5 rounded-sm text-card-title font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
         >
-          <MapPin className="size-5 text-brand-700" aria-hidden="true" />
+          <img src="/logo.png" alt="" aria-hidden="true" className="h-6 w-auto dark:invert" />
           <span className="hidden sm:inline">
-            justfor<span className="text-brand-700">you</span>
+            hesalut
           </span>
         </Link>
 

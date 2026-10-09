@@ -5,10 +5,8 @@
  * directly, so no page passes a user down and the nav costs no client JS. The
  * search box is the one interactive piece and is its own client island.
  *
- * The mark is drawn here in SVG rather than imported: a maple leaf or a
- * lookalike of an existing directory's logo would be someone else's mark. This
- * is a pin and a magnifier reduced to two overlapping geometric shapes, in
- * brand tokens, which is ours and costs no network request.
+ * The mark is the hesalut logo (public/logo.png), a transparent PNG; it is
+ * inverted in dark mode so the black shape stays visible.
  */
 
 import Link from "next/link";
@@ -22,25 +20,9 @@ import { tFor, type Locale } from "@/lib/i18n";
 function Wordmark(): JSX.Element {
   return (
     <span className="inline-flex items-center gap-2">
-      <svg
-        viewBox="0 0 24 24"
-        className="size-7"
-        role="img"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path
-          d="M12 2.5c-3.6 0-6.5 2.8-6.5 6.3 0 4.5 5.6 11.2 6.1 11.8a.6.6 0 0 0 .9 0c.5-.6 6-7.3 6-11.8 0-3.5-2.9-6.3-6.5-6.3Z"
-          className="fill-brand-600"
-        />
-        <circle cx="12" cy="8.6" r="3.4" className="fill-brand-100" />
-        <path
-          d="M11 7.6a1.9 1.9 0 1 0 2.7 2.7l1.5 1.5-.9.9-1.5-1.5A1.9 1.9 0 0 0 11 7.6Z"
-          className="fill-brand-800"
-        />
-      </svg>
+      <img src="/logo.png" alt="" aria-hidden="true" className="h-7 w-auto dark:invert" />
       <span className="text-card-title font-semibold tracking-tight text-ink">
-        justfor<span className="text-brand-700">you</span>
+        hesalut
       </span>
     </span>
   );

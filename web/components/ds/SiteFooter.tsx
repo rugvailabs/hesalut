@@ -66,7 +66,7 @@ export default function SiteFooter({
         <div className="flex flex-wrap gap-x-10 gap-y-8">
           <div className="min-w-[16rem] flex-1">
             <p className="text-card-title font-semibold text-ink">
-              justfor<span className="text-brand-700">you</span>
+              hesalut
             </p>
             <p className="mt-1 max-w-sm text-meta text-ink-subtle">
               {t("common.tagline")}
