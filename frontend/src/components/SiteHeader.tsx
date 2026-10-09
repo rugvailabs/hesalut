@@ -17,7 +17,8 @@ export default function SiteHeader() {
   return (
     <header className="border-b border-gray-200 bg-white">
       <nav className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 text-sm">
-        <Link href="/" className="font-semibold">
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <img src="/logo.png" alt="" aria-hidden="true" className="h-6 w-auto" />
           hesalut
         </Link>
         <div className="flex items-center gap-4">
