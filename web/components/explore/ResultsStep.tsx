@@ -639,11 +639,22 @@ export default function ResultsStep({
               className={cn("transition-transform", filtersOpen && "rotate-180")}
             />
           </Button>
+          {/* On a phone the filters are a bottom sheet over the results, with
+              a button that closes it and says how many results it found. */}
+          {filtersOpen ? (
+            <div
+              aria-hidden="true"
+              onClick={() => setFiltersOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            />
+          ) : null}
           <Card
             id="explore-filters"
             className={cn(
-              "mt-3 space-y-6 p-4 lg:mt-0 lg:block lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto",
-              filtersOpen ? "block" : "hidden",
+              "space-y-6 p-4 lg:static lg:mt-0 lg:block lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto lg:rounded-card lg:pb-4",
+              filtersOpen
+                ? "fixed inset-x-0 bottom-0 z-50 block max-h-[85vh] overflow-y-auto rounded-b-none rounded-t-card pb-0 shadow-overlay"
+                : "hidden",
             )}
           >
             <div className="flex items-center justify-between">
@@ -799,6 +810,12 @@ export default function ResultsStep({
                 </p>
               ) : null}
             </fieldset>
+
+            <div className="sticky bottom-0 -mx-4 border-t border-line bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+              <Button className="w-full" onClick={() => setFiltersOpen(false)}>
+                {t("filters.showResults", { count: total, formatted: formatCount(total, intl) })}
+              </Button>
+            </div>
           </Card>
         </aside>
 
