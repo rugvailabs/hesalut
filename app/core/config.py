@@ -215,3 +215,10 @@ class Settings(BaseSettings):
         return self.minio_public_endpoint or self.minio_endpoint
 
 
+@lru_cache
+def get_settings() -> Settings:
+    """Return a cached Settings instance so env parsing happens once per process."""
+    return Settings()
+
+
+
