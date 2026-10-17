@@ -214,6 +214,30 @@ class Settings(BaseSettings):
         """Endpoint used when signing URLs handed to a browser."""
         return self.minio_public_endpoint or self.minio_endpoint
 
+from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
+
+url = settings.database_url
+
+print("DB URL type:", type(url).__name__)
+print("DB URL length:", len(url))
+print("DB URL scheme:", url.split("://", 1)[0] if "://" in url else "MISSING")
+print("DB URL has placeholder:", "${{" in url or "}}" in url)
+print("DB URL has whitespace:", any(c.isspace() for c in url))
+print("DB URL starts/ends with quote:",
+      url.startswith(("'", '"')) or url.endswith(("'", '"')))
+
+try:
+    parsed_url = make_url(url)
+    print("DB URL parsed successfully")
+    print("DB driver:", parsed_url.drivername)
+    print("DB hostname present:", bool(parsed_url.host))
+    print("DB database present:", bool(parsed_url.database))
+except Exception as exc:
+    print("DB URL parsing failed:", type(exc).__name__)
+
+engine = create_engine(url, pool_pre_ping=True, future=True)
+
 
 @lru_cache
 def get_settings() -> Settings:
