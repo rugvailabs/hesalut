@@ -15,8 +15,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cookies } from "next/headers";
+import { Suspense } from "react";
 
-import ExploreHeader from "@/components/explore/ExploreHeader";
+import ExploreHeader, { MobileTabBar } from "@/components/explore/ExploreHeader";
 import { SiteProviders } from "@/components/explore/ExploreProviders";
 import { getCurrentUser } from "@/lib/auth";
 import { LANG_COOKIE } from "@/lib/explore-i18n/constants";
@@ -85,7 +86,11 @@ export default async function RootLayout({
             }
             newLeads={newLeads}
           />
-          {children}
+          {/* Room for the phone tab bar so it never covers the footer. */}
+          <div className="pb-16 sm:pb-0">{children}</div>
+          <Suspense fallback={null}>
+            <MobileTabBar signedIn={user !== null} />
+          </Suspense>
         </SiteProviders>
       </body>
     </html>

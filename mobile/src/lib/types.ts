@@ -293,6 +293,12 @@ export interface BusinessDetail extends BusinessOwnerItem {
   price_range: string | null;
   tags: string[] | null;
   opening_hours: Record<string, [string, string][]> | null;
+  /**
+   * "none"; "external", with `booking_url` the owner's own https booking page;
+   * or "request", where the visitor asks on the website. Absent from an older API.
+   */
+  booking_mode?: "none" | "external" | "request";
+  booking_url?: string | null;
   owner_id: number | null;
   category_slug: string | null;
   category_name: string | null;

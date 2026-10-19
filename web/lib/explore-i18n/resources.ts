@@ -77,6 +77,7 @@ const en = {
   },
   filters: {
     toggle: "Filters",
+    showResults: "Show {{formatted}} results",
     title: "Filters",
     clearAll: "Clear all",
     rating: "Rating",
@@ -318,6 +319,7 @@ const fr: ExploreResources & { results: { found_many: string; filtered_many: str
   },
   filters: {
     toggle: "Filtres",
+    showResults: "Afficher {{formatted}} résultats",
     title: "Filtres",
     clearAll: "Tout effacer",
     rating: "Note",

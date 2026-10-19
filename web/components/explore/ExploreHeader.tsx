@@ -26,9 +26,9 @@
  */
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { Bell, Bookmark, Check, LayoutDashboard, LogOut, Moon, MoreVertical, Shield, Store, Sun } from "lucide-react";
+import { Bell, Bookmark, Check, Compass, LayoutDashboard, List, LogOut, Moon, MoreVertical, Shield, Store, Sun, User } from "lucide-react";
 
 import { useExploreT, useLanguage } from "@/components/explore/ExploreProviders";
 import { cn } from "@/lib/cn";
@@ -78,12 +78,12 @@ export default function ExploreHeader({
           className="flex items-center gap-1.5 rounded-sm text-card-title font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
         >
           <img src="/logo.png" alt="" aria-hidden="true" className="h-6 w-auto dark:invert" />
-          <span className="hidden sm:inline">
+          <span>
             hesalut
           </span>
         </Link>
 
-        <nav aria-label={t("header.tabs")} className="min-w-0">
+        <nav aria-label={t("header.tabs")} className="hidden min-w-0 sm:block">
           <ul className="flex items-center gap-0.5 sm:gap-1">
             {tabs.map((tab) => (
               // `hidden` is display: none - the tab stays in the DOM.
@@ -109,7 +109,7 @@ export default function ExploreHeader({
           <div
             role="group"
             aria-label={t("header.language")}
-            className="inline-flex rounded-pill border border-line p-0.5 text-micro"
+            className="hidden rounded-pill border sm:inline-flex border-line p-0.5 text-micro"
           >
             {LOCALES.map((code) => (
               <button
@@ -127,7 +127,9 @@ export default function ExploreHeader({
               </button>
             ))}
           </div>
-          <ThemeToggle />
+          <span className="hidden sm:contents">
+            <ThemeToggle />
+          </span>
           {user === null ? (
             // Owner sign-up starts here. Signed-in customers have the same
             // entry in the account menu, where it converts their account.
@@ -368,7 +370,14 @@ function MoreMenu({
   signInHref: string | null;
 }): JSX.Element {
   const { t } = useExploreT();
+  const [lang, setLang] = useLanguage();
   const menu = useMenu();
+  // Phones have no room for the language and theme switches in the bar, so
+  // they live here instead (hidden from sm up, where the bar shows them).
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    if (menu.open) setDark(currentTheme() === "dark");
+  }, [menu.open]);
 
   return (
     <div ref={menu.wrapper} className="relative">
@@ -400,6 +409,42 @@ function MoreMenu({
           </span>
           {t("header.showHome")}
         </button>
+        <div className="sm:hidden">
+          {LOCALES.map((code) => (
+            <button
+              key={code}
+              type="button"
+              role="menuitemradio"
+              aria-checked={lang === code}
+              lang={code}
+              onClick={() => {
+                setLang(code);
+                menu.close();
+              }}
+              className={ITEM}
+            >
+              <span className="flex size-4 items-center justify-center text-brand-700">
+                {lang === code ? <Check className="size-4" aria-hidden="true" /> : null}
+              </span>
+              {code === "en" ? "English" : "Français"}
+            </button>
+          ))}
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={dark}
+            onClick={() => {
+              applyTheme(dark ? "light" : "dark");
+              menu.close();
+            }}
+            className={ITEM}
+          >
+            <span className="flex size-4 items-center justify-center text-brand-700">
+              {dark ? <Check className="size-4" aria-hidden="true" /> : null}
+            </span>
+            {t("header.darkMode")}
+          </button>
+        </div>
         {signInHref ? (
           // Plain concatenation: cn() (tailwind-merge) reads the custom
           // text-body size and text-ink colour as one conflict and drops one.
@@ -410,5 +455,64 @@ function MoreMenu({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------ phone tab bar */
+
+/**
+ * Phone-only bottom navigation: the thumb-reach version of the header tabs.
+ * Hidden from sm up, where the header carries them. Saved goes to the sign-in
+ * page for a visitor who is not signed in, with a way back.
+ */
+export function MobileTabBar({ signedIn }: { signedIn: boolean }): JSX.Element {
+  const { t } = useExploreT();
+  const [lang] = useLanguage();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const savedActive = pathname.startsWith("/explore/results") && params.get("tab") === "saved";
+
+  const items = [
+    { key: "explore", href: "/explore", label: t("header.explore"), icon: Compass, active: pathname.startsWith("/explore") && !savedActive },
+    { key: "browse", href: "/search", label: t("header.browse"), icon: List, active: pathname.startsWith("/search") },
+    {
+      key: "saved",
+      href: signedIn ? "/explore/results?tab=saved" : `/login?next=${encodeURIComponent("/explore/results?tab=saved")}`,
+      label: lang === "fr" ? "Favoris" : "Saved",
+      icon: Bookmark,
+      active: savedActive,
+    },
+    {
+      key: "account",
+      href: signedIn ? "/account" : `/login?next=${encodeURIComponent(pathname)}`,
+      label: signedIn ? t("header.account") : t("header.signIn"),
+      icon: User,
+      active: pathname.startsWith("/account") || pathname.startsWith("/login"),
+    },
+  ];
+
+  return (
+    <nav
+      aria-label={t("header.tabs")}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+    >
+      <ul className="grid grid-cols-4">
+        {items.map((item) => (
+          <li key={item.key}>
+            <Link
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              className={cn(
+                "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-micro focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring",
+                item.active ? "font-semibold text-brand-800" : "text-ink-muted",
+              )}
+            >
+              <item.icon className="size-5" aria-hidden="true" />
+              <span className="max-w-full truncate">{item.label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
