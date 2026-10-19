@@ -219,6 +219,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return a cached Settings instance so env parsing happens once per process."""
     return Settings()
-
-
-
