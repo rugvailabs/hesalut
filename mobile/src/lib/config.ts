@@ -29,6 +29,16 @@ export const API_BASE_URL = (
 ).replace(/\/+$/, "");
 
 /**
+ * The website, for the few things the app hands over to it - a booking request
+ * is made there, where the sign-in and the form already are. Same borrowed host
+ * as the API, on the web app's port; set EXPO_PUBLIC_WEB_URL for a deployed
+ * site.
+ */
+export const WEB_BASE_URL = (
+  process.env.EXPO_PUBLIC_WEB_URL ?? `http://${packagerHost() ?? "localhost"}:3001`
+).replace(/\/+$/, "");
+
+/**
  * The chat socket is mounted at the server root, not under /api/v1, so this
  * strips the version prefix rather than appending to it.
  */

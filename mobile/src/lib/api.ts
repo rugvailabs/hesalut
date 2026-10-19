@@ -438,6 +438,18 @@ export function createEnquiry(
 }
 
 /**
+ * POST /businesses/{id}/booking-clicks - "Book online" was pressed. Public and
+ * fire-and-forget: the answer is 204, and the caller must never wait on it or
+ * let a failure get in the way of opening the booking page.
+ */
+export function recordBookingClick(businessId: number): Promise<void> {
+  return apiFetch<void>(`/businesses/${businessId}/booking-clicks`, {
+    method: "POST",
+    auth: false,
+  });
+}
+
+/**
  * GET /businesses/{id}/enquiries - the owner's leads inbox, newest first.
  *
  * @throws {ApiError} 403 when the listing belongs to someone else.

@@ -33,8 +33,10 @@ import {
   createEnquiry,
   getBusinessBySlug,
   getReviews,
+  recordBookingClick,
   startConversation,
 } from "../lib/api";
+import { WEB_BASE_URL } from "../lib/config";
 import { getToken } from "../lib/tokenStore";
 import { useSession } from "../lib/session";
 import { useAsync } from "../lib/useAsync";
@@ -115,6 +117,30 @@ export default function BusinessScreen({
       // A tablet or simulator with no dialer: show the number so the person
       // can still use it rather than leaving them with a dead button.
       NativeAlert.alert("No dialer on this device", business.phone);
+    }
+  }, [business]);
+
+  /**
+   * Booking, by what the owner set up. Their own booking page opens as is - and
+   * only if it really is https, whatever the server sent - with the press
+   * counted on the side. A booking request is made on the website, where the
+   * sign-in and the form are, so the app hands the person over to that page.
+   */
+  const book = useCallback(async (): Promise<void> => {
+    if (business === null) return;
+    let url: string | null = null;
+    if (business.booking_mode === "external" && business.booking_url) {
+      if (!business.booking_url.startsWith("https://")) return;
+      url = business.booking_url;
+      void recordBookingClick(business.id).catch(() => undefined);
+    } else if (business.booking_mode === "request") {
+      url = `${WEB_BASE_URL}/business/${encodeURIComponent(business.slug)}/book`;
+    }
+    if (url === null) return;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      NativeAlert.alert("Could not open the booking page", url);
     }
   }, [business]);
 
@@ -223,6 +249,18 @@ export default function BusinessScreen({
           reviewCount={business.review_count}
         />
       </View>
+
+      {business.booking_mode === "external" && business.booking_url ? (
+        <Button onPress={() => void book()}>📅 Book online</Button>
+      ) : null}
+      {business.booking_mode === "request" ? (
+        <View style={styles.bookRequest}>
+          <Button onPress={() => void book()}>📅 Request a booking</Button>
+          <Text style={styles.muted}>
+            Opens the website, where you sign in and choose the times that suit you.
+          </Text>
+        </View>
+      ) : null}
 
       {/* The web app has a sticky action bar; the phone equivalent is putting
           the two actions above the fold, where a thumb already is. */}
@@ -406,6 +444,7 @@ const styles = StyleSheet.create({
   },
   meta: { fontSize: type.small.fontSize, color: color.subtle },
   actions: { flexDirection: "row", gap: space.sm },
+  bookRequest: { gap: space.xs },
   grow: { flex: 1 },
   section: { gap: space.sm },
   sectionTitle: {

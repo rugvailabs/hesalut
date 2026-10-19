@@ -35,6 +35,13 @@ first thing to check when every screen says "could not reach the server".
 The chat socket is derived from the same value: `ws://<host>:8000/ws/...`, since
 the WebSocket is mounted at the server root rather than under `/api/v1`.
 
+The website's address is guessed the same way (`http://<your machine's LAN IP>:3001`)
+and set with `EXPO_PUBLIC_WEB_URL`. The app uses it for one thing: a business that
+takes booking requests opens `<web>/business/<slug>/book` when you tap "Request a
+booking", because the sign-in and the form are on the website. Businesses with their
+own booking page ("Book online") open that page directly and do not need it. A
+deployed build must set it, or the button points at your machine.
+
 Two things about the dev backend being plain HTTP: iOS needs
 `NSAllowsLocalNetworking` (already set in `app.json`) and Android needs cleartext
 traffic, which Expo Go allows but a standalone release build does not. Both stop
