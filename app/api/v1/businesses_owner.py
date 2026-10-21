@@ -19,9 +19,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.contact import hide_numbers_from_guests
 from app.core.db import get_db
 from app.core.deps import (
     get_current_user,
+    get_current_user_optional,
     require_business_owner,
     require_owned_business,
 )
@@ -95,16 +97,17 @@ def list_my_businesses(
 def get_business_by_slug(
     slug: str,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User | None = Depends(get_current_user_optional),
 ) -> BusinessDetail:
-    """Listing detail for a signed-in visitor.
+    """Public listing detail. Phone and WhatsApp numbers need sign-in.
 
     The same three gates as search - active, approved, KYC-verified - because
     this is the URL a search result links to. Excluding a listing from every
     list while leaving it fully readable to anyone who has or guesses its slug
     is not a gate, it is an inconvenience.
     """
-    return _detail(db, require_visible_business_by_slug(db, slug))
+    detail = _detail(db, require_visible_business_by_slug(db, slug))
+    return detail if user is not None else hide_numbers_from_guests(detail)
 
 
 def _require_booking_link(mode: str | None, url: str | None) -> None:

@@ -3,12 +3,12 @@
 /**
  * Callback / quote request on a public listing page.
  *
- * The behaviour is Step 3's EnquiryForm, unchanged: it posts to our own route
- * handler (the API has no CORS and the JWT is in an httpOnly cookie), it works
- * signed in or out against the backend's optional-auth endpoint, and a signed-
- * in visitor's account fills any field they leave blank - the fields are still
- * offered either way, because the number to call back on is often not the one
- * on the account.
+ * It posts to our own route handler (the API has no CORS and the JWT is in an
+ * httpOnly cookie). Sending an enquiry needs an account, so a signed-out
+ * visitor gets a sign-in link that brings them back to #enquire. A signed-in
+ * visitor's account fills any field they leave blank - the fields are still
+ * offered, because the number to call back on is often not the one on the
+ * account.
  *
  * What changed is the styling and that it is now addressable. ListingCard
  * links to /business/{slug}#enquire, so this panel owns that id and opens
@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mail } from "lucide-react";
 
 import { Button, Card, Input, Label } from "@/components/ds/primitives";
+import SignInLink from "@/components/ds/SignInLink";
 import { cn } from "@/lib/cn";
 import { tFor, type Locale } from "@/lib/i18n";
 import type { EnquiryType } from "@/lib/types";
@@ -34,11 +35,13 @@ const FIELD =
 export default function EnquiryPanel({
   businessId,
   businessName,
+  signedIn,
   locale = "en",
   className,
 }: {
   businessId: number;
   businessName: string;
+  signedIn: boolean;
   locale?: Locale;
   className?: string;
 }): JSX.Element {
@@ -114,6 +117,19 @@ export default function EnquiryPanel({
           </p>
         </div>
       </Card>
+    );
+  }
+
+  if (!signedIn) {
+    return (
+      <div id="enquire" className={cn("scroll-mt-24", className)}>
+        <SignInLink
+          label={t("business.enquireSignIn")}
+          hash="#enquire"
+          icon={<Mail aria-hidden="true" />}
+          size="md"
+        />
+      </div>
     );
   }
 

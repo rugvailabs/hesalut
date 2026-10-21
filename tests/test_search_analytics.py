@@ -72,7 +72,7 @@ def test_every_result_shown_is_logged_with_position_tier_and_rounded_location(
 
 
 def test_searches_are_logged_against_the_signed_in_user(client, world, db_factory):
-    # Search needs sign-in, so there is no anonymous search to log any more.
+    # The test client is signed in unless a request opts out.
     world["add"]("Only")
 
     body = client.get("/api/v1/businesses/search", params={"category_slug": world["slug"]}).json()

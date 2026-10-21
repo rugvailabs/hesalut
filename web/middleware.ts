@@ -1,10 +1,12 @@
 /**
- * Route protection for /dashboard/* and /admin/*, and sign-in for search.
+ * Route protection for /dashboard/*, /admin/* and booking.
  *
- * Searching needs an account: the results, business profile and city/category
- * pages (and the /api/explore routes that feed them) send a signed-out visitor
- * to /login with the page they asked for in `next`, so they land on their
- * results after signing in. The search bar itself (/explore) stays public.
+ * Browsing is public: the home page, search, results, business profiles and
+ * city/category pages need no account. Sign-in is asked for only where it is
+ * needed - booking (/business/{slug}/book) here, and on the listing page the
+ * phone number and the enquiry form, which the API withholds and the page
+ * swaps for a sign-in link. A signed-out visitor is sent to /login with the
+ * page they asked for in `next`, so they land back on it after signing in.
  *
  * This is a cheap first gate, NOT the security boundary. It checks that a
  * well-formed, unexpired JWT cookie exists and - for /admin - that the cached
@@ -24,21 +26,8 @@ import { safeNext } from "@/lib/safe-next";
 /** Prefixes that require a signed-in user. */
 const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
 
-/**
- * Search pages that require a signed-in user (no particular role): results,
- * the legacy /search listing and business profiles, which includes /book.
- */
-const SEARCH_PREFIXES = ["/explore/results", "/search", "/business"];
-
-/** The JSON routes behind the explore flow. Answer 401, not a redirect. */
-const SEARCH_API_PREFIXES = ["/api/explore"];
-
-/**
- * City and category pages: /{province}/{city}/{category} and
- * /{province}/{city}/all-categories, where province is a two-letter code (bc).
- * No other top-level route has a two-letter first segment.
- */
-const CITY_PAGE = /^\/[a-zA-Z]{2}\/[^/]+(\/[^/]+)?\/?$/;
+/** Booking a listing: /business/{slug}/book. Any signed-in user. */
+const BOOKING_PAGE = /^\/business\/[^/]+\/book\/?$/;
 
 /** Prefixes that additionally require is_admin. */
 const ADMIN_PREFIXES = ["/admin"];
@@ -89,11 +78,9 @@ export function middleware(req: NextRequest): NextResponse {
   const { pathname, search } = req.nextUrl;
   const target = pathname + search;
 
-  const isSearchApi = matches(pathname, SEARCH_API_PREFIXES);
-  const isSearchPage =
-    matches(pathname, SEARCH_PREFIXES) || CITY_PAGE.test(pathname);
+  const isBooking = BOOKING_PAGE.test(pathname);
 
-  if (!matches(pathname, PROTECTED_PREFIXES) && !isSearchPage && !isSearchApi) {
+  if (!matches(pathname, PROTECTED_PREFIXES) && !isBooking) {
     return NextResponse.next();
   }
 
@@ -101,14 +88,11 @@ export function middleware(req: NextRequest): NextResponse {
 
   // Signed out, or the token has lapsed.
   if (!token || isTokenExpired(token)) {
-    if (isSearchApi) {
-      return NextResponse.json({ detail: "Sign in to search." }, { status: 401 });
-    }
     return redirectToLogin(req, target, Boolean(token));
   }
 
-  // Search only needs a signed-in user, whatever the role.
-  if (isSearchPage || isSearchApi) return NextResponse.next();
+  // Booking only needs a signed-in user, whatever the role.
+  if (isBooking) return NextResponse.next();
 
   const role = req.cookies.get(ROLE_COOKIE)?.value ?? "";
 
@@ -129,11 +113,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/admin/:path*",
-    "/explore/results/:path*",
-    "/search/:path*",
-    "/business/:path*",
-    "/api/explore/:path*",
-    // /{province}/{city}/{category}: a two-letter province code first.
-    "/:province([a-zA-Z]{2})/:path+",
+    "/business/:slug/book",
   ],
 };

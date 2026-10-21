@@ -162,7 +162,7 @@ export default function ListingCard({
               {t("listing.viewDetails")}
             </TrackedLink>
           </Button>
-          {business.phone !== null ? (
+          {business.phone !== null || business.contact_hidden ? (
             <ShowNumber
               businessId={business.id}
               phone={business.phone}

@@ -372,8 +372,8 @@ export function searchBusinesses(
     }
   }
   const suffix = qs.toString();
-  // The API requires sign-in to search; the cookie's token is sent, and the
-  // search is attributed to that user in analytics.
+  // Search is public. The cookie's token is sent when there is one: a signed-
+  // in search is attributed in analytics and its results carry phone numbers.
   return apiFetch<SearchResponse>(
     `/businesses/search${suffix ? `?${suffix}` : ""}`,
     { method: "GET" },
@@ -381,7 +381,8 @@ export function searchBusinesses(
 }
 
 /**
- * GET /businesses/by-slug/{slug} - listing detail (requires sign-in).
+ * GET /businesses/by-slug/{slug} - public listing detail. Phone numbers come
+ * back only when the visitor is signed in (otherwise contact_hidden is set).
  *
  * Approved and active only; anything else 404s, which is what the public
  * detail page turns into notFound(). Returns null instead of throwing on 404
@@ -405,7 +406,7 @@ export async function getBusinessBySlug(
 }
 
 /**
- * GET /search/understand - free search text read as filters. Requires sign-in. The
+ * GET /search/understand - free search text read as filters. Public. The
  * backend answers `source: "keywords"` itself when its model fails; transport
  * failures and timeouts still throw, and the caller falls back.
  */
@@ -488,9 +489,8 @@ export function updateBusiness(
 /**
  * POST /businesses/{id}/enquiries - record a lead.
  *
- * `auth: false` because this is open to anonymous visitors. When a token is
- * present the backend attributes the lead, but it is never required; the
- * caller passes one explicitly if it has one.
+ * Requires sign-in. The caller passes the token explicitly; without one the
+ * backend answers 401.
  */
 export function createEnquiry(
   businessId: number,
@@ -527,7 +527,7 @@ export function getEnquiries(
 
 /* --------------------------------------------------------- review calls */
 
-/** GET /businesses/{id}/reviews - newest first. Requires sign-in. */
+/** GET /businesses/{id}/reviews - public, newest first. */
 export function getReviews(
   businessId: number,
   options: { limit?: number; offset?: number } = {},

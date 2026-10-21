@@ -44,6 +44,7 @@ export const fr: Dictionary = {
   },
   listing: {
     showNumber: "Afficher le numéro",
+    signInForNumber: "Connectez-vous pour voir le numéro",
     enquire: "Demander une soumission",
     call: "Appeler",
     directions: "Itinéraire",
@@ -87,6 +88,7 @@ export const fr: Dictionary = {
     contact: "Coordonnées",
     phone: "Téléphone",
     phoneHidden: "Utilisez « Afficher le numéro »",
+    phoneSignIn: "Connectez-vous pour voir le numéro",
     email: "Courriel",
     whatsapp: "WhatsApp",
     website: "Site Web",
@@ -106,6 +108,7 @@ export const fr: Dictionary = {
     ownerReply: "Réponse de {name}",
     enquireHeading: "Demander un rappel ou une soumission",
     enquireOpen: "Demander un rappel ou une soumission",
+    enquireSignIn: "Connectez-vous pour demander un rappel ou une soumission",
     enquireContact: "Contacter {name}",
     enquireSent: "Demande envoyée",
     enquireSentBody: "{name} a reçu votre demande et voit vos coordonnées.",

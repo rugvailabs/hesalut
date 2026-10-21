@@ -84,13 +84,14 @@ def client(test_engine) -> Iterator[TestClient]:
     app.dependency_overrides.clear()
 
 
-# Search and listing pages need a signed-in visitor. Most tests are about what
-# the search returns, not about signing in, so the client carries a token for
-# those routes unless the request opts out with this header.
+# Visitors browse as a signed-in user unless a request opts out with this
+# header. Search and listings are public, but a signed-in caller sees phone
+# numbers and is attributed in analytics, and an enquiry needs an account -
+# most tests are about those results, not about signing in.
 ANONYMOUS_HEADER = "X-Test-Anonymous"
 _SIGNED_IN_ONLY = re.compile(
     r"^/api/v1/(businesses/search|search/(nearby|understand)"
-    r"|businesses/by-slug/[^/]+|businesses/\d+/reviews(/summary)?)$"
+    r"|businesses/by-slug/[^/]+|businesses/\d+/(reviews(/summary)?|enquiries))$"
 )
 
 

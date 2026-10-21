@@ -43,6 +43,7 @@ export const en = {
   },
   listing: {
     showNumber: "Show number",
+    signInForNumber: "Sign in to see number",
     enquire: "Enquire",
     call: "Call",
     directions: "Directions",
@@ -86,6 +87,7 @@ export const en = {
     contact: "Contact",
     phone: "Phone",
     phoneHidden: "Use “Show number”",
+    phoneSignIn: "Sign in to see the number",
     email: "Email",
     whatsapp: "WhatsApp",
     website: "Website",
@@ -105,6 +107,7 @@ export const en = {
     ownerReply: "Response from {name}",
     enquireHeading: "Request a callback or quote",
     enquireOpen: "Request a callback or quote",
+    enquireSignIn: "Sign in to request a callback or quote",
     enquireContact: "Contact {name}",
     enquireSent: "Enquiry sent",
     enquireSentBody: "{name} has your request and can see your contact details.",
