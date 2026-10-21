@@ -63,6 +63,10 @@ class BusinessListItem(BaseModel):
     longitude: float | None
     phone: str | None
     website: str | None
+    # True when the listing has a number but the caller is signed out, so
+    # `phone` is withheld. Lets a client say "sign in to see the number"
+    # rather than "no number listed".
+    contact_hidden: bool = False
     # NULL when the listing has no ratings yet - render "No reviews yet",
     # not zero stars.
     rating: float | None
@@ -153,6 +157,9 @@ class BusinessDetail(BusinessOwnerItem):
     whatsapp: str | None
     email: str | None
     website: str | None
+    # True when `phone` and/or `whatsapp` exist but were withheld from a
+    # signed-out caller. See app/core/contact.py.
+    contact_hidden: bool = False
     price_range: str | None
     # "owner" or "services": whether price_range was chosen or derived.
     price_range_source: str = "owner"

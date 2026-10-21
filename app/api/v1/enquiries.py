@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.core.deps import get_current_user_optional, require_owned_business
+from app.core.deps import get_current_user, require_owned_business
 from app.core.rate_limit import rate_limit
 from app.core.visibility import require_visible_business
 from app.models.business import Business
@@ -42,10 +42,10 @@ def create_enquiry(
     business_id: int,
     payload: EnquiryCreate,
     background: BackgroundTasks,
-    current_user: User | None = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Enquiry:
-    """Record a lead against a listing. Open to anonymous visitors."""
+    """Record a lead against a listing. Requires sign-in."""
     # Only a publicly visible listing can receive leads - the same rule as
     # search and the detail page. A listing a visitor cannot reach is either a
     # stale tab or someone poking at ids, and an unverified business must not
@@ -54,17 +54,17 @@ def create_enquiry(
 
     enquiry = Enquiry(
         business_id=business.id,
-        user_id=current_user.id if current_user is not None else None,
+        user_id=current_user.id,
         enquiry_type=payload.enquiry_type,
         message=payload.message,
         # Fall back to the signed-in user's own details when the form did not
         # collect them - a call-click has no form at all.
         contact_name=payload.contact_name
-        or (current_user.name if current_user is not None else None),
+        or current_user.name,
         contact_phone=payload.contact_phone
-        or (current_user.phone if current_user is not None else None),
+        or current_user.phone,
         contact_email=payload.contact_email
-        or (current_user.email if current_user is not None else None),
+        or current_user.email,
     )
     db.add(enquiry)
     db.commit()

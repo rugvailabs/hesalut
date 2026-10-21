@@ -12,12 +12,16 @@
  * What is new is only the styling, and that once revealed the number is a real
  * tel: link in E.164 - on a phone that dials, and on a desktop it is still the
  * number, formatted the way Canadians read it.
+ *
+ * Numbers are for signed-in visitors. When the API withheld one (`phone` is
+ * null for a listing with contact_hidden), this is a sign-in link instead.
  */
 
 import { useState } from "react";
 import { Phone } from "lucide-react";
 
 import { Button } from "@/components/ds/primitives";
+import SignInLink from "@/components/ds/SignInLink";
 import { formatPhone, telHref } from "@/lib/format";
 import { tFor, type Locale } from "@/lib/i18n";
 import { trackSearchClick } from "@/lib/track-search-click";
@@ -47,7 +51,8 @@ export default function ShowNumber({
   searchId,
 }: {
   businessId: number;
-  phone: string;
+  /** null when withheld from a signed-out visitor. */
+  phone: string | null;
   /** Set inside search results, so the reveal also counts as a click there. */
   searchId?: string | null;
   locale?: Locale;
@@ -57,6 +62,18 @@ export default function ShowNumber({
 }): JSX.Element {
   const t = tFor(locale);
   const [revealed, setRevealed] = useState(false);
+
+  if (phone === null) {
+    return (
+      <SignInLink
+        label={t("listing.signInForNumber")}
+        icon={<Phone aria-hidden="true" />}
+        size={size}
+        variant={variant}
+        className={className}
+      />
+    );
+  }
 
   const display = formatPhone(phone) ?? phone;
   const href = telHref(phone);

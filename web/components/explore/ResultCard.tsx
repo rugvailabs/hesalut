@@ -24,6 +24,7 @@ import { useExploreT } from "@/components/explore/ExploreProviders";
 import FavoriteButton from "@/components/explore/FavoriteButton";
 import { OpenStatus, PlacementBadge, RatingPill, VerifiedBadge } from "@/components/ds/indicators";
 import { Badge, Button, Card } from "@/components/ds/primitives";
+import SignInLink from "@/components/ds/SignInLink";
 import { categoryName } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import { directionsUrl, displayHost } from "@/lib/explore";
@@ -183,6 +184,11 @@ export default function ResultCard({
             <li className="flex items-center gap-2">
               <Phone className="size-3.5 shrink-0 text-ink-subtle" aria-hidden="true" />
               <span className="tabular">{phone}</span>
+            </li>
+          ) : business.contact_hidden ? (
+            <li className="flex items-center gap-2">
+              <Phone className="size-3.5 shrink-0 text-ink-subtle" aria-hidden="true" />
+              <SignInLink label={t("card.signInForNumber")} variant="link" className="h-auto px-0" />
             </li>
           ) : null}
           {business.website ? (

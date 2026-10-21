@@ -20,7 +20,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, s
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import get_db
-from app.core.deps import get_current_user, require_admin, require_owned_business
+from app.core.contact import hide_numbers_from_guests
+from app.core.deps import get_current_user_optional, require_admin, require_owned_business
 from app.core.rate_limit import rate_limit
 from app.core.visibility import require_visible_business
 from app.models.booking_link_click import BookingLinkClick
@@ -66,10 +67,12 @@ def run_search(
             user_id=user.id if user is not None else None,
         )
 
+    items = result.items if user is not None else [hide_numbers_from_guests(i) for i in result.items]
+
     total, page_size, page = result.total, filters.page_size, filters.page
     total_pages = math.ceil(total / page_size) if total else 0
     return SearchResponse(
-        items=result.items,
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
@@ -94,9 +97,9 @@ def search_nearby(
     page_size: int = Query(default=20, ge=1, le=50),
     track: bool = Query(default=True, description="Log the results shown for analytics"),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_current_user_optional),
 ) -> SearchResponse:
-    """Businesses near a point, Featured and Promoted first. Requires sign-in."""
+    """Businesses near a point, Featured and Promoted first. Public; numbers need sign-in."""
     return run_search(
         db=db,
         filters=SearchFilters(
@@ -125,9 +128,8 @@ def understand_query(
     q: str = Query(min_length=1, max_length=300),
     lang: Literal["en", "fr"] = Query(default="en"),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
 ) -> UnderstandResponse:
-    """Turn a plain-language search into filters for /businesses/search. Requires sign-in.
+    """Turn a plain-language search into filters for /businesses/search. Public.
 
     Never fails for a normal query: when the AI step is unavailable, slow or
     unsure, the answer is source "keywords" and the client searches the text

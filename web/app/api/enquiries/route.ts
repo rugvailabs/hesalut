@@ -4,8 +4,8 @@
  * The browser cannot POST to :8000 (no CORS), and a signed-in visitor's JWT is
  * in an httpOnly cookie it cannot read. This handler runs server-side, so
  * lib/api.ts picks the token out of the cookie jar when there is one - which
- * is what attributes the lead to a logged-in customer. Anonymous visitors
- * simply have no cookie and the enquiry is stored without a user_id.
+ * is what attributes the lead to the signed-in customer. An enquiry needs an
+ * account: signed out there is no token, and the backend's 401 is passed on.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -38,8 +38,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    // undefined when signed out - the enquiry is then anonymous, which the
-    // backend explicitly allows.
+    // undefined when signed out, which the backend refuses with a 401.
     const ack = await createEnquiry(businessId, enquiry, getAccessToken());
     return NextResponse.json(ack, { status: 201 });
   } catch (error) {

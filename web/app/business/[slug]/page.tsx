@@ -205,7 +205,7 @@ export default async function BusinessPage({
         {/* The page's conversion point. Not sticky: the header above it
             already is, and two stacked sticky bars eat a phone's viewport. */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-line py-3">
-          {business.phone !== null ? (
+          {business.phone !== null || business.contact_hidden ? (
             <ShowNumber
               businessId={business.id}
               phone={business.phone}
@@ -264,6 +264,7 @@ export default async function BusinessPage({
             <EnquiryPanel
               businessId={business.id}
               businessName={business.name}
+              signedIn={viewer !== null}
               locale={locale}
             />
 
@@ -443,7 +444,9 @@ export default async function BusinessPage({
                       ? // Formatted but not revealed: the number itself is
                         // behind Show number, which is what records the lead.
                         t("business.phoneHidden")
-                      : t("business.notListed")}
+                      : business.contact_hidden
+                        ? t("business.phoneSignIn")
+                        : t("business.notListed")}
                   </dd>
                 </div>
 

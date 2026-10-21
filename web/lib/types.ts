@@ -174,6 +174,8 @@ export interface BusinessListItem {
   latitude: number | null;
   longitude: number | null;
   phone: string | null;
+  /** The listing has a number, withheld because the visitor is signed out. */
+  contact_hidden?: boolean;
   website: string | null;
   /** null means "no reviews yet" - render that, not zero stars. */
   rating: number | null;
@@ -348,6 +350,8 @@ export interface BusinessDetail extends BusinessOwnerItem {
   longitude: number | null;
   phone: string | null;
   whatsapp: string | null;
+  /** The listing has a number, withheld because the visitor is signed out. */
+  contact_hidden?: boolean;
   email: string | null;
   website: string | null;
   price_range: string | null;

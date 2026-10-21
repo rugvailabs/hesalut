@@ -34,6 +34,7 @@ import BusinessHours from "@/components/ds/BusinessHours";
 import { Skeleton } from "@/components/ds/feedback";
 import { OpenStatus, RatingPill, VerifiedBadge } from "@/components/ds/indicators";
 import { Button } from "@/components/ds/primitives";
+import SignInLink from "@/components/ds/SignInLink";
 import { categoryName } from "@/lib/categories";
 import { directionsUrl, displayHost } from "@/lib/explore";
 import {
@@ -383,6 +384,11 @@ function ContactList({
             {phone}
           </a>
         </li>
+      ) : business.contact_hidden ? (
+        <li className="flex items-center gap-2">
+          <Phone className="size-4 shrink-0 text-ink-subtle" aria-hidden="true" />
+          <SignInLink label={t("card.signInForNumber")} variant="link" className="h-auto px-0" />
+        </li>
       ) : null}
       {business.whatsapp ? (
         <li className="flex items-center gap-2">
@@ -420,7 +426,7 @@ function ContactList({
           </a>
         </li>
       ) : null}
-      {!address && tel === null && !business.whatsapp && !business.email && !business.website ? (
+      {!address && tel === null && !business.contact_hidden && !business.whatsapp && !business.email && !business.website ? (
         <li>{t("preview.noContact")}</li>
       ) : null}
     </ul>
