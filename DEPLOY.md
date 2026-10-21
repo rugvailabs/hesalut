@@ -14,6 +14,18 @@ browser ──► Vercel: web/ (Next.js)
                 └──► Mailtrap sandbox: outgoing email (caught, never delivered)
 ```
 
+**The live site (www.hesalut.com) runs on Railway**, not Render and Vercel - the same
+pieces, one project:
+
+| Railway service | Settings |
+| --- | --- |
+| `hesalut` (web) | Root directory `/web`. Variable `NEXT_PUBLIC_API_URL` = the API's URL + `/api/v1`, set **before** a build - Next.js bakes it in. |
+| `hesalut-api` | Root directory `/`, **Dockerfile path `Dockerfile.deploy`** (Settings → Build). That image runs `alembic upgrade head` on every start; `./Dockerfile` is the development image and does not. |
+| `Postgres` | `hesalut-api` reads it through `DATABASE_URL=${{Postgres.DATABASE_URL}}`. |
+
+The sections below describe the free-tier Render/Vercel setup; the variables are the
+same on Railway.
+
 **Not deployed:** the legacy voice-submission app (`VOICE_PIPELINE_ENABLED=false`).
 It needs Whisper, ClamAV and Celery workers, none of which fit a free host, and the
 directory does not use them. No Redis is needed without it. The `frontend/` and
