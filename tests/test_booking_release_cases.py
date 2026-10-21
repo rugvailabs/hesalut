@@ -156,60 +156,116 @@ def test_conversion_matches_the_zone_database_through_the_autumn_change(zone_nam
             assert booking_rules.to_utc(day, time(hour), zone) == expected, (zone_name, day, hour)
 
 
-def test_alberta_and_ontario_fall_back_on_1_november_2026():
-    """Clocks go back at 2:00 on Sunday 1 November 2026 in Edmonton and Toronto."""
-    now = datetime(2026, 10, 20, tzinfo=timezone.utc)
+def _clock_change(zone: ZoneInfo, start: date, *, back: bool) -> date | None:
+    """The first day from `start`, within a year, on which the zone's clocks go back
+    (or forward), read from the zone database rather than assumed.
 
-    def at(zone_name, day):
+    Provinces change their rules - Alberta and BC stopped falling back in 2026 -
+    so a hard-coded date goes stale when tzdata does.
+    """
+    for d in range(1, 366):
+        day = start + timedelta(days=d)
+        before = datetime.combine(day - timedelta(days=1), time(12), tzinfo=zone).utcoffset()
+        after = datetime.combine(day, time(12), tzinfo=zone).utcoffset()
+        if after != before and (after < before) == back:
+            return day
+    return None
+
+
+def _ambiguous_or_missing(zone: ZoneInfo, day: date, *, repeated: bool) -> time:
+    """A half-hour on `day` that happens twice (fall) or not at all (spring)."""
+    for minutes in range(0, 24 * 60, 30):
+        wall = time(minutes // 60, minutes % 60)
+        first = datetime.combine(day, wall, tzinfo=zone)
+        if repeated and first.utcoffset() != first.replace(fold=1).utcoffset():
+            return wall
+        if not repeated and first.astimezone(timezone.utc).astimezone(zone).time() != wall:
+            return wall
+    raise AssertionError(f"no {'repeated' if repeated else 'missing'} time in {zone} on {day}")
+
+
+@pytest.mark.parametrize("zone_name", ["America/Vancouver", "America/Edmonton", "America/Toronto", "America/Regina"])
+def test_ten_am_lands_where_the_zone_rules_say_across_the_autumn(zone_name):
+    """10:00 the day before and the day after the autumn change, wherever the zone has one."""
+    zone = ZoneInfo(zone_name)
+    change = _clock_change(zone, date(2026, 9, 1), back=True)
+    # A zone that no longer falls back is still checked, across the same weekend.
+    before, after = (change - timedelta(days=1), change + timedelta(days=1)) if change else (date(2026, 10, 31), date(2026, 11, 2))
+    now = datetime.combine(before - timedelta(days=7), time(12), tzinfo=timezone.utc)
+
+    def at(day):
         return booking_rules.build_proposal(
             style="appointment", day=day, wall=time(10, 0), part=None, duration_minutes=60,
-            opening_hours=None, zone=ZoneInfo(zone_name), now=now,
+            opening_hours=None, zone=zone, now=now,
         ).starts_at
 
-    # 10:00 the day before is still daylight time; 10:00 the day after is standard time.
-    assert at("America/Edmonton", date(2026, 10, 31)) == datetime(2026, 10, 31, 16, 0, tzinfo=timezone.utc)
-    assert at("America/Edmonton", date(2026, 11, 2)) == datetime(2026, 11, 2, 17, 0, tzinfo=timezone.utc)
-    assert at("America/Toronto", date(2026, 10, 31)) == datetime(2026, 10, 31, 14, 0, tzinfo=timezone.utc)
-    assert at("America/Toronto", date(2026, 11, 2)) == datetime(2026, 11, 2, 15, 0, tzinfo=timezone.utc)
-    # The same wall-clock time is 25 hours apart across the change, never 24.
-    gap = at("America/Toronto", date(2026, 11, 2)) - at("America/Toronto", date(2026, 10, 31))
-    assert gap == timedelta(days=2, hours=1)
+    for day in (before, after):
+        assert at(day) == datetime.combine(day, time(10, 0), tzinfo=zone).astimezone(timezone.utc), day
+    # The same wall-clock time two days apart is 48 hours plus the hour the clocks
+    # went back - 49 across a change, 48 where there is none.
+    shift = datetime.combine(before, time(10), tzinfo=zone).utcoffset() - datetime.combine(after, time(10), tzinfo=zone).utcoffset()
+    assert at(after) - at(before) == timedelta(days=2) + shift
 
 
 def test_the_repeated_hour_resolves_to_its_first_occurrence_and_a_whole_visit_still_fits():
     zone = ZoneInfo("America/Toronto")
-    first = booking_rules.to_utc(date(2026, 11, 1), time(1, 30), zone)
-    assert first == datetime(2026, 11, 1, 5, 30, tzinfo=timezone.utc)  # 1:30 EDT, not 1:30 EST
-    assert first.astimezone(zone).utcoffset() == timedelta(hours=-4)
+    change = _clock_change(zone, date(2026, 9, 1), back=True)
+    if change is None:
+        pytest.skip("Ontario no longer falls back")
+    wall = _ambiguous_or_missing(zone, change, repeated=True)
+
+    first = booking_rules.to_utc(change, wall, zone)
+
+    # The earlier of the two (daylight time), not the later one.
+    assert first == datetime.combine(change, wall, tzinfo=zone).astimezone(timezone.utc)
+    assert first.astimezone(zone).utcoffset() == datetime.combine(change, wall, tzinfo=zone).utcoffset()
+    assert first < datetime.combine(change, wall, tzinfo=zone).replace(fold=1).astimezone(timezone.utc)
 
 
 def test_a_spring_gap_time_is_refused_not_shifted():
     zone = ZoneInfo("America/Toronto")
+    change = _clock_change(zone, date(2026, 12, 1), back=False)
+    if change is None:
+        pytest.skip("Ontario no longer springs forward")
+    wall = _ambiguous_or_missing(zone, change, repeated=False)
     with pytest.raises(booking_rules.BookingRuleError, match="does not exist"):
-        booking_rules.to_utc(date(2027, 3, 14), time(2, 30), zone)
+        booking_rules.to_utc(change, wall, zone)
 
 
 def test_through_the_api_a_booking_after_the_next_clock_change_is_stored_at_the_right_instant(client, shop):
-    """Uses whatever clock change falls in the next 60 days (skips if there is none)."""
-    zone = ZoneInfo("America/Edmonton")
+    """Uses whatever clock change falls in the next 60 days, in the first Canadian
+    zone that has one (skips if none does)."""
     today = datetime.now(timezone.utc).date()
-    change = next(
+
+    def next_change(zone):
+        return next(
+            (
+                today + timedelta(days=d)
+                for d in range(3, 58)
+                if datetime.combine(today + timedelta(days=d), time(12), tzinfo=zone).utcoffset()
+                != datetime.combine(today + timedelta(days=d - 1), time(12), tzinfo=zone).utcoffset()
+            ),
+            None,
+        )
+
+    found = next(
         (
-            today + timedelta(days=d)
-            for d in range(3, 58)
-            if datetime.combine(today + timedelta(days=d), time(12), tzinfo=zone).utcoffset()
-            != datetime.combine(today + timedelta(days=d - 1), time(12), tzinfo=zone).utcoffset()
+            (name, change)
+            for name in ("America/Edmonton", "America/Toronto", "America/Halifax", "America/Vancouver")
+            if (change := next_change(ZoneInfo(name))) is not None
         ),
         None,
     )
-    if change is None:
-        pytest.skip("no clock change in Alberta within the next 60 days")
-    client.patch(f"/api/v1/businesses/{shop['bid']}", headers=shop["owner"], json={"timezone": "America/Edmonton"})
+    if found is None:
+        pytest.skip("no clock change in Canada within the next 60 days")
+    zone_name, change = found
+    zone = ZoneInfo(zone_name)
+    client.patch(f"/api/v1/businesses/{shop['bid']}", headers=shop["owner"], json={"timezone": zone_name})
     cust, _ = _user(client)
     before, after = change - timedelta(days=1), change + timedelta(days=1)
     for day in (before, after):
         booking = _book(client, shop, cust, day=day).json()
-        assert booking["timezone"] == "America/Edmonton"
+        assert booking["timezone"] == zone_name
         expected = datetime.combine(day, time(10, 0), tzinfo=zone).astimezone(timezone.utc)
         assert datetime.fromisoformat(booking["proposed_times"][0]["starts_at"]) == expected
         client.post(f"/api/v1/bookings/{booking['id']}/cancel", headers=cust, json={})
